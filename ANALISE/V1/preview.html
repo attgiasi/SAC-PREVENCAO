@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SAC Prevenção V1 - Preview</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0e1622;
+      --panel: #121d2b;
+      --panel-2: #172438;
+      --text: #f8fafc;
+      --muted: #a8b3c4;
+      --line: #334155;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --orange: #f97316;
+      --red: #dc2626;
+    }
+
+    body.preview-light {
+      color-scheme: light;
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --panel-2: #eef2f7;
+      --text: #111827;
+      --muted: #475569;
+      --line: #cbd5e1;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      letter-spacing: 0;
+    }
+
+    .preview-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .preview-top {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .preview-title {
+      font-size: 14px;
+      font-weight: 900;
+      margin-right: auto;
+    }
+
+    .preview-btn {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 8px 10px;
+      font: 700 12px system-ui;
+      cursor: pointer;
+    }
+
+    .preview-btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .preview-btn.green { background: var(--green); border-color: var(--green); color: #fff; }
+    .preview-btn.orange { background: var(--orange); border-color: var(--orange); color: #111827; }
+    .preview-btn.red { background: var(--red); border-color: var(--red); color: #fff; }
+
+    .preview-main {
+      display: grid;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .preview-flowbar {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .preview-flowbar button {
+      min-height: 42px;
+    }
+
+    .preview-stage {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      align-items: start;
+    }
+
+    .preview-panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .preview-panel header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-2);
+    }
+
+    .preview-panel header strong {
+      font-size: 13px;
+      margin-right: auto;
+    }
+
+    .preview-panel .content {
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .preview-field {
+      display: grid;
+      grid-template-columns: 126px 1fr;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .preview-field span {
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .preview-field input,
+    .preview-field select,
+    .preview-field textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text);
+      padding: 7px;
+      font: 12px system-ui;
+    }
+
+    .preview-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .preview-table th,
+    .preview-table td {
+      border-bottom: 1px solid var(--line);
+      padding: 7px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .preview-table tr.orange {
+      background: rgba(249, 115, 22, .2);
+      outline: 1px solid var(--orange);
+    }
+
+    .preview-note {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    @media (max-width: 980px) {
+      .preview-stage,
+      .preview-flowbar {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body data-sac-preview="true" data-sac-preview-page="falcon">
+  <main class="preview-shell">
+    <div class="preview-top">
+      <div class="preview-title">SAC Prevenção V1 Preview</div>
+      <button class="preview-btn primary" data-open="falcon">Falcon</button>
+      <button class="preview-btn primary" data-open="console">Console</button>
+      <button class="preview-btn primary" data-open="tabulador">Tabulador</button>
+      <button class="preview-btn" data-open="history">Histórico</button>
+      <button class="preview-btn" data-open="lists">LISTAS</button>
+      <button class="preview-btn" data-theme>Trocar tema</button>
+      <button class="preview-btn red" data-reset>Limpar memória</button>
+    </div>
+
+    <section class="preview-main">
+      <div class="preview-flowbar">
+        <button class="preview-btn green" data-flow="banking">BANKING</button>
+        <button class="preview-btn primary" data-flow="card">CARTÃO</button>
+        <button class="preview-btn orange" data-flow="hold">HOLD</button>
+      </div>
+
+      <div class="preview-stage">
+        <section class="preview-panel">
+          <header>
+            <strong>Falcon</strong>
+            <button class="preview-btn" data-open="falcon">Executar</button>
+          </header>
+          <div class="content" id="mock-falcon">
+            <div class="preview-field"><span>Caso</span><input data-sac-field="caseNumber"></div>
+            <div class="preview-field"><span>Emissor</span><input data-sac-field="issuerName"></div>
+            <div class="preview-field"><span>ID emissor</span><input data-sac-field="issuerId"></div>
+            <div class="preview-field"><span>Conta</span><input data-sac-field="accountId"></div>
+            <div class="preview-field"><span>CPF/CNPJ</span><input data-sac-field="document"></div>
+            <button class="preview-btn" data-sac-tab="caso">Caso</button>
+            <table class="preview-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Tipo</th>
+                  <th>Regra</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody id="falcon-rows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="preview-panel">
+          <header>
+            <strong>Console</strong>
+            <button class="preview-btn" data-open="console">Executar</button>
+          </header>
+          <div class="content" id="mock-console">
+            <div>
+              <button class="preview-btn green" id="btn-brasil">Backoffice Brasil</button>
+              <button class="preview-btn" id="btn-global">Global</button>
+            </div>
+            <div class="preview-field"><span>Status conta</span><input data-sac-console-field="statusConta"></div>
+            <div class="preview-field"><span>Status cartão</span><input data-sac-console-field="statusCartao"></div>
+            <div class="preview-field"><span>Data cadastro</span><input data-sac-console-field="dataCadastro"></div>
+            <div class="preview-field"><span>Histórico EC</span><input data-sac-console-field="historicoCompraEstabelecimento"></div>
+            <div class="preview-field"><span>Padrão compra</span><input data-sac-console-field="padraoCompra"></div>
+          </div>
+        </section>
+
+        <section class="preview-panel">
+          <header>
+            <strong>Tabulador</strong>
+            <button class="preview-btn" data-open="tabulador">Executar</button>
+          </header>
+          <div class="content" data-sac-page="tabulador">
+            <div class="preview-field"><span>Data entrada</span><input id="txt_data_entrada"></div>
+            <div class="preview-field"><span>Hora entrada</span><input id="txt_hora_entrada"></div>
+            <div class="preview-field"><span>Tipo doc</span><select id="ddl_tipoDoc"><option></option><option>CPF</option><option>CNPJ</option></select></div>
+            <div class="preview-field"><span>CPF</span><input id="txt_cpf"></div>
+            <div class="preview-field"><span>CNPJ</span><input id="txt_cnpj"></div>
+            <div class="preview-field"><span>Emissor</span><select id="ddl_idemissor"><option></option><option value="1">Dock</option><option value="2">SAC Prevenção</option><option value="3">Backoffice Prevenção</option></select></div>
+            <div class="preview-field"><span>Valor</span><input id="txt_ValorTransacao"></div>
+            <div class="preview-field"><span>Tipo chamada</span><select id="ddl_TipoChamada"><option></option><option>SEM CONTATO - PLANILHA</option><option>ATIVA - PLANILHA</option><option>RECEPTIVO</option></select></div>
+            <div class="preview-field"><span>Status chamada</span><select id="ddl_ChamadaAtiva"><option></option><option>SEM CHAMADA</option><option>COM SUCESSO</option><option>SEM SUCESSO</option></select></div>
+            <div class="preview-field"><span>Fila</span><select id="ddl_Fila"><option></option><option>BANKING</option><option>HOLD</option><option>CARTÕES APROVADAS</option><option>CARTÕES RECUSADAS</option></select></div>
+            <div class="preview-field"><span>EC/Transação</span><input id="EcTransacao"></div>
+            <div class="preview-field"><span>Regra</span><input id="RegraListada"></div>
+            <div class="preview-field"><span>Status</span><select id="ddl_status"><option></option><option>FRAUDE</option><option>NÃO FRAUDE</option><option>NÃO FOI POSSÍVEL CONFIRMAR FRAUDE</option><option>NÃO FOI POSSÍVEL CONFIRMAR NÃO FRAUDE</option></select></div>
+            <div class="preview-field"><span>Motivo</span><select id="ddl_motivostatus"><option></option><option>FRAUDE TRANSACIONAL</option><option>SEM SUSPEITAS</option><option>DADOS INSUFICIENTES PARA ANÁLISE</option><option>CLIENTE NÃO ATENDE</option></select></div>
+            <div class="preview-field"><span>Observação</span><textarea id="txt_observacao" rows="5"></textarea></div>
+          </div>
+        </section>
+      </div>
+
+      <section class="preview-panel">
+        <header>
+          <strong>Campos de LISTAS</strong>
+          <button class="preview-btn" data-open="lists">Abrir LISTAS</button>
+        </header>
+        <div class="content">
+          <div class="preview-field"><span>Campo 1</span><input data-sac-list-field="first"></div>
+          <div class="preview-field"><span>Campo 2</span><input data-sac-list-field="second"></div>
+          <div class="preview-field"><span>Data inicial</span><input data-sac-list-field="startDate"></div>
+          <div class="preview-field"><span>Data final</span><input data-sac-list-field="endDate"></div>
+          <div class="preview-field"><span>Emissor</span><select data-sac-list-field="issuer"><option></option><option value="1">Dock</option><option value="2">SAC Prevenção</option><option value="3">Backoffice Prevenção</option></select></div>
+          <div class="preview-note">O preview usa os scripts reais da V1. Escolha um fluxo, execute Falcon, ajuste Console se quiser e depois teste as decisões no Tabulador.</div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="./sac-memory-v1.js"></script>
+  <script src="./sac-tabulator-v1.js"></script>
+  <script src="./sac-prevencao-v1.js"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const samples = {
+        banking: {
+          flow: 'BANKING',
+          caseNumber: '90010001',
+          issuerName: 'Dock',
+          issuerId: '1',
+          accountId: 'ACCT-7001',
+          document: '123.456.789-09',
+          transactionType: 'PIX transferência',
+          rule: 'DENYLIST_CCS CAPITAL DE GIRO',
+          dateTime: '02/07/2026 10:31:00',
+          value: 'R$ 1.250,00',
+          infractionHistory: '0001000000',
+          establishment: '',
+          transactionDecision: '',
+          cardFinal: '',
+          entryType: ''
+        },
+        card: {
+          flow: 'CARD',
+          caseNumber: '90010002',
+          issuerName: 'Dock',
+          issuerId: '1',
+          accountId: 'ACCT-7002',
+          document: '12.345.678/0001-90',
+          transactionType: 'Autorização',
+          rule: 'DENYLIST_EC',
+          dateTime: '02/07/2026 11:08:00',
+          value: 'R$ 389,90',
+          infractionHistory: '',
+          establishment: 'MERCEARIA CENTRAL',
+          transactionDecision: 'aprovada',
+          cardFinal: '8842',
+          entryType: 'Compra online'
+        },
+        hold: {
+          flow: 'HOLD',
+          caseNumber: '90010003',
+          issuerName: 'Dock',
+          issuerId: '1',
+          accountId: 'ACCT-7003',
+          document: '987.654.321-00',
+          transactionType: 'TED saída',
+          rule: 'HOLD CONTENÇÃO AUTO FRAUDE',
+          dateTime: '02/07/2026 11:42:00',
+          value: 'R$ 4.800,00',
+          infractionHistory: '0003003003',
+          establishment: '',
+          transactionDecision: '',
+          cardFinal: '',
+          entryType: ''
+        }
+      };
+
+      const setValue = (selector, value, root = document) => {
+        const field = root.querySelector(selector);
+        if (field) field.value = value || '';
+      };
+
+      const renderRows = (sample) => {
+        const body = document.getElementById('falcon-rows');
+        const nonHoldRule = sample.flow === 'HOLD' ? 'DENYLIST_CCS' : sample.rule;
+        const rows = [
+          { ...sample, highlight: true },
+          { ...sample, rule: nonHoldRule, value: 'R$ 44,00', highlight: false }
+        ];
+        body.replaceChildren(...rows.map((row) => {
+          const tr = document.createElement('tr');
+          tr.dataset.sacRow = 'transaction';
+          tr.dataset.sacHighlight = row.highlight ? 'orange' : '';
+          tr.dataset.sacFlow = row.flow;
+          tr.className = row.highlight ? 'orange' : '';
+          tr.innerHTML = `
+            <td><input type="checkbox"></td>
+            <td data-sac-field="transactionType">${row.transactionType}</td>
+            <td data-sac-field="rule">${row.rule}</td>
+            <td data-sac-field="value">${row.value}</td>
+            <td hidden data-sac-field="dateTime">${row.dateTime}</td>
+            <td hidden data-sac-field="infractionHistory">${row.infractionHistory}</td>
+            <td hidden data-sac-field="establishment">${row.establishment}</td>
+            <td hidden data-sac-field="transactionDecision">${row.transactionDecision}</td>
+            <td hidden data-sac-field="cardFinal">${row.cardFinal}</td>
+            <td hidden data-sac-field="entryType">${row.entryType}</td>
+          `;
+          return tr;
+        }));
+      };
+
+      const renderSample = (name) => {
+        const sample = samples[name];
+        document.body.dataset.currentFlow = name;
+        const falcon = document.getElementById('mock-falcon');
+        ['caseNumber', 'issuerName', 'issuerId', 'accountId', 'document'].forEach((field) => {
+          setValue(`[data-sac-field="${field}"]`, sample[field], falcon);
+        });
+        renderRows(sample);
+
+        const consoleRoot = document.getElementById('mock-console');
+        setValue('[data-sac-console-field="statusConta"]', name === 'hold' ? 'bloqueado' : 'ativo', consoleRoot);
+        setValue('[data-sac-console-field="statusCartao"]', name === 'card' ? 'ativo' : '', consoleRoot);
+        setValue('[data-sac-console-field="dataCadastro"]', '14/03/2024', consoleRoot);
+        setValue('[data-sac-console-field="historicoCompraEstabelecimento"]', name === 'card' ? 'recorrente' : '', consoleRoot);
+        setValue('[data-sac-console-field="padraoCompra"]', name === 'card' ? 'compatível' : '', consoleRoot);
+      };
+
+      const openSac = (page) => {
+        document.body.dataset.sacPreviewPage = page;
+        if (window.SACPrevencao) window.SACPrevencao.open(page);
+      };
+
+      document.querySelectorAll('[data-flow]').forEach((button) => {
+        button.addEventListener('click', () => {
+          renderSample(button.dataset.flow);
+          openSac('falcon');
+        });
+      });
+
+      document.querySelectorAll('[data-open]').forEach((button) => {
+        button.addEventListener('click', () => openSac(button.dataset.open));
+      });
+
+      document.querySelector('[data-theme]').addEventListener('click', () => {
+        document.body.classList.toggle('preview-light');
+      });
+
+      document.querySelector('[data-reset]').addEventListener('click', () => {
+        Object.keys(localStorage).filter((key) => key.startsWith('sac-prevencao:v1:')).forEach((key) => localStorage.removeItem(key));
+        if (window.SACMemory) window.SACMemory.toast('Memória local limpa.', 'ok');
+      });
+
+      document.getElementById('btn-brasil').addEventListener('click', () => {
+        document.getElementById('btn-brasil').textContent = 'Backoffice Brasil';
+        document.getElementById('btn-global').textContent = 'Global';
+      });
+
+      document.getElementById('btn-global').addEventListener('click', () => {
+        document.getElementById('btn-brasil').textContent = 'Brasil';
+        document.getElementById('btn-global').textContent = 'Global Backoffice';
+      });
+
+      renderSample('banking');
+      window.addEventListener('load', () => openSac('falcon'));
+    })();
+  </script>
+</body>
+</html>

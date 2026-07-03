@@ -1,1 +1,1 @@
-javascript:(()=>{const b='https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/ANALISE/V1/';const q='?cache='+Date.now();const f=['sac-memory-v1.js','sac-tabulator-v1.js','sac-prevencao-v1.js'];const l=i=>{if(i>=f.length)return;const s=document.createElement('script');s.src=b+f[i]+q;s.async=false;s.onload=()=>l(i+1);document.documentElement.appendChild(s);};l(0);})();
+javascript:(()=>{window.open('https://cdn.jsdelivr.net/gh/attgiasi/AUTOMACAO@main/ANALISE/V1/preview.html?cache='+Date.now(),'_blank');})();

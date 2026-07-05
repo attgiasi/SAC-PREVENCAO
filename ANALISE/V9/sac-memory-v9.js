@@ -17,7 +17,11 @@
   const validAge = (item) => item && now() - Number(item.savedAt || 0) < TTL_MS;
   const itemStamp = (item) => Math.max(Number(item?.updatedAt || 0), Number(item?.appliedAt || 0), Number(item?.savedAt || 0));
   const normalizeText = (value) => String(value ?? "").trim();
-  const identity = (item) => `${normalizeText(item?.caseNumber)}:${normalizeText(item?.account)}`;
+  const identity = (item) => {
+    const caseNumber = normalizeText(item?.caseNumber);
+    const account = normalizeText(item?.account);
+    return caseNumber || account ? `${caseNumber}:${account}` : "";
+  };
   const redactDocuments = (value) => String(value || "")
     .replace(/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, "[CPF protegido]")
     .replace(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, "[CNPJ protegido]");

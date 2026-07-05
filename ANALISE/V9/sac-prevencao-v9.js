@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V9_20260625";
   const BUILD = "ANALISE/V9";
   const BUILD_FAMILY = "9";
-  const BUILD_VERSION = "9.3";
+  const BUILD_VERSION = "9.4";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -197,10 +197,15 @@
   storageSet("activeBuild", BUILD_VERSION);
   function clearPreviousRuntime() {
     all("[id^='sac-style'],.sac-panel,.sac-history-panel,.sac-choice-popover,.sac-side-panel,#sac-notices").forEach((node) => node.remove());
-    if (window.__SAC_PREVENCAO_KEYS) document.removeEventListener("keydown", window.__SAC_PREVENCAO_KEYS);
-    if (window.__SAC_PREVENCAO_V6_KEYS) document.removeEventListener("keydown", window.__SAC_PREVENCAO_V6_KEYS);
-    if (window.__SAC_PREVENCAO_V7_KEYS) document.removeEventListener("keydown", window.__SAC_PREVENCAO_V7_KEYS);
-    if (window.__SAC_PREVENCAO_V9_KEYS) document.removeEventListener("keydown", window.__SAC_PREVENCAO_V9_KEYS);
+    Object.keys(window)
+      .filter((handlerName) => /^__SAC_PREVENCAO(?:_V\d+)?_KEYS$/.test(handlerName))
+      .forEach((handlerName) => {
+        const handler = window[handlerName];
+        if (typeof handler === "function") document.removeEventListener("keydown", handler);
+        if (handlerName !== "__SAC_PREVENCAO_V9_KEYS") {
+          try { delete window[handlerName]; } catch (_err) { window[handlerName] = undefined; }
+        }
+      });
   }
   clearPreviousRuntime();
   window.__SAC_PREVENCAO_ACTIVE_BUILD__ = BUILD_VERSION;
@@ -395,6 +400,7 @@
     tabulatorNavigationGuardUntil = Date.now() + cooldownMs;
   }
 
+  // ========================= CONFIGURAÇÕES ==========================
   const getTheme = () => storageGet("theme") === "light" ? "light" : "dark";
   const getSafeMode = () => storageGet("safeMode") !== "off";
   const setSafeMode = (enabled) => storageSet("safeMode", enabled ? "on" : "off");
@@ -639,6 +645,7 @@
     document.head.appendChild(style);
   }
 
+  // ========================= AJUDA DIDÁTICA =========================
   const ISSUER_HELP = [
     { match: ["ONLYPAY"], title: "ONLYPAY", items: ["Cliente premiado via JIRA usa allowlist por 5 dias corridos.", "Durante a permissiva, evitar bloqueios de fraude relacionados ao caso validado.", "BANKING não fraude entra em LISTAS quando houver ID conta."] },
     { match: ["SOFISA"], title: "SOFISA", items: ["Regra de contenção usa prazo de 3 dias.", "Não fraude com contenção entra em Allowlist e Contenção.", "Quando não for contenção, seguir prazo padrão da lista aplicável."] },
@@ -1559,7 +1566,7 @@
   }
   function isHoldRule(rule) { return normalize(rule).includes("HOLD"); }
 
-  // ========================= FALCON: COLETA =========================
+  // ========================= FALCON: LEITURA ========================
   function collectFalconData() {
     const context = falconRowContext();
     const orangeData = readOriginalOrangeRowData(context);
@@ -1644,7 +1651,7 @@
     }
     return "N/A";
   }
-  // ========================= CONSOLE: COLETA ========================
+  // ========================= CONSOLE: LEITURA =======================
   function findTreatment() {
     const labels = all("button").map(textOf).map(normalize);
     if (labels.includes("GLOBAL BACKOFFICE")) return TREATMENT.global.label;
@@ -2035,7 +2042,7 @@
     const body = section("Dados do Falcon", falconGrid(data.falcon, { enhancePix: true }), "recebidos")
       + section("Dados do Console", consoleGrid(data), "coletados")
       + section("Chamada", consoleFlagControls(data), "opcional")
-      + section("Dropdowns de análise", `<div class="sac-field-grid">${fields}</div>`, "padrão V1");
+      + section("Dropdowns de análise", `<div class="sac-field-grid">${fields}</div>`, "seleções padrão");
     const panel = renderPanel({
       id: "sac-panel-console",
       stage: "CONSOLE",
@@ -2198,7 +2205,7 @@
     return Array.from(new Set([...requiredFalcon(data.falcon || {}), ...requiredConsole(data), ...requiredAnalysisFields(data)]));
   }
 
-  // ========================= TABULADOR ==============================
+  // ========================= TABULADOR: JANELA ======================
   async function renderTabulator(existingData = null) {
     window.__SAC_TABULATOR_DECISION_PANEL_ACTIVE__ = true;
     unlockTabulatorFieldLock();
@@ -2481,6 +2488,7 @@
     ].join("\n");
   }
 
+  // ========================= TABULADOR: APLICAÇÃO ===================
   function runLegacyFieldHooks(el) {
     if (!el) return;
     try {

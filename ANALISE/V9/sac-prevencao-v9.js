@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V9_20260625";
   const BUILD = "ANALISE/V9";
   const BUILD_FAMILY = "9";
-  const BUILD_VERSION = "9.4";
+  const BUILD_VERSION = "9.5";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -2554,6 +2554,9 @@
     if (target.pattern) return all(target.selector || "input,textarea").find((element) => target.pattern.test(`${element.id || ""} ${element.name || ""}`));
     return null;
   }
+  function anyTargetMatches(targets, value) {
+    return targets.some((target) => fieldValueMatches(targetElement(target), value));
+  }
   function fillAnyImmediate(targets, value) {
     if (!tabulatorWriteEnabled || isMissing(value)) return false;
     let ok = false;
@@ -2567,15 +2570,16 @@
     if (!canWriteTabulator(isActive) || isMissing(value)) return false;
     for (let attempt = 0; attempt < tries; attempt += 1) {
       if (!canWriteTabulator(isActive)) return false;
+      if (anyTargetMatches(targets, value)) return true;
       for (const target of targets) {
         const element = targetElement(target);
         if (!element) continue;
         setNativeValue(element, value, { quiet: true });
         await wait(delay);
         if (!canWriteTabulator(isActive)) return false;
-        if (fieldValueMatches(targetElement(target), value)) {
+        if (anyTargetMatches(targets, value)) {
           await wait(20);
-          if (fieldValueMatches(targetElement(target), value)) return true;
+          if (anyTargetMatches(targets, value)) return true;
         }
       }
       await wait(delay);
@@ -2655,6 +2659,21 @@
     const selected = select?.options?.[select.selectedIndex];
     return Boolean(selected && optionExactMatches(selected, wanted));
   }
+  async function waitForDropdownSelection(id, wanted, tries = 10, delay = 55, isActive = () => true) {
+    for (let attempt = 0; attempt < tries; attempt += 1) {
+      if (!isActive()) return false;
+      if (dropdownSelectionMatches(id, wanted)) return true;
+      const select = byId(id);
+      const selected = select?.options?.[select.selectedIndex];
+      if (selected && optionMatches(selected, wanted)) {
+        await wait(20);
+        const confirmed = byId(id)?.options?.[byId(id)?.selectedIndex];
+        if (dropdownSelectionMatches(id, wanted) || (confirmed && optionMatches(confirmed, wanted))) return true;
+      }
+      await wait(delay);
+    }
+    return false;
+  }
   async function selectDropdown(id, wanted, tries = 18, isActive = () => true) {
     if (!canWriteTabulator(isActive) || isMissing(wanted)) return false;
     for (let attempt = 0; attempt < tries; attempt += 1) {
@@ -2663,12 +2682,7 @@
       if (select?.options?.length && tabulatorEngine.selectNow(id, wanted)) {
         await wait(16);
         if (!canWriteTabulator(isActive)) return false;
-        const selected = byId(id)?.options?.[byId(id)?.selectedIndex];
-        if (selected && optionMatches(selected, wanted)) {
-          await wait(16);
-          const confirmed = byId(id)?.options?.[byId(id)?.selectedIndex];
-          if (confirmed && optionMatches(confirmed, wanted)) return true;
-        }
+        if (await waitForDropdownSelection(id, wanted, 4, 24, isActive)) return true;
       }
       if (select?.options?.length) {
         const option = all("option", select).find((candidate) => optionExactMatches(candidate, wanted))
@@ -2676,8 +2690,7 @@
         if (option && applySelectValue(select, option)) {
           await wait(16);
           if (!canWriteTabulator(isActive)) return false;
-          const selected = byId(id)?.options?.[byId(id)?.selectedIndex];
-          if (selected && optionMatches(selected, wanted)) return true;
+          if (await waitForDropdownSelection(id, wanted, 4, 24, isActive)) return true;
         }
       }
       await wait(24);
@@ -2744,7 +2757,7 @@
     if (!canWriteTabulator(isActive)) return { statusOk: false, cancelled: true };
     const statusOk = isActive() && await selectDropdown("ddl_status", decision, 28, isActive);
     if (!canWriteTabulator(isActive)) return { statusOk: false, cancelled: true };
-    return { statusOk: statusOk && dropdownSelectionMatches("ddl_status", decision) };
+    return { statusOk: statusOk && await waitForDropdownSelection("ddl_status", decision, 8, 45, isActive) };
   }
   async function applyReasonDropdown(data, decision, isActive = () => true) {
     if (!canWriteTabulator(isActive)) return { reasonOk: false, cancelled: true };
@@ -2752,7 +2765,7 @@
     if (!reason) return { reasonOk: true };
     const reasonOk = await selectDependentDropdown("ddl_status", decision, "ddl_motivostatus", reason, 120, isActive);
     if (!canWriteTabulator(isActive)) return { reasonOk: false, cancelled: true };
-    return { reasonOk: reasonOk && dropdownSelectionMatches("ddl_motivostatus", reason) };
+    return { reasonOk: reasonOk && await waitForDropdownSelection("ddl_motivostatus", reason, 10, 55, isActive) };
   }
   function queueFor(data) {
     const f = data.falcon || {};
@@ -2790,13 +2803,14 @@
     const targets = docKind === "CNPJ"
       ? [{ id: "txt_cnpj" }, { name: "_partial_Falcon.Cnpj" }, { pattern: /cnpj/i }]
       : [{ id: "txt_cpf" }, { name: "_partial_Falcon.Cpf" }, { pattern: /cpf/i }];
-    const field = targetElement(targets[0]);
-    if (!fieldValueMatches(field, doc)) await forceFillAny(targets, doc, 4, 18, isActive);
+    if (!anyTargetMatches(targets, doc)) await forceFillAny(targets, doc, 6, 22, isActive);
     if (!canWriteTabulator(isActive)) return ["CPF/CNPJ"];
-    const activeField = targetElement(targets[0]);
-    try { activeField?.dispatchEvent(new Event("blur", { bubbles: true })); } catch (_err) {}
-    await wait(30);
-    if (fieldValueMatches(targetElement(targets[0]), doc)) return [];
+    targets.forEach((target) => {
+      const activeField = targetElement(target);
+      try { activeField?.dispatchEvent(new Event("blur", { bubbles: true })); } catch (_err) {}
+    });
+    await waitForField(() => anyTargetMatches(targets, doc), 8, 45);
+    if (anyTargetMatches(targets, doc)) return [];
     return [docKind];
   }
   async function selectAndConfirmDropdown(id, wanted, label, missing, tries, isActive) {
@@ -2813,8 +2827,8 @@
     const confirmField = async (id, wanted, label, tries = 18) => {
       if (isMissing(wanted)) return;
       addChecked(label);
-      if (!dropdownSelectionMatches(id, wanted)) await selectDropdown(id, wanted, tries, isActive);
-      if (!dropdownSelectionMatches(id, wanted)) addMissing(label);
+      if (!await waitForDropdownSelection(id, wanted, 3, 35, isActive)) await selectDropdown(id, wanted, tries, isActive);
+      if (!await waitForDropdownSelection(id, wanted, 8, 50, isActive)) addMissing(label);
     };
 
     if (!canWriteTabulator(isActive)) return { checked, missing, cancelled: true };
@@ -2842,10 +2856,10 @@
     await confirmField("ddl_status", decision, "Decisão", 24);
     if (reason) {
       addChecked("Motivo status");
-      if (!dropdownSelectionMatches("ddl_motivostatus", reason)) {
+      if (!await waitForDropdownSelection("ddl_motivostatus", reason, 3, 45, isActive)) {
         await selectDependentDropdown("ddl_status", decision, "ddl_motivostatus", reason, 90, isActive);
       }
-      if (!dropdownSelectionMatches("ddl_motivostatus", reason)) addMissing("Motivo status");
+      if (!await waitForDropdownSelection("ddl_motivostatus", reason, 10, 55, isActive)) addMissing("Motivo status");
     }
 
     return { checked, missing, cancelled: !canWriteTabulator(isActive) };
@@ -2923,18 +2937,24 @@
     const callValues = tabulatorCallValues(data);
     const queue = queueFor(data);
     tasks.push((async () => {
-      if (byId("ddl_tabulador") && !await selectDropdown("ddl_tabulador", "Falcon", 20, isActive)) addPending("Tabulador Falcon");
+      if (byId("ddl_tabulador")) {
+        const ok = await selectDropdown("ddl_tabulador", "Falcon", 20, isActive)
+          && await waitForDropdownSelection("ddl_tabulador", "Falcon", 8, 45, isActive);
+        if (!ok) addPending("Tabulador Falcon");
+      }
     })());
     tasks.push(selectIssuerDropdown(data.issuer, data.issuerId, isActive).then((ok) => {
       if (!ok) addPending("Emissor");
       return ok;
     }));
-    tasks.push(selectDropdown("ddl_TipoChamada", callValues.type, 26, isActive).then((ok) => {
-      if (!ok || !dropdownSelectionMatches("ddl_TipoChamada", callValues.type)) addPending("Tipo de chamada");
+    tasks.push(selectDropdown("ddl_TipoChamada", callValues.type, 26, isActive).then(async (ok) => {
+      const confirmed = ok && await waitForDropdownSelection("ddl_TipoChamada", callValues.type, 8, 45, isActive);
+      if (!confirmed) addPending("Tipo de chamada");
       return ok;
     }));
-    tasks.push(selectDropdown("ddl_ChamadaAtiva", callValues.result, 26, isActive).then((ok) => {
-      if (!ok || !dropdownSelectionMatches("ddl_ChamadaAtiva", callValues.result)) addPending("Status chamada");
+    tasks.push(selectDropdown("ddl_ChamadaAtiva", callValues.result, 26, isActive).then(async (ok) => {
+      const confirmed = ok && await waitForDropdownSelection("ddl_ChamadaAtiva", callValues.result, 8, 45, isActive);
+      if (!confirmed) addPending("Status chamada");
       return ok;
     }));
     if (!queue) {
@@ -2943,7 +2963,8 @@
       tasks.push((async () => {
         let ok = await selectDropdown("ddl_Fila", queue, 40, isActive);
         if (!ok) ok = await selectDropdown("ddl_Fila", queue, 20, isActive);
-        if (!ok || !dropdownSelectionMatches("ddl_Fila", queue)) addPending("Fila");
+        const confirmed = ok && await waitForDropdownSelection("ddl_Fila", queue, 10, 45, isActive);
+        if (!confirmed) addPending("Fila");
       })());
     }
 

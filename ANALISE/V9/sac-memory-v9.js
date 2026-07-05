@@ -7,21 +7,30 @@
   const BOOT_KEY = "__SAC_PREVENCAO_SHARED_MEMORY__";
   const HISTORY_KEY = "sac_prevencao_V9:history";
   const LISTS_KEY = "sac_prevencao_V9:lists";
+  const LIST_TOMBSTONES_KEY = "sac_prevencao_V9:list_tombstones";
+  const SETTINGS_KEY = "sac_prevencao_V9:settings";
   const TRANSPORT_KEY = "sac_prevencao_V9:transport";
   const WINDOW_NAME_KEY = "__SAC_PREVENCAO_V9_MEMORY__=";
   const TTL_MS = 12 * 60 * 60 * 1000;
   const MAX_LISTS = 300;
   const MAX_HISTORY = 60;
+  const MAX_TOMBSTONES = 800;
 
   const now = () => Date.now();
   const validAge = (item) => item && now() - Number(item.savedAt || 0) < TTL_MS;
   const itemStamp = (item) => Math.max(Number(item?.updatedAt || 0), Number(item?.appliedAt || 0), Number(item?.savedAt || 0));
   const normalizeText = (value) => String(value ?? "").trim();
+  const identityPart = (value) => normalizeText(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^0-9a-z]/gi, "")
+    .toUpperCase();
   const identity = (item) => {
-    const caseNumber = normalizeText(item?.caseNumber);
-    const account = normalizeText(item?.account);
+    const caseNumber = identityPart(item?.caseNumber);
+    const account = identityPart(item?.account);
     return caseNumber || account ? `${caseNumber}:${account}` : "";
   };
+  const listIdentity = (item, listType = "") => `${identity(item) || item?.id || ""}:${normalizeText(listType)}`;
   const redactDocuments = (value) => String(value || "")
     .replace(/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, "[CPF protegido]")
     .replace(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, "[CNPJ protegido]");
@@ -81,20 +90,72 @@
     };
   }
 
+  function normalizeSettings(value) {
+    const source = value && typeof value === "object" ? value : {};
+    return Object.fromEntries(Object.entries(source)
+      .map(([name, entry]) => {
+        const next = entry && typeof entry === "object" && "value" in entry
+          ? { value: String(entry.value ?? ""), updatedAt: Number(entry.updatedAt || 0) }
+          : { value: String(entry ?? ""), updatedAt: 0 };
+        return [name, next];
+      }));
+  }
+
+  function normalizeTombstones(value) {
+    const source = Array.isArray(value) ? value : [];
+    return source
+      .map((item) => ({
+        key: normalizeText(item?.key),
+        removedAt: Number(item?.removedAt || item?.savedAt || 0)
+      }))
+      .filter((item) => item.key && validAge({ savedAt: item.removedAt }))
+      .sort((a, b) => Number(b.removedAt || 0) - Number(a.removedAt || 0))
+      .slice(0, MAX_TOMBSTONES);
+  }
+
   function normalizeMemory(value) {
     const source = value && typeof value === "object" ? value : {};
     const lists = Array.isArray(source.lists) ? source.lists.filter(validAge).slice(0, MAX_LISTS) : [];
+    const listTombstones = normalizeTombstones(source.listTombstones);
     const history = Array.isArray(source.history)
       ? source.history.filter(validAge).map(sanitizeHistory).slice(0, MAX_HISTORY)
       : [];
     const transport = source.transport && typeof source.transport === "object" ? source.transport : {};
+    const settings = normalizeSettings(source.settings);
     return {
       schema: 1,
       savedAt: Number(source.savedAt || 0),
       transport,
+      settings,
+      listTombstones,
       lists,
       history
     };
+  }
+
+  function mergeSettings(...groups) {
+    const merged = {};
+    groups.forEach((group) => {
+      Object.entries(normalizeSettings(group)).forEach(([name, entry]) => {
+        if (!merged[name] || Number(entry.updatedAt || 0) >= Number(merged[name].updatedAt || 0)) {
+          merged[name] = entry;
+        }
+      });
+    });
+    return merged;
+  }
+
+  function mergeTombstones(...groups) {
+    const byKey = new Map();
+    groups.flatMap(normalizeTombstones).forEach((item) => {
+      const previous = byKey.get(item.key);
+      if (!previous || Number(item.removedAt || 0) >= Number(previous.removedAt || 0)) {
+        byKey.set(item.key, item);
+      }
+    });
+    return Array.from(byKey.values())
+      .sort((a, b) => Number(b.removedAt || 0) - Number(a.removedAt || 0))
+      .slice(0, MAX_TOMBSTONES);
   }
 
   function mergeHistory(...groups) {
@@ -111,14 +172,42 @@
       .slice(0, MAX_HISTORY);
   }
 
+  function tombstoneMap(tombstones) {
+    const map = new Map();
+    normalizeTombstones(tombstones).forEach((item) => map.set(item.key, Number(item.removedAt || 0)));
+    return map;
+  }
+
+  function applyListTombstones(item, tombstones) {
+    const next = {
+      ...item,
+      applied: { ...(item?.applied || {}) }
+    };
+    const stamp = itemStamp(next);
+    const removals = tombstoneMap(tombstones);
+    ["allowlist", "contencao"].forEach((listType) => {
+      if (!next.lists?.[listType]) return;
+      const removedAt = removals.get(listIdentity(next, listType)) || 0;
+      if (removedAt >= stamp) next.applied[listType] = true;
+    });
+    return next;
+  }
+
+  function hasPendingList(item) {
+    return Boolean((item?.lists?.allowlist && !item?.applied?.allowlist) || (item?.lists?.contencao && !item?.applied?.contencao));
+  }
+
   function mergeLists(...groups) {
+    const tombstones = memory?.listTombstones || [];
     const byIdentity = new Map();
     groups.flat().filter(validAge).forEach((item) => {
-      const baseIdentity = identity(item) || item?.id;
-      const key = `${baseIdentity}:${Boolean(item?.lists?.allowlist)}:${Boolean(item?.lists?.contencao)}`;
+      const normalizedItem = applyListTombstones(item, tombstones);
+      if (!hasPendingList(normalizedItem)) return;
+      const baseIdentity = identity(normalizedItem) || normalizedItem?.id;
+      const key = `${baseIdentity}:${Boolean(normalizedItem?.lists?.allowlist)}:${Boolean(normalizedItem?.lists?.contencao)}`;
       const previous = byIdentity.get(key);
-      if (!previous || itemStamp(item) >= itemStamp(previous)) {
-        byIdentity.set(key, item);
+      if (!previous || itemStamp(normalizedItem) >= itemStamp(previous)) {
+        byIdentity.set(key, normalizedItem);
       }
     });
     return Array.from(byIdentity.values())
@@ -130,10 +219,14 @@
   const sessionStore = storageOf("sessionStorage");
   const localHistory = localStore ? readJson(localStore, HISTORY_KEY, []) : [];
   const localLists = localStore ? readJson(localStore, LISTS_KEY, []) : [];
+  const localTombstones = localStore ? readJson(localStore, LIST_TOMBSTONES_KEY, []) : [];
+  const localSettings = localStore ? readJson(localStore, SETTINGS_KEY, {}) : {};
   const localTransport = sessionStore ? readJson(sessionStore, TRANSPORT_KEY, {}) : {};
   const bootMemory = window[BOOT_KEY];
   const windowNameMemory = readWindowNameMemory();
   let memory = normalizeMemory(bootMemory);
+  memory.listTombstones = mergeTombstones(memory.listTombstones, localTombstones, windowNameMemory.listTombstones);
+  memory.settings = mergeSettings(localSettings, windowNameMemory.settings, memory.settings);
   memory.history = mergeHistory(memory.history, localHistory, windowNameMemory.history);
   memory.lists = mergeLists(memory.lists, localLists, windowNameMemory.lists);
   memory.transport = { ...localTransport, ...windowNameMemory.transport, ...memory.transport };
@@ -142,6 +235,8 @@
   function persistMirrors() {
     if (localStore) writeJson(localStore, HISTORY_KEY, memory.history.map(sanitizeHistory));
     if (localStore) writeJson(localStore, LISTS_KEY, memory.lists);
+    if (localStore) writeJson(localStore, LIST_TOMBSTONES_KEY, memory.listTombstones);
+    if (localStore) writeJson(localStore, SETTINGS_KEY, memory.settings);
     if (sessionStore) writeJson(sessionStore, TRANSPORT_KEY, memory.transport);
     writeWindowNameMemory(memory);
     window[BOOT_KEY] = memory;
@@ -161,8 +256,12 @@
   function mergeCurrentMirrors() {
     const localHistoryNow = localStore ? readJson(localStore, HISTORY_KEY, []) : [];
     const localListsNow = localStore ? readJson(localStore, LISTS_KEY, []) : [];
+    const localTombstonesNow = localStore ? readJson(localStore, LIST_TOMBSTONES_KEY, []) : [];
+    const localSettingsNow = localStore ? readJson(localStore, SETTINGS_KEY, {}) : {};
     const localTransportNow = sessionStore ? readJson(sessionStore, TRANSPORT_KEY, {}) : {};
     const windowNameNow = readWindowNameMemory();
+    memory.listTombstones = mergeTombstones(memory.listTombstones, localTombstonesNow, windowNameNow.listTombstones);
+    memory.settings = mergeSettings(localSettingsNow, windowNameNow.settings, memory.settings);
     memory.history = mergeHistory(memory.history, localHistoryNow, windowNameNow.history);
     memory.lists = mergeLists(memory.lists, localListsNow, windowNameNow.lists);
     memory.transport = { ...localTransportNow, ...windowNameNow.transport, ...memory.transport };
@@ -180,7 +279,11 @@
         if (!item.types.includes(TYPE)) continue;
         const blob = await item.getType(TYPE);
         const incoming = normalizeMemory(JSON.parse(await blob.text()));
+        incoming.listTombstones = mergeTombstones(incoming.listTombstones, memory.listTombstones);
+        incoming.settings = mergeSettings(memory.settings, incoming.settings);
         incoming.history = mergeHistory(incoming.history, memory.history);
+        memory.listTombstones = incoming.listTombstones;
+        memory.settings = incoming.settings;
         incoming.lists = mergeLists(incoming.lists, memory.lists);
         incoming.transport = { ...memory.transport, ...incoming.transport };
         return setSnapshot(incoming);
@@ -246,6 +349,54 @@
       memory.savedAt = now();
       persistMirrors();
       return this.all();
+    },
+    markDone(item, listType) {
+      const baseIdentity = identity(item) || item?.id || "";
+      const key = listIdentity(item, listType);
+      if (baseIdentity && listType) {
+        memory.listTombstones = mergeTombstones([{ key, removedAt: now() }], memory.listTombstones);
+      }
+      const changedAt = now();
+      memory.lists = mergeLists(memory.lists.map((entry) => {
+        if ((identity(entry) || entry.id) !== baseIdentity) return entry;
+        return {
+          ...entry,
+          applied: { ...(entry.applied || {}), [listType]: true },
+          updatedAt: changedAt,
+          appliedAt: changedAt,
+          savedAt: changedAt
+        };
+      }));
+      persistMirrors();
+      return this.all();
+    },
+    tombstones() {
+      return memory.listTombstones.map((item) => ({ ...item }));
+    }
+  };
+
+  const settings = {
+    get(name) {
+      mergeCurrentMirrors();
+      return String(memory.settings?.[name]?.value ?? "");
+    },
+    set(name, value) {
+      memory.settings = mergeSettings(memory.settings, { [name]: { value: String(value ?? ""), updatedAt: now() } });
+      memory.savedAt = now();
+      persistMirrors();
+      return String(value ?? "");
+    },
+    remove(name) {
+      const next = { ...(memory.settings || {}) };
+      delete next[name];
+      memory.settings = next;
+      memory.savedAt = now();
+      persistMirrors();
+      return true;
+    },
+    all() {
+      mergeCurrentMirrors();
+      return Object.fromEntries(Object.entries(memory.settings || {}).map(([name, entry]) => [name, String(entry.value ?? "")]));
     }
   };
 
@@ -278,6 +429,7 @@
     commitCurrentText,
     transport,
     lists,
+    settings,
     history,
     redactDocuments
   });

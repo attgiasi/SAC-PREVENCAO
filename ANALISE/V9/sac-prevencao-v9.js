@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V9_20260625";
   const BUILD = "ANALISE/V9";
   const BUILD_FAMILY = "9";
-  const BUILD_VERSION = "9.5";
+  const BUILD_VERSION = "9.6";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -159,6 +159,12 @@
     }
   }
   const storageGet = (name) => {
+    if (SHARED_SETTING_NAMES.has(name)) {
+      try {
+        const sharedMemoryValue = memory.settings?.get?.(name);
+        if (typeof sharedMemoryValue === "string" && sharedMemoryValue) return sharedMemoryValue;
+      } catch (_err) {}
+    }
     try {
       const persisted = localStorage.getItem(key(name)) || sessionStorage.getItem(key(name)) || "";
       if (persisted) return persisted;
@@ -171,6 +177,10 @@
       const settings = readSharedSettings();
       settings[name] = String(value ?? "");
       writeSharedSettings(settings);
+      try {
+        memory.settings?.set?.(name, value);
+        memory.commitCurrentText?.();
+      } catch (_err) {}
     }
     try { localStorage.setItem(key(name), value); }
     catch (_err) {
@@ -182,6 +192,10 @@
       const settings = readSharedSettings();
       delete settings[name];
       writeSharedSettings(settings);
+      try {
+        memory.settings?.remove?.(name);
+        memory.commitCurrentText?.();
+      } catch (_err) {}
     }
     try { localStorage.removeItem(key(name)); sessionStorage.removeItem(key(name)); } catch (_err) {}
   };
@@ -1054,6 +1068,10 @@
     const title = kind === "rule" ? "Passe o mouse para ver orientação da regra" : "Passe o mouse para ver particularidades do emissor";
     const help = kind ? `<button class="sac-help-btn" data-help-kind="${kind}" data-help-value="${escapeHtml(clean(value, ""))}" aria-label="${escapeHtml(title)}" title="${escapeHtml(title)}">${icon}</button>` : "";
     return `<div class="sac-kv ${missing ? "sac-missing" : ""} ${cls}">${help}<div class="sac-kv-label">${escapeHtml(label)}</div><div class="sac-kv-value">${escapeHtml(clean(value))}</div></div>`;
+  }
+  function kvNoHelp(label, value, cls = "") {
+    const missing = isMissing(value);
+    return `<div class="sac-kv ${missing ? "sac-missing" : ""} ${cls}"><div class="sac-kv-label">${escapeHtml(label)}</div><div class="sac-kv-value">${escapeHtml(clean(value))}</div></div>`;
   }
   function kvOptional(label, value, cls = "") {
     const possibleKind = getHelpMode() && normalize(label) === "REGRA" ? "rule" : getHelpMode() && normalize(label) === "EMISSOR" ? "issuer" : "";
@@ -3150,6 +3168,16 @@
     return alnumOnly(item?.caseNumber) === alnumOnly(data?.falcon?.caseNumber)
       && alnumOnly(item?.account) === alnumOnly(data?.account);
   }
+  async function retireCurrentCaseFromLists(queue, data) {
+    const currentItems = queue.filter((item) => sameListIdentity(item, data));
+    currentItems.forEach((item) => {
+      if (item.lists?.allowlist) memory.lists.markDone?.(item, "allowlist");
+      if (item.lists?.contencao) memory.lists.markDone?.(item, "contencao");
+    });
+    const withoutCurrentCase = queue.filter((item) => !sameListIdentity(item, data));
+    await writeListQueue(withoutCurrentCase);
+    return withoutCurrentCase;
+  }
   async function updateListsForFinalDecision(data, decision) {
     const queue = await readListQueue();
     const withoutCurrentCase = queue.filter((item) => !sameListIdentity(item, data));
@@ -3157,26 +3185,22 @@
       if (withoutCurrentCase.length !== queue.length) {
         showNotice("O caso foi retirado de LISTAS porque a decisão final não é NÃO FRAUDE.", "info");
       }
-      await writeListQueue(withoutCurrentCase);
-      return withoutCurrentCase;
+      return retireCurrentCaseFromLists(queue, data);
     }
     const lists = listTypesFor(data);
     if (!lists.allowlist && !lists.contencao) {
-      await writeListQueue(withoutCurrentCase);
-      return withoutCurrentCase;
+      return retireCurrentCaseFromLists(queue, data);
     }
     const issuerId = await issuerIdForName(data.issuer);
     if ((issuerId === "155" || normalize(data.issuer).includes("CONTA SIMPLES")) && isRecentRegistration(data.registrationDate)) {
       showNotice("Conta Simples 155 com cadastro menor que 3 meses não foi enviada para LISTAS.", "info", 10000);
-      await writeListQueue(withoutCurrentCase);
-      return withoutCurrentCase;
+      return retireCurrentCaseFromLists(queue, data);
     }
     const account = clean(data.account, "");
     const documentValue = documentFieldValue(data.cpfCnpj);
     if (!account || (lists.contencao && !documentValue)) {
       showNotice(lists.contencao && !documentValue ? "Regra de contenção detectada, mas faltou CPF/CNPJ para a LISTAS." : "Caso não fraude salvo, mas faltou ID da conta para a LISTAS.", "warn");
-      await writeListQueue(withoutCurrentCase);
-      return withoutCurrentCase;
+      return retireCurrentCaseFromLists(queue, data);
     }
     const item = {
       id: `${data.falcon?.caseNumber || Date.now()}-${Date.now()}`,
@@ -3392,17 +3416,10 @@
   }
   async function markListDone(id, listType) {
     const original = await readListQueue();
-    const appliedAt = Date.now();
-    const list = original.map((item) => {
-      if (item.id !== id) return item;
-      return {
-        ...item,
-        applied: { ...(item.applied || {}), [listType]: true },
-        updatedAt: appliedAt,
-        appliedAt,
-        savedAt: appliedAt
-      };
-    }).filter(hasPendingListApplication);
+    const target = original.find((item) => item.id === id);
+    if (!target) return true;
+    memory.lists.markDone?.(target, listType);
+    const list = memory.lists.all().filter(hasPendingListApplication);
     await writeListQueue(list);
     const stillPending = (await readListQueue()).some((item) => item.id === id && item.lists?.[listType] && !item.applied?.[listType]);
     return !stillPending;
@@ -3428,10 +3445,10 @@
         ${visible.length ? visible.map((item) => `
           <div class="sac-allowlist-item" data-list-id="${escapeHtml(item.id)}" data-list-type="${escapeHtml(activeTab)}">
             <div class="sac-allowlist-row">
-              ${kv("Emissor", item.issuer)}
-              ${kv(activeTab === "contencao" ? "CPF/CNPJ" : "Id Conta", listIdentifier(item, activeTab))}
-              ${kv("Número do caso", item.caseNumber)}
-              ${kv("ID emissor", item.issuerId || "N/A")}
+              ${kvNoHelp("Emissor", item.issuer)}
+              ${kvNoHelp(activeTab === "contencao" ? "CPF/CNPJ" : "Id Conta", listIdentifier(item, activeTab))}
+              ${kvNoHelp("Número do caso", item.caseNumber)}
+              ${kvNoHelp("ID emissor", item.issuerId || "N/A")}
             </div>
             <div class="sac-allowlist-actions">
               <button data-list-apply>INSERIR</button>

@@ -1,6 +1,6 @@
 # SAC Prevenção V9
 
-Versão revisada em 05/07/2026. Build interno `9.5`.
+Versão revisada em 05/07/2026. Build interno `9.6`.
 
 ## Estrutura
 

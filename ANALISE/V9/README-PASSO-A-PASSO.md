@@ -13,7 +13,7 @@ A V9 fica organizada em blocos claros:
 - `issuer-directory.json`: base de apoio para cruzamento de emissores.
 - `bookmarklet-v9.txt`: favorito dedicado para testar a V9 sem mexer no favorito universal.
 
-Nesta entrega, o favorito universal não foi vinculado à V9. Para testar esta versão, use somente o conteúdo de `ANALISE/V9/bookmarklet-v9.txt`. O universal deve continuar apontando para a versão aprovada até você liberar a troca.
+Nesta entrega, o favorito universal foi vinculado à V9.7. O arquivo `ANALISE/favorito-universal.bookmarklet.txt` continua igual e carrega `ANALISE/motor-sac-universal.js`, que agora aponta para a V9.
 
 ## Blocos revisados
 
@@ -337,11 +337,11 @@ O sistema mostra principalmente:
 ## Instalação
 
 1. Envie a pasta `ANALISE/V9` para o GitHub.
-2. No Chrome, crie um favorito temporário apontando para o conteúdo de `ANALISE/V9/bookmarklet-v9.txt`.
-3. Use esse favorito temporário nas páginas do Falcon, Console, Tabulador e LISTAS.
-4. Mantenha o favorito universal como está até a V9 ser aprovada.
+2. Envie também `ANALISE/motor-sac-universal.js`.
+3. No Chrome, mantenha o favorito geral apontando para o conteúdo de `ANALISE/favorito-universal.bookmarklet.txt`.
+4. Use o mesmo favorito nas páginas do Falcon, Console, Tabulador e LISTAS.
 
-Depois da aprovação, o universal pode ser atualizado para apontar para a V9.
+O bookmarklet dedicado `ANALISE/V9/bookmarklet-v9.txt` continua disponível apenas para teste isolado da V9.
 
 
 

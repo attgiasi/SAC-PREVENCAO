@@ -1,11 +1,11 @@
-(async function SacPrevencaoUniversalV8() {
+(async function SacPrevencaoUniversalV9() {
   "use strict";
 
-  const VERSION = "8.15.0";
+  const VERSION = "9.7.0";
   const FILES = [
-    "V8/sac-memory-v8.js",
-    "V8/sac-tabulator-v8.js",
-    "V8/sac-prevencao-v8.js"
+    "V9/sac-memory-v9.js",
+    "V9/sac-tabulator-v9.js",
+    "V9/sac-prevencao-v9.js"
   ];
 
   const current = (() => {
@@ -14,9 +14,11 @@
   })();
 
   try {
-    document.querySelectorAll("script[data-sac-universal='v8']").forEach((script) => script.remove());
+    document.querySelectorAll("script[data-sac-universal='v8'],script[data-sac-universal='v9']").forEach((script) => script.remove());
     delete window.SACMemoryV8;
     delete window.SACTabulatorV8;
+    delete window.SACMemoryV9;
+    delete window.SACTabulatorV9;
   } catch (_error) {}
 
   for (const file of FILES) {
@@ -25,7 +27,7 @@
       url.searchParams.set("v", VERSION);
       url.searchParams.set("cache", String(Date.now()));
       const script = document.createElement("script");
-      script.dataset.sacUniversal = "v8";
+      script.dataset.sacUniversal = "v9";
       script.src = url.href;
       script.async = false;
       script.onload = resolve;

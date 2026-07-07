@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V9_20260625";
   const BUILD = "ANALISE/V9";
   const BUILD_FAMILY = "9";
-  const BUILD_VERSION = "9.6";
+  const BUILD_VERSION = "9.7";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -179,7 +179,7 @@
       writeSharedSettings(settings);
       try {
         memory.settings?.set?.(name, value);
-        memory.commitCurrentText?.();
+        if (!["activeBuild", "activeBuildFamily"].includes(name)) memory.commitCurrentText?.();
       } catch (_err) {}
     }
     try { localStorage.setItem(key(name), value); }
@@ -3434,7 +3434,6 @@
     storageSet("activeListTab", activeTab);
     const queue = await readListQueue();
     const items = await Promise.all(queue.map(async (item) => ({ ...item, issuerId: item.issuerId || await issuerIdForName(item.issuer) })));
-    memory.lists.replace(items);
     const visible = items.filter((item) => item.lists?.[activeTab] && !item.applied?.[activeTab]);
     const body = section("Listas", `
       <div class="sac-list-tabs">

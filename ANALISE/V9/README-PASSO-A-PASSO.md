@@ -1,6 +1,6 @@
 # SAC Prevenção V9
 
-Versão revisada em 05/07/2026. Build interno `9.6`.
+Versão revisada em 07/07/2026. Build interno `9.7`.
 
 ## Estrutura
 
@@ -14,6 +14,17 @@ A V9 fica organizada em blocos claros:
 - `bookmarklet-v9.txt`: favorito dedicado para testar a V9 sem mexer no favorito universal.
 
 Nesta entrega, o favorito universal não foi vinculado à V9. Para testar esta versão, use somente o conteúdo de `ANALISE/V9/bookmarklet-v9.txt`. O universal deve continuar apontando para a versão aprovada até você liberar a troca.
+
+## Blocos revisados
+
+- `FALCON`: coleta caso, fluxo, regra, data/hora, valor, histórico de infração e dados específicos de cartão quando houver.
+- `CONSOLE`: recebe os dados do Falcon, complementa status, emissor, conta, cadastro, documento e campos de análise.
+- `TABULADOR`: só aplica os campos depois da decisão; Motivo Status é o único campo dependente que aguarda carregar.
+- `CONFIGURAÇÕES`: usa memória compartilhada para refletir tema, modo seguro, ajuda, fonte, assinatura e cores entre etapas.
+- `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
+- `HISTÓRICO`: grava a tabulação sem CPF/CNPJ visível e deve abrir igual em qualquer etapa.
+
+Na V9.7, a memória de LISTAS, Histórico e Configurações é transportada por `localStorage`, `window.name`, clipboard customizado e também um envelope HTML padrão. Isso reduz falhas entre páginas de origens diferentes.
 
 ## Fluxos
 

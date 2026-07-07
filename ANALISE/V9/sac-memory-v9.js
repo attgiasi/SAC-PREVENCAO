@@ -4,6 +4,8 @@
   if (window.SACMemoryV9) return;
 
   const TYPE = "web application/x-sac-prevencao-memory";
+  const HTML_TYPE = "text/html";
+  const HTML_MARKER = "SAC_PREVENCAO_MEMORY_V9";
   const BOOT_KEY = "__SAC_PREVENCAO_SHARED_MEMORY__";
   const HISTORY_KEY = "sac_prevencao_V9:history";
   const LISTS_KEY = "sac_prevencao_V9:lists";
@@ -34,6 +36,9 @@
   const redactDocuments = (value) => String(value || "")
     .replace(/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, "[CPF protegido]")
     .replace(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, "[CNPJ protegido]");
+  const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[char]));
 
   function readJson(storage, key, fallback) {
     try {
@@ -270,23 +275,50 @@
     return snapshot();
   }
 
+  function encodeMemoryPayload(value = memory) {
+    return encodeURIComponent(JSON.stringify(normalizeMemory(value)));
+  }
+
+  function htmlClipboardPayload(text = "") {
+    return `<div>${escapeHtml(String(text ?? "")).replace(/\n/g, "<br>")}</div><!--${HTML_MARKER}:${encodeMemoryPayload()}-->`;
+  }
+
+  function memoryFromHtml(html) {
+    try {
+      const match = String(html || "").match(new RegExp(`<!--${HTML_MARKER}:([^]+?)-->`));
+      return match ? normalizeMemory(JSON.parse(decodeURIComponent(match[1]))) : null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function mergeIncomingMemory(incoming) {
+    const next = normalizeMemory(incoming);
+    next.listTombstones = mergeTombstones(next.listTombstones, memory.listTombstones);
+    next.settings = mergeSettings(memory.settings, next.settings);
+    next.history = mergeHistory(next.history, memory.history);
+    memory.listTombstones = next.listTombstones;
+    memory.settings = next.settings;
+    next.lists = mergeLists(next.lists, memory.lists);
+    next.transport = { ...memory.transport, ...next.transport };
+    return setSnapshot(next);
+  }
+
   async function hydrateFromClipboard() {
     mergeCurrentMirrors();
     if (!navigator.clipboard?.read) return snapshot();
     try {
       const items = await navigator.clipboard.read();
       for (const item of items) {
-        if (!item.types.includes(TYPE)) continue;
-        const blob = await item.getType(TYPE);
-        const incoming = normalizeMemory(JSON.parse(await blob.text()));
-        incoming.listTombstones = mergeTombstones(incoming.listTombstones, memory.listTombstones);
-        incoming.settings = mergeSettings(memory.settings, incoming.settings);
-        incoming.history = mergeHistory(incoming.history, memory.history);
-        memory.listTombstones = incoming.listTombstones;
-        memory.settings = incoming.settings;
-        incoming.lists = mergeLists(incoming.lists, memory.lists);
-        incoming.transport = { ...memory.transport, ...incoming.transport };
-        return setSnapshot(incoming);
+        if (item.types.includes(TYPE)) {
+          const blob = await item.getType(TYPE);
+          return mergeIncomingMemory(JSON.parse(await blob.text()));
+        }
+        if (item.types.includes(HTML_TYPE)) {
+          const blob = await item.getType(HTML_TYPE);
+          const incoming = memoryFromHtml(await blob.text());
+          if (incoming) return mergeIncomingMemory(incoming);
+        }
       }
     } catch (_error) {}
     return snapshot();
@@ -296,11 +328,21 @@
     memory.savedAt = now();
     persistMirrors();
     if (navigator.clipboard?.write && window.ClipboardItem) {
+      const plain = String(text ?? "");
+      const html = htmlClipboardPayload(plain);
       try {
         const payload = JSON.stringify(memory);
         await navigator.clipboard.write([new ClipboardItem({
-          "text/plain": new Blob([String(text ?? "")], { type: "text/plain" }),
+          "text/plain": new Blob([plain], { type: "text/plain" }),
+          [HTML_TYPE]: new Blob([html], { type: HTML_TYPE }),
           [TYPE]: new Blob([payload], { type: TYPE })
+        })]);
+        return { textCopied: true, memoryCopied: true };
+      } catch (_error) {}
+      try {
+        await navigator.clipboard.write([new ClipboardItem({
+          "text/plain": new Blob([plain], { type: "text/plain" }),
+          [HTML_TYPE]: new Blob([html], { type: HTML_TYPE })
         })]);
         return { textCopied: true, memoryCopied: true };
       } catch (_error) {}

@@ -307,20 +307,27 @@
   async function hydrateFromClipboard() {
     mergeCurrentMirrors();
     if (!navigator.clipboard?.read) return snapshot();
+    let items = [];
     try {
-      const items = await navigator.clipboard.read();
-      for (const item of items) {
-        if (item.types.includes(TYPE)) {
+      items = await navigator.clipboard.read();
+    } catch (_error) {
+      return snapshot();
+    }
+    for (const item of items) {
+      if (item.types.includes(TYPE)) {
+        try {
           const blob = await item.getType(TYPE);
           return mergeIncomingMemory(JSON.parse(await blob.text()));
-        }
-        if (item.types.includes(HTML_TYPE)) {
+        } catch (_error) {}
+      }
+      if (item.types.includes(HTML_TYPE)) {
+        try {
           const blob = await item.getType(HTML_TYPE);
           const incoming = memoryFromHtml(await blob.text());
           if (incoming) return mergeIncomingMemory(incoming);
-        }
+        } catch (_error) {}
       }
-    } catch (_error) {}
+    }
     return snapshot();
   }
 
@@ -465,6 +472,7 @@
     bootKey: BOOT_KEY,
     hydrateFromClipboard,
     mergeCurrentMirrors,
+    mergeSnapshot: mergeIncomingMemory,
     snapshot,
     setSnapshot,
     commit,

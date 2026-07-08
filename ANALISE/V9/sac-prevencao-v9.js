@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V9_20260625";
   const BUILD = "ANALISE/V9";
   const BUILD_FAMILY = "9";
-  const BUILD_VERSION = "9.7";
+  const BUILD_VERSION = "9.8";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -203,6 +203,18 @@
     try { return JSON.parse(storageGet(name) || "null"); } catch (_err) { return null; }
   };
   const writeJson = (name, value) => storageSet(name, JSON.stringify(value));
+  function packageMemorySnapshot() {
+    const snap = memory.snapshot?.() || {};
+    return {
+      schema: 1,
+      savedAt: Date.now(),
+      settings: snap.settings || {}
+    };
+  }
+  function hydrateMemoryFromPackage(data) {
+    if (!data?.sharedMemory) return;
+    try { memory.mergeSnapshot?.(data.sharedMemory); } catch (_err) {}
+  }
   const previousBuildFamily = storageGet("activeBuildFamily");
   if (previousBuildFamily && previousBuildFamily !== BUILD_FAMILY) {
     ["lastFalcon", "lastConsole"].forEach(storageRemove);
@@ -673,6 +685,7 @@
     { match: ["TRAMPAY"], title: "TRAMPAY", items: ["Perfil esperado: entregadores e motoboys.", "Fora do perfil com indício de fraude pode justificar bloqueio.", "Regra de referência: Nega_Nao_Entregador_V2."] },
     { match: ["BEMOL"], title: "BEMOL", items: ["Atuação concentrada na região Norte.", "Conta fora da região pode ser sinal de atenção.", "boleto_valor_suspeito é alto risco: classificar como fraude e aplicar SPD 15."] },
     { match: ["IFOOD", "IFOOD DOCK"], title: "IFOOD", items: ["Capital de Giro iFood não deve ter bloqueio de cartão pela operação.", "Manter análise e abordagem, mas bloqueio é responsabilidade do iFood."] },
+    { match: ["JEITTO", "JEITTO DOCK", "JEITTODOCK", "JEITTODOCKONE", "JEITTO DOCK ONE"], title: "JEITTO", items: ["Perfil: inclusão financeira para classes C/D, baixa renda e pequenas transações.", "Uso esperado: remédios, gás, contas, pequenas compras e despesas emergenciais.", "Produtos: Pré não possui empréstimos; É Grana possui transferências, empréstimos e Pix.", "Crédito costuma ser baixo após onboarding, geralmente entre R$ 50 e R$ 200.", "Atenção a P2P em sequência, conta nova com alto volume, valores acima de R$ 5 mil ou R$ 10 mil no mês.", "Infrações iguais ou acima de 004 são alerta forte para a análise.", "Tratativa JeittoDock One das 09h às 18h; DBM após 18h, fins de semana e feriados.", "Em suspeita, seguir fluxo de bloqueio preventivo; cancelamento fica a critério da JeittoDockOne."] },
     { match: ["MEU TUDO"], title: "MEU TUDO", items: ["Bloquear somente com confirmação de fraude pelo cliente.", "Sem contato ou sem confirmação: não bloquear apenas por ausência de retorno."] }
   ];
   const RULE_HELP = [
@@ -683,6 +696,7 @@
     { match: ["CONTENCAO", "CONTENÇÃO", "CONTENSAO", "CONTENSÃO"], title: "CONTENÇÃO", items: ["BANKING não fraude entra em Allowlist e também em Contenção.", "Na Contenção, usar CPF/CNPJ sem pontos, traços ou barra.", "Sofisa usa prazo de 3 dias; demais emissores usam 48h.", "Somente allowlist não libera contenção; as duas listas são complementares."] },
     { match: ["AUTO_FRAUDE", "AUTO FRAUDE", "AUTOFRAUDE"], title: "AUTO FRAUDE", items: ["Realizar até 3 tentativas de contato ativo.", "Se atender, validar PID e questionar uso em estabelecimento próprio.", "Se não atender ou não validar PID, bloquear o cartão.", "Não confundir auto fraude com autofinanciamento no dropdown de Extrato."] },
     { match: ["CAPITAL_DE_GIRO", "CAPITAL DE GIRO"], title: "CAPITAL DE GIRO", items: ["Validar compatibilidade com perfil, atividade, origem e destino.", "Atenção a triangulação, recorrência e conta recente.", "Em Capital de Giro iFood, não bloquear cartão pela operação; decisão é do iFood."] },
+    { match: ["BLOQUEIO PREVENTIVO FALCON", "BLOQUEIO PREVENTIVO FALCON 254", "FALCON 254"], title: "BLOQUEIO PREVENTIVO FALCON", items: ["Cartão: bloquear quando o cliente responde ao CCS/SMS que não reconhece a compra.", "Cartão: com suspeita e sem contato, aplicar bloqueio temporário; Ifood e Amigoz somente com contato.", "Banking/JIRA: regra alinhada ao emissor pode aplicar bloqueio preventivo automaticamente.", "Exemplo JSLNEW: perfil esperado é caminhoneiro com P2P recebido de conta vinculada ao emissor.", "Fora do perfil esperado pode indicar conta laranja; validar Console, Big Data e Receita Federal quando PJ.", "Extrato deve ser compatível com o perfil do emissor e com a movimentação esperada.", "Possível conta laranja com sustentação: aplicar SPD 21.", "Documento de baixa qualidade sem sustentação de conta laranja: aplicar SPD 2 para atualização documental.", "Em alerta Falcon Banking com suspeita: aplicar SPD 15.", "Se a suspeita for descartada, encerrar como não foi possível confirmar não fraude e manter bloqueio até JIRA."] },
     { match: ["HISTORICO", "HISTÓRICO", "DICT"], title: "HISTÓRICO DICT", items: ["Histórico de infração é vinculado ao CPF/CNPJ, não apenas à instituição.", "Formato usado no fluxo: 4 dígitos para 30 dias, 3 para 90 dias e 3 para 60 meses.", "Se houver 3 ou mais infrações no bloco relevante, tratar como alerta crítico."] },
     { match: ["P2P_OUT_DIF", "P2P OUT DIF", "DIF_CONTA", "DIF DEVICE", "DIF_DEVICE"], title: "P2P / Dispositivo diferente", items: ["Saída de valor para fora da conta com dispositivo diferente exige cautela.", "O alerta não confirma falta de 2FA; ele indica aparelho incomum ou não confiável.", "Verificar vínculo do destino, dispositivo, limite, conta controle e padrão transacional."] },
     { match: ["CASHOUT", "CHASHOUT"], title: "Cashout", items: ["Cashout indica saída ou saque de saldo.", "Avaliar velocidade, horário, dispositivo, histórico e possível triangulação.", "Fim de semana ou madrugada aumenta a necessidade de contexto."] },
@@ -1062,7 +1076,8 @@
   }
   function kv(label, value, cls = "") {
     const missing = isMissing(value);
-    const possibleKind = getHelpMode() && normalize(label) === "REGRA" ? "rule" : getHelpMode() && normalize(label) === "EMISSOR" ? "issuer" : "";
+    const labelKey = normalize(label);
+    const possibleKind = getHelpMode() && (labelKey === "REGRA" || (labelKey.includes("STATUS") && hasHelpEntry("rule", value))) ? "rule" : getHelpMode() && labelKey === "EMISSOR" ? "issuer" : "";
     const kind = possibleKind && hasHelpEntry(possibleKind, value) ? possibleKind : "";
     const icon = kind === "rule" ? "!" : "i";
     const title = kind === "rule" ? "Passe o mouse para ver orientação da regra" : "Passe o mouse para ver particularidades do emissor";
@@ -1074,7 +1089,8 @@
     return `<div class="sac-kv ${missing ? "sac-missing" : ""} ${cls}"><div class="sac-kv-label">${escapeHtml(label)}</div><div class="sac-kv-value">${escapeHtml(clean(value))}</div></div>`;
   }
   function kvOptional(label, value, cls = "") {
-    const possibleKind = getHelpMode() && normalize(label) === "REGRA" ? "rule" : getHelpMode() && normalize(label) === "EMISSOR" ? "issuer" : "";
+    const labelKey = normalize(label);
+    const possibleKind = getHelpMode() && (labelKey === "REGRA" || (labelKey.includes("STATUS") && hasHelpEntry("rule", value))) ? "rule" : getHelpMode() && labelKey === "EMISSOR" ? "issuer" : "";
     const kind = possibleKind && hasHelpEntry(possibleKind, value) ? possibleKind : "";
     const icon = kind === "rule" ? "!" : "i";
     const title = kind === "rule" ? "Passe o mouse para ver orientação da regra" : "Passe o mouse para ver particularidades do emissor";
@@ -1799,7 +1815,10 @@
     const selected = [stored, shared, clipboardPackage]
       .filter((data) => isCurrentPackage(data, EXPORT_FALCON))
       .sort((a, b) => Number(b.savedAt || 0) - Number(a.savedAt || 0))[0] || null;
-    if (selected) writeJson("lastFalcon", selected);
+    if (selected) {
+      hydrateMemoryFromPackage(selected);
+      writeJson("lastFalcon", selected);
+    }
     else if (stored) storageRemove("lastFalcon");
     return selected;
   }
@@ -1817,7 +1836,10 @@
     const selected = [stored, shared, clipboardPackage]
       .filter((data) => isCurrentPackage(data, EXPORT_CONSOLE))
       .sort((a, b) => Number(b.savedAt || 0) - Number(a.savedAt || 0))[0] || null;
-    if (selected) writeJson("lastConsole", selected);
+    if (selected) {
+      hydrateMemoryFromPackage(selected);
+      writeJson("lastConsole", selected);
+    }
     else if (stored) storageRemove("lastConsole");
     return selected;
   }
@@ -1909,7 +1931,7 @@
         }
         showNotice(`Atenção: faltam dados (${missing.join(", ")}), mas o modo seguro está desligado.`, "warn");
       }
-      const packageData = { ...data, buildFamily: BUILD_FAMILY, buildVersion: BUILD_VERSION, savedAt: Date.now() };
+      const packageData = { ...data, buildFamily: BUILD_FAMILY, buildVersion: BUILD_VERSION, savedAt: Date.now(), sharedMemory: packageMemorySnapshot() };
       writeJson("lastFalcon", packageData);
       storageRemove("lastConsole");
       memory.transport.set("falcon", packageData);
@@ -2029,7 +2051,7 @@
         }
         showNotice(`Atenção: faltam dados (${missing.join(", ")}), mas o modo seguro está desligado.`, "warn");
       }
-      const packageData = { ...data, buildFamily: BUILD_FAMILY, buildVersion: BUILD_VERSION, savedAt: Date.now() };
+      const packageData = { ...data, buildFamily: BUILD_FAMILY, buildVersion: BUILD_VERSION, savedAt: Date.now(), sharedMemory: packageMemorySnapshot() };
       writeJson("lastConsole", packageData);
       memory.transport.set("console", packageData);
       await copyText(`${EXPORT_CONSOLE}::${JSON.stringify(packageData)}`);

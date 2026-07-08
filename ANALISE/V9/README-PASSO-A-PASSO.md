@@ -1,6 +1,6 @@
 # SAC Prevenção V9
 
-Versão revisada em 07/07/2026. Build interno `9.7`.
+Versão revisada em 08/07/2026. Build interno `9.8`.
 
 ## Estrutura
 
@@ -13,7 +13,7 @@ A V9 fica organizada em blocos claros:
 - `issuer-directory.json`: base de apoio para cruzamento de emissores.
 - `bookmarklet-v9.txt`: favorito dedicado para testar a V9 sem mexer no favorito universal.
 
-Nesta entrega, o favorito universal foi vinculado à V9.7. O arquivo `ANALISE/favorito-universal.bookmarklet.txt` continua igual e carrega `ANALISE/motor-sac-universal.js`, que agora aponta para a V9.
+Nesta entrega, o favorito universal foi vinculado à V9.8. O arquivo `ANALISE/favorito-universal.bookmarklet.txt` continua igual e carrega `ANALISE/motor-sac-universal.js`, que agora aponta para a V9.
 
 ## Blocos revisados
 
@@ -24,7 +24,7 @@ Nesta entrega, o favorito universal foi vinculado à V9.7. O arquivo `ANALISE/fa
 - `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
 - `HISTÓRICO`: grava a tabulação sem CPF/CNPJ visível e deve abrir igual em qualquer etapa.
 
-Na V9.7, a memória de LISTAS, Histórico e Configurações é transportada por `localStorage`, `window.name`, clipboard customizado e também um envelope HTML padrão. Isso reduz falhas entre páginas de origens diferentes.
+Na V9.8, a memória de LISTAS, Histórico e Configurações é transportada por `localStorage`, `window.name`, clipboard customizado e também um envelope HTML padrão. Se um formato de clipboard falhar, o motor tenta o próximo antes de desistir. As configurações também viajam dentro dos pacotes Falcon e Console para reforçar tema, modo seguro, modo ajuda, fonte, assinatura e cores dos fluxos entre etapas.
 
 ## Fluxos
 
@@ -98,7 +98,7 @@ Com o modo seguro desligado, o clique simples no grid não copia o dado. Isso ev
 
 O modo ajuda fica desligado por padrão.
 
-Quando ativado, os grids de `Regra` e `Emissor` exibem ícone de informação somente quando houver orientação real cadastrada. A ajuda aparece ao passar o mouse sobre o ícone e desaparece ao retirar o mouse. Cada orientação é exibida em um grid separado no painel lateral.
+Quando ativado, os grids de `Regra` e `Emissor` exibem ícone de informação somente quando houver orientação real cadastrada. Grids de status também podem exibir ajuda quando o valor for `bloqueio preventivo falcon 254`. A ajuda aparece ao passar o mouse sobre o ícone e desaparece ao retirar o mouse. Cada orientação é exibida em um grid separado no painel lateral.
 
 As mensagens do modo ajuda foram consolidadas a partir do `BOOK PREVENÇÃO FALCON` e do resumo de regras enviado, sem repetir o nome da regra/emissor dentro dos cards. Os textos são curtos, objetivos e focados no que ajuda a decidir.
 
@@ -114,9 +114,10 @@ No grid de `Regra`, o ícone `!` usa palavras-chave para exibir orientações:
 - `P2P / dispositivo diferente`: validar aparelho, vínculo do destino, conta controle e padrão transacional.
 - `CASHOUT`: avaliar saída de saldo, velocidade, horário, dispositivo, histórico e possível triangulação.
 - `PixIn DICT`: validar situação cadastral do CPF/CNPJ vinculado à chave Pix.
+- `Bloqueio Preventivo Falcon`: resume quando aplicar bloqueio em cartão, quando manter bloqueio em Banking/JIRA, e quais SPDs avaliar conforme sustentação.
 - `Desvio de padrão`, `Contactless`, `3DS`, `Boleto valor suspeito` e demais regras conhecidas exibem orientação resumida quando a palavra-chave estiver na regra.
 
-No grid de `Emissor`, o painel lateral exibe particularidades conhecidas do emissor e orientações do book quando houver correspondência. Exemplos incluídos: `Onlypay`, `Sofisa`, `Conta Simples`, `Amigoz`, `Tipcard`, `WudiPay`, `EzzePay`, `RedeFrota/Frotabank`, `Noh`, `Trampay`, `Bemol`, `iFood` e `Meu Tudo`.
+No grid de `Emissor`, o painel lateral exibe particularidades conhecidas do emissor e orientações do book quando houver correspondência. Exemplos incluídos: `Onlypay`, `Sofisa`, `Conta Simples`, `Amigoz`, `Tipcard`, `WudiPay`, `EzzePay`, `RedeFrota/Frotabank`, `Noh`, `Trampay`, `Bemol`, `iFood`, `Jeitto` e `Meu Tudo`.
 
 ## Falcon
 

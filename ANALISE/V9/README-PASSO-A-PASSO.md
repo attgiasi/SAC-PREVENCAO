@@ -1,6 +1,6 @@
 # SAC Prevenção V9
 
-Versão revisada em 08/07/2026. Build interno `9.8`.
+Versão revisada em 08/07/2026. Build interno `9.10`.
 
 ## Estrutura
 
@@ -13,7 +13,7 @@ A V9 fica organizada em blocos claros:
 - `issuer-directory.json`: base de apoio para cruzamento de emissores.
 - `bookmarklet-v9.txt`: favorito dedicado para testar a V9 sem mexer no favorito universal.
 
-Nesta entrega, o favorito universal foi vinculado à V9.8. O arquivo `ANALISE/favorito-universal.bookmarklet.txt` continua igual e carrega `ANALISE/motor-sac-universal.js`, que agora aponta para a V9.
+Nesta entrega, o favorito universal foi vinculado à V9.10. O arquivo `ANALISE/favorito-universal.bookmarklet.txt` continua igual e carrega `ANALISE/motor-sac-universal.js`, que agora aponta para a V9.
 
 ## Blocos revisados
 
@@ -24,7 +24,9 @@ Nesta entrega, o favorito universal foi vinculado à V9.8. O arquivo `ANALISE/fa
 - `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
 - `HISTÓRICO`: grava a tabulação sem CPF/CNPJ visível e deve abrir igual em qualquer etapa.
 
-Na V9.8, a memória de LISTAS, Histórico e Configurações é transportada por `localStorage`, `window.name`, clipboard customizado e também um envelope HTML padrão. Se um formato de clipboard falhar, o motor tenta o próximo antes de desistir. As configurações também viajam dentro dos pacotes Falcon e Console para reforçar tema, modo seguro, modo ajuda, fonte, assinatura e cores dos fluxos entre etapas.
+Na V9.10, a memória de LISTAS, Histórico e Configurações é transportada por `localStorage`, `sessionStorage`, `window.name`, clipboard customizado e também um envelope HTML padrão. Se um formato de clipboard falhar, o motor tenta o próximo antes de desistir. As configurações, LISTAS e Histórico também viajam dentro dos pacotes Falcon e Console para reforçar tema, modo seguro, modo ajuda, fonte, assinatura, cores dos fluxos e casos pendentes entre etapas.
+
+LISTAS também possui um cofre dedicado da V9. Esse cofre guarda os casos pendentes por 12 horas, aplica tombstones quando um item é inserido ou removido, e impede que uma cópia antiga do clipboard traga de volta casos já baixados.
 
 ## Fluxos
 
@@ -115,6 +117,7 @@ No grid de `Regra`, o ícone `!` usa palavras-chave para exibir orientações:
 - `CASHOUT`: avaliar saída de saldo, velocidade, horário, dispositivo, histórico e possível triangulação.
 - `PixIn DICT`: validar situação cadastral do CPF/CNPJ vinculado à chave Pix.
 - `Bloqueio Preventivo Falcon`: resume quando aplicar bloqueio em cartão, quando manter bloqueio em Banking/JIRA, e quais SPDs avaliar conforme sustentação.
+- `Bloqueios do book Falcon`: inclui `SPD 01`, `SPD 02`, `SPD 08`, `SPD 15`, `SPD 17`, `SPD 21`, `SPD 25`, `SPD 33`, `Ação Judicial`, `Conta não ativada`, `Bloqueio Preventivo Falcon 254` e `Cancelamento Definitivo Falcon`.
 - `Desvio de padrão`, `Contactless`, `3DS`, `Boleto valor suspeito` e demais regras conhecidas exibem orientação resumida quando a palavra-chave estiver na regra.
 
 No grid de `Emissor`, o painel lateral exibe particularidades conhecidas do emissor e orientações do book quando houver correspondência. Exemplos incluídos: `Onlypay`, `Sofisa`, `Conta Simples`, `Amigoz`, `Tipcard`, `WudiPay`, `EzzePay`, `RedeFrota/Frotabank`, `Noh`, `Trampay`, `Bemol`, `iFood`, `Jeitto` e `Meu Tudo`.

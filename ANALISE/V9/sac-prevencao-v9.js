@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V9_20260625";
   const BUILD = "ANALISE/V9";
   const BUILD_FAMILY = "9";
-  const BUILD_VERSION = "9.8";
+  const BUILD_VERSION = "9.10";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -204,11 +204,15 @@
   };
   const writeJson = (name, value) => storageSet(name, JSON.stringify(value));
   function packageMemorySnapshot() {
-    const snap = memory.snapshot?.() || {};
+    const snap = memory.mergeCurrentMirrors?.() || memory.snapshot?.() || {};
     return {
       schema: 1,
       savedAt: Date.now(),
-      settings: snap.settings || {}
+      settings: snap.settings || {},
+      listTombstones: snap.listTombstones || [],
+      listsVault: snap.listsVault || snap.lists || [],
+      lists: snap.lists || [],
+      history: snap.history || []
     };
   }
   function hydrateMemoryFromPackage(data) {
@@ -697,6 +701,19 @@
     { match: ["AUTO_FRAUDE", "AUTO FRAUDE", "AUTOFRAUDE"], title: "AUTO FRAUDE", items: ["Realizar até 3 tentativas de contato ativo.", "Se atender, validar PID e questionar uso em estabelecimento próprio.", "Se não atender ou não validar PID, bloquear o cartão.", "Não confundir auto fraude com autofinanciamento no dropdown de Extrato."] },
     { match: ["CAPITAL_DE_GIRO", "CAPITAL DE GIRO"], title: "CAPITAL DE GIRO", items: ["Validar compatibilidade com perfil, atividade, origem e destino.", "Atenção a triangulação, recorrência e conta recente.", "Em Capital de Giro iFood, não bloquear cartão pela operação; decisão é do iFood."] },
     { match: ["BLOQUEIO PREVENTIVO FALCON", "BLOQUEIO PREVENTIVO FALCON 254", "FALCON 254"], title: "BLOQUEIO PREVENTIVO FALCON", items: ["Cartão: bloquear quando o cliente responde ao CCS/SMS que não reconhece a compra.", "Cartão: com suspeita e sem contato, aplicar bloqueio temporário; Ifood e Amigoz somente com contato.", "Banking/JIRA: regra alinhada ao emissor pode aplicar bloqueio preventivo automaticamente.", "Exemplo JSLNEW: perfil esperado é caminhoneiro com P2P recebido de conta vinculada ao emissor.", "Fora do perfil esperado pode indicar conta laranja; validar Console, Big Data e Receita Federal quando PJ.", "Extrato deve ser compatível com o perfil do emissor e com a movimentação esperada.", "Possível conta laranja com sustentação: aplicar SPD 21.", "Documento de baixa qualidade sem sustentação de conta laranja: aplicar SPD 2 para atualização documental.", "Em alerta Falcon Banking com suspeita: aplicar SPD 15.", "Se a suspeita for descartada, encerrar como não foi possível confirmar não fraude e manter bloqueio até JIRA."] },
+    { match: ["SPD 1", "SPD01", "SPD 01"], title: "SPD 01", items: ["Aguardando documentos no onboarding KYC.", "Bloqueia Cash-IN e Cash-OUT.", "Remoção automática após envio e aprovação dos documentos obrigatórios.", "Mesa principal: N2 SAC Onboarding; cenário atípico: GLB Risks/Ragnarok."] },
+    { match: ["SPD 2", "SPD02", "SPD 02"], title: "SPD 02", items: ["Pendência de ajuste documental no onboarding.", "Bloqueia Cash-IN e Cash-OUT.", "Cliente deve reenviar documentos pendentes para análise KYC.", "Usado quando documento tem inconsistência ou baixa qualidade sem sustentação de conta laranja."] },
+    { match: ["SPD 8", "SPD08", "SPD 08"], title: "SPD 08", items: ["Política preventiva de risco por comportamento suspeito.", "Bloqueia Cash-IN e Cash-OUT.", "Em regra, não pode ser removido pela mesa.", "Se veio automático com motivo de SPD 2, a mesa deve analisar documentação."] },
+    { match: ["SPD 15"], title: "SPD 15", items: ["Suspeita de fraude transacional.", "Bloqueia Cash-IN e Cash-OUT.", "Remoção depende de ticket e documentos do titular.", "Tratativa Falcon/Prevenção; casos de grande porte ou dúvida podem exigir N3."] },
+    { match: ["SPD 17"], title: "SPD 17", items: ["Fraude transacional confirmada.", "Bloqueia Cash-IN e Cash-OUT.", "Só pode ser removido se o titular enviar evidências de que não houve fraude.", "Se a fraude for confirmada, o bloqueio não deve ser removido."] },
+    { match: ["SPD 21"], title: "SPD 21", items: ["Desinteresse comercial por política de risco.", "Bloqueia Cash-IN e permite Cash-OUT.", "Não é removido pela mesa.", "Pode ser aplicado quando houver sustentação de possível conta laranja."] },
+    { match: ["SPD 25"], title: "SPD 25", items: ["Notificação de infração por suspeita em Cash-IN/reembolso.", "Permite Cash-IN e bloqueia Cash-OUT.", "Se não houver evidência, pode remover; se fraude confirmar, cancelar.", "Tratativa indicada: N3 BK Fraud Prevention."] },
+    { match: ["SPD 33", "SPD33", "BLOQUEADO PREVENCAO", "BLOQUEADO PREVENÇÃO"], title: "SPD 33 / BLOQUEADO PREVENÇÃO", items: ["Status de prevenção que não permite transações.", "Remoção deve passar por Fraud Prevention.", "Validar histórico, documentação, extrato e sustentação antes de qualquer baixa."] },
+    { match: ["BLOQUEADA", "BLOQUEADO"], title: "STATUS CONTA BLOQUEADA", items: ["Status 1 indica bloqueio simples de conta.", "Pode ser removido pelo parceiro ou analista via Console/API quando aplicável.", "Status 33 Bloqueado Prevenção não permite transações e a remoção é via Fraud Prevention."] },
+    { match: ["CANCELADA", "CANCELADO"], title: "STATUS CONTA CANCELADA", items: ["Status 2 indica cancelamento aplicado pelo parceiro ou pela Dock.", "Geralmente vem acompanhado de SPD.", "Validar motivo antes de seguir a tratativa."] },
+    { match: ["ACAO JUDICIAL", "AÇÃO JUDICIAL"], title: "AÇÃO JUDICIAL", items: ["Status 30 permite Cash-IN e bloqueia Cash-OUT.", "Desbloqueio intraday após 17h, conforme tabela do book.", "Direcionar conforme política operacional."] },
+    { match: ["CONTA NAO ATIVADA", "CONTA NÃO ATIVADA"], title: "CONTA NÃO ATIVADA", items: ["Status 200 indica conta ainda não ativada.", "Após o primeiro Cash-IN, muda para Normal.", "Não tratar como fraude isoladamente sem contexto adicional."] },
+    { match: ["CANCELAMENTO DEFINITIVO FALCON", "CANCELAMENTO DEFINITIVO"], title: "CANCELAMENTO DEFINITIVO FALCON", items: ["Status 255 indica cancelamento definitivo Falcon.", "Não seguir como bloqueio simples.", "Validar alçada e histórico antes de qualquer tratativa manual."] },
     { match: ["HISTORICO", "HISTÓRICO", "DICT"], title: "HISTÓRICO DICT", items: ["Histórico de infração é vinculado ao CPF/CNPJ, não apenas à instituição.", "Formato usado no fluxo: 4 dígitos para 30 dias, 3 para 90 dias e 3 para 60 meses.", "Se houver 3 ou mais infrações no bloco relevante, tratar como alerta crítico."] },
     { match: ["P2P_OUT_DIF", "P2P OUT DIF", "DIF_CONTA", "DIF DEVICE", "DIF_DEVICE"], title: "P2P / Dispositivo diferente", items: ["Saída de valor para fora da conta com dispositivo diferente exige cautela.", "O alerta não confirma falta de 2FA; ele indica aparelho incomum ou não confiável.", "Verificar vínculo do destino, dispositivo, limite, conta controle e padrão transacional."] },
     { match: ["CASHOUT", "CHASHOUT"], title: "Cashout", items: ["Cashout indica saída ou saque de saldo.", "Avaliar velocidade, horário, dispositivo, histórico e possível triangulação.", "Fim de semana ou madrugada aumenta a necessidade de contexto."] },
@@ -1077,7 +1094,7 @@
   function kv(label, value, cls = "") {
     const missing = isMissing(value);
     const labelKey = normalize(label);
-    const possibleKind = getHelpMode() && (labelKey === "REGRA" || (labelKey.includes("STATUS") && hasHelpEntry("rule", value))) ? "rule" : getHelpMode() && labelKey === "EMISSOR" ? "issuer" : "";
+    const possibleKind = getHelpMode() && (labelKey === "REGRA" || ((labelKey.includes("STATUS") || labelKey.includes("SPD")) && hasHelpEntry("rule", value))) ? "rule" : getHelpMode() && labelKey === "EMISSOR" ? "issuer" : "";
     const kind = possibleKind && hasHelpEntry(possibleKind, value) ? possibleKind : "";
     const icon = kind === "rule" ? "!" : "i";
     const title = kind === "rule" ? "Passe o mouse para ver orientação da regra" : "Passe o mouse para ver particularidades do emissor";
@@ -1090,7 +1107,7 @@
   }
   function kvOptional(label, value, cls = "") {
     const labelKey = normalize(label);
-    const possibleKind = getHelpMode() && (labelKey === "REGRA" || (labelKey.includes("STATUS") && hasHelpEntry("rule", value))) ? "rule" : getHelpMode() && labelKey === "EMISSOR" ? "issuer" : "";
+    const possibleKind = getHelpMode() && (labelKey === "REGRA" || ((labelKey.includes("STATUS") || labelKey.includes("SPD")) && hasHelpEntry("rule", value))) ? "rule" : getHelpMode() && labelKey === "EMISSOR" ? "issuer" : "";
     const kind = possibleKind && hasHelpEntry(possibleKind, value) ? possibleKind : "";
     const icon = kind === "rule" ? "!" : "i";
     const title = kind === "rule" ? "Passe o mouse para ver orientação da regra" : "Passe o mouse para ver particularidades do emissor";
@@ -2403,14 +2420,6 @@
       return;
     }
     if (!applied.ok) {
-      if (getSafeMode()) {
-        const location = tabulatorIssueMessage(applied.pending);
-        showNotice(`Revise a aplicação em: ${location}.`, "warn-pulse", 15000);
-        setDecisionProgress(panel, `Inconsistência encontrada em: ${location}.`, "warn");
-        setDecisionButtonsEnabled(panel, true);
-        stopTabulatorWriting(panel);
-        return;
-      }
       showNotice(`Ação necessária: confira ${tabulatorIssueMessage(applied.pending)}.`, "warn-pulse", 15000);
     }
     fillObservationText(text);
@@ -2697,7 +2706,11 @@
   function dropdownSelectionMatches(id, wanted) {
     const select = byId(id);
     const selected = select?.options?.[select.selectedIndex];
-    return Boolean(selected && optionExactMatches(selected, wanted));
+    if (selected && (optionExactMatches(selected, wanted) || optionMatches(selected, wanted))) return true;
+    if (select?.value && optionTargets(wanted).some((target) => normalize(select.value) === target || normalize(select.value).includes(target))) return true;
+    const visualText = textOf(select?.closest?.(".bootstrap-select")?.querySelector?.(".filter-option-inner-inner,.filter-option,.dropdown-toggle"))
+      || textOf(select?.parentElement?.querySelector?.(".filter-option-inner-inner,.filter-option,.dropdown-toggle"));
+    return Boolean(visualText && optionTargets(wanted).some((target) => normalize(visualText) === target || normalize(visualText).includes(target)));
   }
   async function waitForDropdownSelection(id, wanted, tries = 10, delay = 55, isActive = () => true) {
     for (let attempt = 0; attempt < tries; attempt += 1) {
@@ -3235,7 +3248,8 @@
       sourceFlow: data.flow,
       visualFlow: data.visualFlow,
       treatmentKind: data.treatmentKind || "brasil",
-      savedAt: Date.now()
+      savedAt: Date.now(),
+      updatedAt: Date.now()
     };
     showNotice(lists.contencao ? "Caso finalizado e guardado em LISTAS com CPF/CNPJ." : "Caso finalizado e guardado em LISTAS com ID da conta.", "info");
     const next = [{ ...item, issuerId }, ...withoutCurrentCase];

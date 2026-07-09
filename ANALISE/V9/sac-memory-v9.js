@@ -9,6 +9,7 @@
   const BOOT_KEY = "__SAC_PREVENCAO_SHARED_MEMORY__";
   const HISTORY_KEY = "sac_prevencao_V9:history";
   const LISTS_KEY = "sac_prevencao_V9:lists";
+  const LISTS_VAULT_KEY = "sac_prevencao_V9:lists_vault";
   const LIST_TOMBSTONES_KEY = "sac_prevencao_V9:list_tombstones";
   const SETTINGS_KEY = "sac_prevencao_V9:settings";
   const TRANSPORT_KEY = "sac_prevencao_V9:transport";
@@ -121,6 +122,7 @@
   function normalizeMemory(value) {
     const source = value && typeof value === "object" ? value : {};
     const lists = Array.isArray(source.lists) ? source.lists.filter(validAge).slice(0, MAX_LISTS) : [];
+    const listsVault = Array.isArray(source.listsVault) ? source.listsVault.filter(validAge).slice(0, MAX_LISTS) : [];
     const listTombstones = normalizeTombstones(source.listTombstones);
     const history = Array.isArray(source.history)
       ? source.history.filter(validAge).map(sanitizeHistory).slice(0, MAX_HISTORY)
@@ -133,6 +135,7 @@
       transport,
       settings,
       listTombstones,
+      listsVault,
       lists,
       history
     };
@@ -224,6 +227,8 @@
   const sessionStore = storageOf("sessionStorage");
   const localHistory = localStore ? readJson(localStore, HISTORY_KEY, []) : [];
   const localLists = localStore ? readJson(localStore, LISTS_KEY, []) : [];
+  const localListsVault = localStore ? readJson(localStore, LISTS_VAULT_KEY, []) : [];
+  const sessionListsVault = sessionStore ? readJson(sessionStore, LISTS_VAULT_KEY, []) : [];
   const localTombstones = localStore ? readJson(localStore, LIST_TOMBSTONES_KEY, []) : [];
   const localSettings = localStore ? readJson(localStore, SETTINGS_KEY, {}) : {};
   const localTransport = sessionStore ? readJson(sessionStore, TRANSPORT_KEY, {}) : {};
@@ -233,13 +238,19 @@
   memory.listTombstones = mergeTombstones(memory.listTombstones, localTombstones, windowNameMemory.listTombstones);
   memory.settings = mergeSettings(localSettings, windowNameMemory.settings, memory.settings);
   memory.history = mergeHistory(memory.history, localHistory, windowNameMemory.history);
-  memory.lists = mergeLists(memory.lists, localLists, windowNameMemory.lists);
+  memory.listsVault = mergeLists(memory.listsVault, localListsVault, sessionListsVault, windowNameMemory.listsVault, localLists, windowNameMemory.lists);
+  memory.lists = mergeLists(memory.lists, memory.listsVault, localLists, windowNameMemory.lists);
   memory.transport = { ...localTransport, ...windowNameMemory.transport, ...memory.transport };
   window[BOOT_KEY] = memory;
 
   function persistMirrors() {
+    const stableLists = mergeLists(memory.lists, memory.listsVault);
+    memory.lists = stableLists;
+    memory.listsVault = stableLists;
     if (localStore) writeJson(localStore, HISTORY_KEY, memory.history.map(sanitizeHistory));
     if (localStore) writeJson(localStore, LISTS_KEY, memory.lists);
+    if (localStore) writeJson(localStore, LISTS_VAULT_KEY, memory.listsVault);
+    if (sessionStore) writeJson(sessionStore, LISTS_VAULT_KEY, memory.listsVault);
     if (localStore) writeJson(localStore, LIST_TOMBSTONES_KEY, memory.listTombstones);
     if (localStore) writeJson(localStore, SETTINGS_KEY, memory.settings);
     if (sessionStore) writeJson(sessionStore, TRANSPORT_KEY, memory.transport);
@@ -261,6 +272,8 @@
   function mergeCurrentMirrors() {
     const localHistoryNow = localStore ? readJson(localStore, HISTORY_KEY, []) : [];
     const localListsNow = localStore ? readJson(localStore, LISTS_KEY, []) : [];
+    const localListsVaultNow = localStore ? readJson(localStore, LISTS_VAULT_KEY, []) : [];
+    const sessionListsVaultNow = sessionStore ? readJson(sessionStore, LISTS_VAULT_KEY, []) : [];
     const localTombstonesNow = localStore ? readJson(localStore, LIST_TOMBSTONES_KEY, []) : [];
     const localSettingsNow = localStore ? readJson(localStore, SETTINGS_KEY, {}) : {};
     const localTransportNow = sessionStore ? readJson(sessionStore, TRANSPORT_KEY, {}) : {};
@@ -268,7 +281,8 @@
     memory.listTombstones = mergeTombstones(memory.listTombstones, localTombstonesNow, windowNameNow.listTombstones);
     memory.settings = mergeSettings(localSettingsNow, windowNameNow.settings, memory.settings);
     memory.history = mergeHistory(memory.history, localHistoryNow, windowNameNow.history);
-    memory.lists = mergeLists(memory.lists, localListsNow, windowNameNow.lists);
+    memory.listsVault = mergeLists(memory.listsVault, localListsVaultNow, sessionListsVaultNow, windowNameNow.listsVault, localListsNow, windowNameNow.lists);
+    memory.lists = mergeLists(memory.lists, memory.listsVault, localListsNow, windowNameNow.lists);
     memory.transport = { ...localTransportNow, ...windowNameNow.transport, ...memory.transport };
     memory.savedAt = now();
     persistMirrors();
@@ -299,7 +313,8 @@
     next.history = mergeHistory(next.history, memory.history);
     memory.listTombstones = next.listTombstones;
     memory.settings = next.settings;
-    next.lists = mergeLists(next.lists, memory.lists);
+    next.listsVault = mergeLists(next.listsVault, next.lists, memory.listsVault, memory.lists);
+    next.lists = mergeLists(next.lists, next.listsVault, memory.lists, memory.listsVault);
     next.transport = { ...memory.transport, ...next.transport };
     return setSnapshot(next);
   }
@@ -389,12 +404,14 @@
 
   const lists = {
     all() {
-      memory.lists = mergeLists(memory.lists);
+      memory.lists = mergeLists(memory.lists, memory.listsVault);
+      memory.listsVault = memory.lists;
       persistMirrors();
       return memory.lists.map((item) => ({ ...item }));
     },
     replace(items) {
-      memory.lists = mergeLists(Array.isArray(items) ? items : []);
+      memory.lists = mergeLists(Array.isArray(items) ? items : [], memory.listsVault);
+      memory.listsVault = memory.lists;
       memory.savedAt = now();
       persistMirrors();
       return this.all();
@@ -406,7 +423,7 @@
         memory.listTombstones = mergeTombstones([{ key, removedAt: now() }], memory.listTombstones);
       }
       const changedAt = now();
-      memory.lists = mergeLists(memory.lists.map((entry) => {
+      const marked = memory.lists.map((entry) => {
         if ((identity(entry) || entry.id) !== baseIdentity) return entry;
         return {
           ...entry,
@@ -415,7 +432,9 @@
           appliedAt: changedAt,
           savedAt: changedAt
         };
-      }));
+      });
+      memory.lists = mergeLists(marked);
+      memory.listsVault = memory.lists;
       persistMirrors();
       return this.all();
     },

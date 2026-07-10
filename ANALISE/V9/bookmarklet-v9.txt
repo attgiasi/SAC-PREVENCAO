@@ -1,4 +1,4 @@
-javascript:(async()=>{try{delete window.SACMemoryV9;delete window.SACTabulatorV9}catch(e){}const b='https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/ANALISE/V9/';for(const f of ['sac-memory-v9.js','sac-tabulator-v9.js','sac-prevencao-v9.js'])await new Promise((r,j)=>{const s=document.createElement('script');s.src=b+f+'?v=9.11.0&cache='+Date.now();s.async=false;s.onload=r;s.onerror=()=>j(new Error('Falha ao carregar '+f));document.documentElement.appendChild(s);});})();
+javascript:(async()=>{try{delete window.SACMemoryV9;delete window.SACTabulatorV9}catch(e){}const b='https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/ANALISE/V9/';for(const f of ['sac-memory-v9.js','sac-tabulator-v9.js','sac-prevencao-v9.js'])await new Promise((r,j)=>{const s=document.createElement('script');s.src=b+f+'?v=9.12.0&cache='+Date.now();s.async=false;s.onload=r;s.onerror=()=>j(new Error('Falha ao carregar '+f));document.documentElement.appendChild(s);});})();
 
 
 

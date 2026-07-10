@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V9_20260625";
   const BUILD = "ANALISE/V9";
   const BUILD_FAMILY = "9";
-  const BUILD_VERSION = "9.11";
+  const BUILD_VERSION = "9.12";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -2491,12 +2491,6 @@
     button.disabled = !ready;
     button.textContent = ready ? "Copiar" : "Aguarde...";
   }
-  function updateFinalStatus(panel, message, type = "") {
-    const status = panel.querySelector("#sac-apply-status");
-    if (!status) return;
-    status.textContent = message;
-    status.className = `sac-apply-status ${type}`;
-  }
   function buildTabulation(data, decision) {
     const f = data.falcon || {};
     const motive = String(data.decisionReason || "").trim();
@@ -2658,6 +2652,10 @@
     const aliases = new Map([
       ["CARTOES APROVADAS", ["CARTOES APROVADOS", "CARTAO APROVADO", "APROVADAS", "APPROVE", "APROVADA", "AUTHORIZED", "AUTORIZADA"]],
       ["CARTOES RECUSADAS", ["CARTOES REPROVADAS", "CARTOES RECUSADOS", "CARTOES REPROVADOS", "CARTAO RECUSADO", "DECLINE", "DECLINADA", "RECUSADA", "REPROVADA", "DENIED", "NEGADA"]],
+      ["APPROVE", ["CARTOES APROVADAS", "CARTOES APROVADOS", "APROVADA", "AUTHORIZED", "AUTORIZADA"]],
+      ["AUTHORIZED", ["CARTOES APROVADAS", "CARTOES APROVADOS", "APPROVE", "APROVADA", "AUTORIZADA"]],
+      ["DECLINE", ["CARTOES RECUSADAS", "CARTOES REPROVADAS", "RECUSADA", "REPROVADA", "DENIED", "NEGADA"]],
+      ["DENIED", ["CARTOES RECUSADAS", "CARTOES REPROVADAS", "DECLINE", "RECUSADA", "REPROVADA", "NEGADA"]],
       ["ATIVA - PLANILHA", ["ATIVO - PLANILHA", "ATIVA PLANILHA", "ATIVO PLANILHA"]],
       ["SEM CONTATO - PLANILHA", ["SEM CONTATO PLANILHA", "SEM CHAMADA - PLANILHA"]],
       ["SEM CHAMADA", ["SEM CONTATO", "SEM CONTATO - PLANILHA", "SEM CONTATO PLANILHA", "AUSENCIA DE CHAMADA"]],
@@ -2907,12 +2905,6 @@
     await waitForField(() => anyTargetMatches(targets, doc), 8, 45);
     if (anyTargetMatches(targets, doc)) return [];
     return [docKind];
-  }
-  async function selectAndConfirmDropdown(id, wanted, label, missing, tries, isActive) {
-    const selected = await selectDropdown(id, wanted, tries, isActive);
-    const confirmed = selected && dropdownSelectionMatches(id, wanted);
-    if (!confirmed) missing.push(label);
-    return confirmed;
   }
   async function confirmTabulatorDropdowns(data, decision, isActive = () => true) {
     const missing = [];
@@ -3182,9 +3174,6 @@
       issuerDirectoryCache = [];
     }
     return issuerDirectoryCache;
-  }
-  function issuerEntryMatches(entry, issuer) {
-    return issuerEntryScore(entry, issuer) > 0;
   }
   async function issuerIdForName(issuer) {
     const direct = digitsOnly(issuer);

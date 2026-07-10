@@ -1,0 +1,5 @@
+Repositorio: attgiasi/SAC-PREVENCAO
+Pasta correta: JIRA/FRASES/V4
+Dados editaveis: JIRA/FRASES/V4/frases-data.json
+Arquivo CDN:
+https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/JIRA/FRASES/V4/frases-prontas.min.js

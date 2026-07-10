@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SAC Prevenção - Frases Prontas V4</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; font-family: "Segoe UI", Arial, sans-serif; background: #eef3f8; color: #172033; }
+    main { width: min(880px, calc(100vw - 32px)); margin: 0 auto; padding: 40px 0; display: grid; gap: 16px; }
+    h1 { margin: 0; font-size: 30px; }
+    p { margin: 0; color: #526174; line-height: 1.5; }
+    .box { border: 1px solid rgba(15, 23, 42, .12); border-radius: 8px; background: #fff; padding: 16px; box-shadow: 0 14px 36px rgba(15, 23, 42, .08); display: grid; gap: 12px; }
+    textarea { width: 100%; min-height: 92px; border: 1px solid rgba(15, 23, 42, .14); border-radius: 8px; padding: 10px; font: 12px/1.45 Consolas, monospace; color: #172033; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    a, button { min-height: 38px; border-radius: 8px; border: 1px solid rgba(15, 23, 42, .14); background: #102033; color: #fff; padding: 9px 12px; font: 800 13px "Segoe UI", Arial, sans-serif; text-decoration: none; cursor: pointer; }
+    a.secondary { background: #fff; color: #172033; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>SAC Prevenção - Frases Prontas V4</h1>
+    <p>Bookmarklet limpo para JIRA Prevenção e Tabulação JIRA, hospedado no repositório SAC-PREVENCAO.</p>
+    <section class="box">
+      <strong>Bookmarklet GitHub</strong>
+      <textarea id="bookmarklet" readonly></textarea>
+      <div class="actions">
+        <button type="button" id="copy">Copiar bookmarklet</button>
+        <a class="secondary" href="preview.html">Abrir prévia interativa</a>
+        <a class="secondary" href="frases-data.json">Ver JSON editável</a>
+        <a class="secondary" href="README-GITHUB.md">Ler README</a>
+      </div>
+    </section>
+  </main>
+  <script>
+    var bookmarklet = "javascript:(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/JIRA/FRASES/V4/frases-prontas.min.js?v='+Date.now();s.charset='UTF-8';document.body.appendChild(s);}());";
+    document.getElementById("bookmarklet").value = bookmarklet;
+    document.getElementById("copy").addEventListener("click", function () {
+      navigator.clipboard.writeText(bookmarklet);
+    });
+  </script>
+</body>
+</html>

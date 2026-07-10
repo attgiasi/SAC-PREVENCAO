@@ -39,9 +39,17 @@
     if (!targets.length) return false;
     const text = normalize(option?.textContent);
     const value = normalize(option?.value);
-    return targets.some((target) => exactOnly
-      ? text === target || value === target
-      : text === target || value === target || text.includes(target) || value.includes(target));
+    return targets.some((target) => {
+      if (text === target || value === target) return true;
+      if (exactOnly || strictDropdownTarget(target)) return false;
+      return text.includes(target) || value.includes(target);
+    });
+  }
+
+  function strictDropdownTarget(target) {
+    return target === "FRAUDE"
+      || target === "NAO FRAUDE"
+      || target.startsWith("NAO FOI POSSIVEL CONFIRMAR");
   }
 
   function findOption(select, wanted) {
@@ -78,8 +86,12 @@
     if (setter) setter.call(select, option.value);
     else select.value = option.value;
     refreshSelect(select, option);
+    option.selected = true;
+    if (index >= 0) select.selectedIndex = index;
+    if (setter) setter.call(select, option.value);
+    else select.value = option.value;
     const selected = select.options?.[select.selectedIndex];
-    return Boolean(selected && optionMatches(selected, wanted, false));
+    return Boolean(selected && optionMatches(selected, wanted, true));
   }
 
   function waitAndSelect(id, wanted, timeoutMs = 10000) {

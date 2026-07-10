@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V9_20260625";
   const BUILD = "ANALISE/V9";
   const BUILD_FAMILY = "9";
-  const BUILD_VERSION = "9.10";
+  const BUILD_VERSION = "9.11";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -2410,7 +2410,15 @@
       stopTabulatorWriting(panel);
       return;
     }
-    const criticalPending = applied.pending.filter((label) => ["Fila", "Decisão", "Motivo status"].includes(label));
+    const criticalPending = applied.pending.filter((label) => [
+      "Tipo de documento",
+      "Emissor",
+      "Tipo de chamada",
+      "Status chamada",
+      "Fila",
+      "Decisão",
+      "Motivo status"
+    ].includes(label));
     if (criticalPending.length) {
       const location = tabulatorIssueMessage(criticalPending);
       showNotice(`Não foi possível confirmar: ${location}.`, "error", 15000);
@@ -2648,8 +2656,8 @@
   function optionTargets(wanted) {
     const target = normalize(wanted);
     const aliases = new Map([
-      ["CARTOES APROVADAS", ["CARTOES APROVADOS", "CARTAO APROVADO", "APROVADAS", "APPROVE", "APROVADA"]],
-      ["CARTOES RECUSADAS", ["CARTOES REPROVADAS", "CARTOES RECUSADOS", "CARTOES REPROVADOS", "CARTAO RECUSADO", "DECLINE", "DECLINADA", "RECUSADA", "REPROVADA"]],
+      ["CARTOES APROVADAS", ["CARTOES APROVADOS", "CARTAO APROVADO", "APROVADAS", "APPROVE", "APROVADA", "AUTHORIZED", "AUTORIZADA"]],
+      ["CARTOES RECUSADAS", ["CARTOES REPROVADAS", "CARTOES RECUSADOS", "CARTOES REPROVADOS", "CARTAO RECUSADO", "DECLINE", "DECLINADA", "RECUSADA", "REPROVADA", "DENIED", "NEGADA"]],
       ["ATIVA - PLANILHA", ["ATIVO - PLANILHA", "ATIVA PLANILHA", "ATIVO PLANILHA"]],
       ["SEM CONTATO - PLANILHA", ["SEM CONTATO PLANILHA", "SEM CHAMADA - PLANILHA"]],
       ["SEM CHAMADA", ["SEM CONTATO", "SEM CONTATO - PLANILHA", "SEM CONTATO PLANILHA", "AUSENCIA DE CHAMADA"]],
@@ -2662,11 +2670,20 @@
     ]);
     return Array.from(new Set([target, ...(aliases.get(target) || [])].filter(Boolean)));
   }
+  function strictDropdownTarget(target) {
+    return target === "FRAUDE"
+      || target === "NAO FRAUDE"
+      || target.startsWith("NAO FOI POSSIVEL CONFIRMAR");
+  }
   function optionMatches(option, wanted) {
     const targets = optionTargets(wanted);
     const text = normalize(option.textContent || "");
     const value = normalize(option.value || "");
-    return targets.some((target) => text === target || value === target || text.includes(target) || value.includes(target));
+    return targets.some((target) => {
+      if (text === target || value === target) return true;
+      if (strictDropdownTarget(target)) return false;
+      return text.includes(target) || value.includes(target);
+    });
   }
   function optionExactMatches(option, wanted) {
     const targets = optionTargets(wanted);
@@ -2699,18 +2716,32 @@
             .trigger("change");
         }
       } catch (_err) {}
+      all("option", select).forEach((opt) => opt.selected = false);
+      option.selected = true;
+      const index = all("option", select).indexOf(option);
+      if (index >= 0) select.selectedIndex = index;
+      try {
+        if (descriptor?.set) descriptor.set.call(select, option.value);
+        else select.value = option.value;
+      } catch (_err) {
+        select.value = option.value;
+      }
+      select.dispatchEvent(new Event("input", { bubbles: true }));
+      select.dispatchEvent(new Event("change", { bubbles: true }));
       const selected = select.options?.[select.selectedIndex];
-      return Boolean(selected && optionMatches(selected, option.value || option.textContent));
+      return Boolean(selected && optionExactMatches(selected, option.value || option.textContent));
     });
   }
   function dropdownSelectionMatches(id, wanted) {
     const select = byId(id);
     const selected = select?.options?.[select.selectedIndex];
     if (selected && (optionExactMatches(selected, wanted) || optionMatches(selected, wanted))) return true;
-    if (select?.value && optionTargets(wanted).some((target) => normalize(select.value) === target || normalize(select.value).includes(target))) return true;
-    const visualText = textOf(select?.closest?.(".bootstrap-select")?.querySelector?.(".filter-option-inner-inner,.filter-option,.dropdown-toggle"))
-      || textOf(select?.parentElement?.querySelector?.(".filter-option-inner-inner,.filter-option,.dropdown-toggle"));
-    return Boolean(visualText && optionTargets(wanted).some((target) => normalize(visualText) === target || normalize(visualText).includes(target)));
+    if (select?.value && optionTargets(wanted).some((target) => {
+      const value = normalize(select.value);
+      if (value === target) return true;
+      return !strictDropdownTarget(target) && value.includes(target);
+    })) return true;
+    return false;
   }
   async function waitForDropdownSelection(id, wanted, tries = 10, delay = 55, isActive = () => true) {
     for (let attempt = 0; attempt < tries; attempt += 1) {
@@ -2724,6 +2755,16 @@
         if (dropdownSelectionMatches(id, wanted) || (confirmed && optionMatches(confirmed, wanted))) return true;
       }
       await wait(delay);
+    }
+    return false;
+  }
+  async function selectDropdownStable(id, wanted, label = "", tries = 24, isActive = () => true) {
+    if (isMissing(wanted)) return true;
+    for (let pass = 0; pass < 3; pass += 1) {
+      if (!canWriteTabulator(isActive)) return false;
+      if (await selectDropdown(id, wanted, tries, isActive)
+        && await waitForDropdownSelection(id, wanted, 8, 40, isActive)) return true;
+      await wait(45 + pass * 25);
     }
     return false;
   }
@@ -2804,7 +2845,8 @@
         || (target && text.includes(target.slice(0, Math.min(5, target.length))));
     });
     if (!option) return false;
-    return applySelectValue(select, option);
+    return applySelectValue(select, option)
+      && await waitForDropdownSelection("ddl_idemissor", option.value || option.textContent, 8, 45, isActive);
   }
   async function applyStatusDropdown(decision, isActive = () => true) {
     if (!canWriteTabulator(isActive)) return { statusOk: false, cancelled: true };
@@ -2880,8 +2922,7 @@
     const confirmField = async (id, wanted, label, tries = 18) => {
       if (isMissing(wanted)) return;
       addChecked(label);
-      if (!await waitForDropdownSelection(id, wanted, 3, 35, isActive)) await selectDropdown(id, wanted, tries, isActive);
-      if (!await waitForDropdownSelection(id, wanted, 8, 50, isActive)) addMissing(label);
+      if (!await selectDropdownStable(id, wanted, label, tries, isActive)) addMissing(label);
     };
 
     if (!canWriteTabulator(isActive)) return { checked, missing, cancelled: true };
@@ -2897,8 +2938,9 @@
     addChecked("Emissor");
     if (!await selectIssuerDropdown(data.issuer, data.issuerId, isActive)) addMissing("Emissor");
 
-    await confirmField("ddl_TipoChamada", callValues.type, "Tipo de chamada", 22);
-    await confirmField("ddl_ChamadaAtiva", callValues.result, "Status chamada", 22);
+    await confirmField("ddl_TipoChamada", callValues.type, "Tipo de chamada", 28);
+    await wait(60);
+    await confirmField("ddl_ChamadaAtiva", callValues.result, "Status chamada", 28);
 
     if (queue) await confirmField("ddl_Fila", queue, "Fila", 32);
     else {
@@ -2912,7 +2954,7 @@
       if (!await waitForDropdownSelection("ddl_motivostatus", reason, 3, 45, isActive)) {
         await selectDependentDropdown("ddl_status", decision, "ddl_motivostatus", reason, 90, isActive);
       }
-      if (!await waitForDropdownSelection("ddl_motivostatus", reason, 10, 55, isActive)) addMissing("Motivo status");
+      if (!await selectDropdownStable("ddl_motivostatus", reason, "Motivo status", 28, isActive)) addMissing("Motivo status");
     }
 
     return { checked, missing, cancelled: !canWriteTabulator(isActive) };
@@ -2977,8 +3019,8 @@
         addPending("CPF/CNPJ");
         return false;
       }
-      const typeApplied = await selectDropdown("ddl_tipoDoc", docKind, 30, isActive)
-        || await selectDropdownByPattern(/tipo.*doc|document.*type/i, docKind, 24, isActive);
+      const typeApplied = await selectDropdownStable("ddl_tipoDoc", docKind, "Tipo de documento", 34, isActive)
+        || await selectDropdownByPattern(/tipo.*doc|document.*type/i, docKind, 28, isActive);
       if (!typeApplied) addPending("Tipo de documento");
       revealDocumentField(docKind);
       const targets = docKind === "CNPJ"
@@ -3000,23 +3042,22 @@
       if (!ok) addPending("Emissor");
       return ok;
     }));
-    tasks.push(selectDropdown("ddl_TipoChamada", callValues.type, 26, isActive).then(async (ok) => {
-      const confirmed = ok && await waitForDropdownSelection("ddl_TipoChamada", callValues.type, 8, 45, isActive);
-      if (!confirmed) addPending("Tipo de chamada");
-      return ok;
-    }));
-    tasks.push(selectDropdown("ddl_ChamadaAtiva", callValues.result, 26, isActive).then(async (ok) => {
-      const confirmed = ok && await waitForDropdownSelection("ddl_ChamadaAtiva", callValues.result, 8, 45, isActive);
-      if (!confirmed) addPending("Status chamada");
-      return ok;
-    }));
+    tasks.push((async () => {
+      const typeOk = await selectDropdownStable("ddl_TipoChamada", callValues.type, "Tipo de chamada", 32, isActive);
+      if (!typeOk) {
+        addPending("Tipo de chamada");
+        return false;
+      }
+      await wait(60);
+      const statusOk = await selectDropdownStable("ddl_ChamadaAtiva", callValues.result, "Status chamada", 32, isActive);
+      if (!statusOk) addPending("Status chamada");
+      return typeOk && statusOk;
+    })());
     if (!queue) {
       addPending(data.flow === "card" ? "Fila cartão/decisão da transação" : "Fila");
     } else {
       tasks.push((async () => {
-        let ok = await selectDropdown("ddl_Fila", queue, 40, isActive);
-        if (!ok) ok = await selectDropdown("ddl_Fila", queue, 20, isActive);
-        const confirmed = ok && await waitForDropdownSelection("ddl_Fila", queue, 10, 45, isActive);
+        const confirmed = await selectDropdownStable("ddl_Fila", queue, "Fila", 44, isActive);
         if (!confirmed) addPending("Fila");
       })());
     }
@@ -3056,7 +3097,7 @@
     if (!reasonFields.reasonOk) addPending("Motivo status"); else removePending("Motivo status");
 
     fillObservationText(tabulationText);
-    const dropdownAudit = await confirmTabulatorDropdowns(data, decision, isActive);
+    const dropdownAudit = await confirmTabulatorDropdownsWithRetry(data, decision, isActive);
     if (dropdownAudit.cancelled || !isActive()) return { ok: false, pending: [], cancelled: true };
     (dropdownAudit.checked || []).forEach(removePending);
     (dropdownAudit.missing || []).forEach(addPending);
@@ -3072,6 +3113,17 @@
     return { ok: pending.length === 0, pending };
   }
 
+  async function confirmTabulatorDropdownsWithRetry(data, decision, isActive = () => true) {
+    let finalAudit = { checked: [], missing: [], cancelled: false };
+    for (let pass = 0; pass < 3; pass += 1) {
+      finalAudit = await confirmTabulatorDropdowns(data, decision, isActive);
+      if (finalAudit.cancelled || !isActive()) return finalAudit;
+      if (!finalAudit.missing.length) return finalAudit;
+      await wait(80 + pass * 40);
+    }
+    return finalAudit;
+  }
+
   const ISSUER_ID_OVERRIDES = new Map([
     ["ONLYPAY", "104"],
     ["CONTA SIMPLES", "155"],
@@ -3082,7 +3134,12 @@
     ["IFOOD", "520"],
     ["JEITTODOCKONE", "10142"],
     ["JEITTO DOCK ONE", "10142"],
-    ["JEITTO", "10142"]
+    ["JEITTO", "10142"],
+    ["REDEFROTA", "266"],
+    ["REDE FROTA", "266"],
+    ["FROTABANK", "266"],
+    ["FROTA BANK", "266"],
+    ["LYON", "266"]
   ]);
   function issuerIdOverride(issuer) {
     const target = normalize(issuer);
@@ -3166,7 +3223,26 @@
     if (sourceFlow === "card") return issuer.includes("SOFISA") ? 3 : 7;
     return 2;
   }
-  async function readListQueue() {
+
+  let listMutationChain = Promise.resolve();
+  let listMutationDepth = 0;
+  function enqueueListMutation(task) {
+    const run = listMutationChain.catch(() => undefined).then(async () => {
+      listMutationDepth += 1;
+      try {
+        return await task();
+      } finally {
+        listMutationDepth = Math.max(0, listMutationDepth - 1);
+      }
+    });
+    listMutationChain = run.catch(() => undefined);
+    return run;
+  }
+  async function waitForListMutations() {
+    if (listMutationDepth === 0) await listMutationChain.catch(() => undefined);
+  }
+  async function readListQueue(options = {}) {
+    if (options.waitForPending !== false) await waitForListMutations();
     await memory.hydrateFromClipboard?.();
     memory.mergeCurrentMirrors?.();
     const byItemId = new Map();
@@ -3194,6 +3270,7 @@
   }
   async function writeListQueue(list) {
     const next = list.slice(0, 300);
+    memory.mergeCurrentMirrors?.();
     memory.lists.replace(next);
     const result = await memory.commitCurrentText();
     clipboardEnvelopeReady = result.memoryCopied;
@@ -3214,47 +3291,49 @@
     return withoutCurrentCase;
   }
   async function updateListsForFinalDecision(data, decision) {
-    const queue = await readListQueue();
-    const withoutCurrentCase = queue.filter((item) => !sameListIdentity(item, data));
-    if (!isNoFraudDecision(decision)) {
-      if (withoutCurrentCase.length !== queue.length) {
-        showNotice("O caso foi retirado de LISTAS porque a decisão final não é NÃO FRAUDE.", "info");
+    return enqueueListMutation(async () => {
+      const queue = await readListQueue({ waitForPending: false });
+      const withoutCurrentCase = queue.filter((item) => !sameListIdentity(item, data));
+      if (!isNoFraudDecision(decision)) {
+        if (withoutCurrentCase.length !== queue.length) {
+          showNotice("O caso foi retirado de LISTAS porque a decisão final não é NÃO FRAUDE.", "info");
+        }
+        return retireCurrentCaseFromLists(queue, data);
       }
-      return retireCurrentCaseFromLists(queue, data);
-    }
-    const lists = listTypesFor(data);
-    if (!lists.allowlist && !lists.contencao) {
-      return retireCurrentCaseFromLists(queue, data);
-    }
-    const issuerId = await issuerIdForName(data.issuer);
-    if ((issuerId === "155" || normalize(data.issuer).includes("CONTA SIMPLES")) && isRecentRegistration(data.registrationDate)) {
-      showNotice("Conta Simples 155 com cadastro menor que 3 meses não foi enviada para LISTAS.", "info", 10000);
-      return retireCurrentCaseFromLists(queue, data);
-    }
-    const account = clean(data.account, "");
-    const documentValue = documentFieldValue(data.cpfCnpj);
-    if (!account || (lists.contencao && !documentValue)) {
-      showNotice(lists.contencao && !documentValue ? "Regra de contenção detectada, mas faltou CPF/CNPJ para a LISTAS." : "Caso não fraude salvo, mas faltou ID da conta para a LISTAS.", "warn");
-      return retireCurrentCaseFromLists(queue, data);
-    }
-    const item = {
-      id: `${data.falcon?.caseNumber || Date.now()}-${Date.now()}`,
-      lists,
-      applied: { allowlist: false, contencao: !lists.contencao },
-      caseNumber: data.falcon?.caseNumber || "N/A",
-      issuer: clean(data.issuer, "N/A"),
-      account,
-      documentValue,
-      sourceFlow: data.flow,
-      visualFlow: data.visualFlow,
-      treatmentKind: data.treatmentKind || "brasil",
-      savedAt: Date.now(),
-      updatedAt: Date.now()
-    };
-    showNotice(lists.contencao ? "Caso finalizado e guardado em LISTAS com CPF/CNPJ." : "Caso finalizado e guardado em LISTAS com ID da conta.", "info");
-    const next = [{ ...item, issuerId }, ...withoutCurrentCase];
-    await writeListQueue(next);
-    return next;
+      const lists = listTypesFor(data);
+      if (!lists.allowlist && !lists.contencao) {
+        return retireCurrentCaseFromLists(queue, data);
+      }
+      const issuerId = await issuerIdForName(data.issuer);
+      if ((issuerId === "155" || normalize(data.issuer).includes("CONTA SIMPLES")) && isRecentRegistration(data.registrationDate)) {
+        showNotice("Conta Simples 155 com cadastro menor que 3 meses não foi enviada para LISTAS.", "info", 10000);
+        return retireCurrentCaseFromLists(queue, data);
+      }
+      const account = clean(data.account, "");
+      const documentValue = documentFieldValue(data.cpfCnpj);
+      if (!account || (lists.contencao && !documentValue)) {
+        showNotice(lists.contencao && !documentValue ? "Regra de contenção detectada, mas faltou CPF/CNPJ para a LISTAS." : "Caso não fraude salvo, mas faltou ID da conta para a LISTAS.", "warn");
+        return retireCurrentCaseFromLists(queue, data);
+      }
+      const item = {
+        id: `${data.falcon?.caseNumber || Date.now()}-${Date.now()}`,
+        lists,
+        applied: { allowlist: false, contencao: !lists.contencao },
+        caseNumber: data.falcon?.caseNumber || "N/A",
+        issuer: clean(data.issuer, "N/A"),
+        account,
+        documentValue,
+        sourceFlow: data.flow,
+        visualFlow: data.visualFlow,
+        treatmentKind: data.treatmentKind || "brasil",
+        savedAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      showNotice(lists.contencao ? "Caso finalizado e guardado em LISTAS com CPF/CNPJ." : "Caso finalizado e guardado em LISTAS com ID da conta.", "info");
+      const next = [{ ...item, issuerId }, ...withoutCurrentCase];
+      await writeListQueue(next);
+      return next;
+    });
   }
   function hotlistInputs() {
     return all("input,textarea").filter((field) => {
@@ -3451,14 +3530,16 @@
     return { ok: missing.length === 0, missing, rowIndex };
   }
   async function markListDone(id, listType) {
-    const original = await readListQueue();
-    const target = original.find((item) => item.id === id);
-    if (!target) return true;
-    memory.lists.markDone?.(target, listType);
-    const list = memory.lists.all().filter(hasPendingListApplication);
-    await writeListQueue(list);
-    const stillPending = (await readListQueue()).some((item) => item.id === id && item.lists?.[listType] && !item.applied?.[listType]);
-    return !stillPending;
+    return enqueueListMutation(async () => {
+      const original = await readListQueue({ waitForPending: false });
+      const target = original.find((item) => item.id === id);
+      if (!target) return true;
+      memory.lists.markDone?.(target, listType);
+      const list = memory.lists.all().filter(hasPendingListApplication);
+      await writeListQueue(list);
+      const stillPending = (await readListQueue({ waitForPending: false })).some((item) => item.id === id && item.lists?.[listType] && !item.applied?.[listType]);
+      return !stillPending;
+    });
   }
   async function removeListItem(id, listType) {
     return markListDone(id, listType);

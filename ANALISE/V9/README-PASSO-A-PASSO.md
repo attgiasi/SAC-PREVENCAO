@@ -1,6 +1,6 @@
 # SAC Prevenção V9
 
-Versão revisada em 08/07/2026. Build interno `9.10`.
+Versão revisada em 09/07/2026. Build interno `9.11`.
 
 ## Estrutura
 
@@ -13,7 +13,7 @@ A V9 fica organizada em blocos claros:
 - `issuer-directory.json`: base de apoio para cruzamento de emissores.
 - `bookmarklet-v9.txt`: favorito dedicado para testar a V9 sem mexer no favorito universal.
 
-Nesta entrega, o favorito universal foi vinculado à V9.10. O arquivo `ANALISE/favorito-universal.bookmarklet.txt` continua igual e carrega `ANALISE/motor-sac-universal.js`, que agora aponta para a V9.
+Nesta entrega, o favorito universal foi vinculado à V9.11. O arquivo `ANALISE/favorito-universal.bookmarklet.txt` continua igual e carrega `ANALISE/motor-sac-universal.js`, que agora aponta para a V9.
 
 ## Blocos revisados
 
@@ -24,9 +24,11 @@ Nesta entrega, o favorito universal foi vinculado à V9.10. O arquivo `ANALISE/f
 - `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
 - `HISTÓRICO`: grava a tabulação sem CPF/CNPJ visível e deve abrir igual em qualquer etapa.
 
-Na V9.10, a memória de LISTAS, Histórico e Configurações é transportada por `localStorage`, `sessionStorage`, `window.name`, clipboard customizado e também um envelope HTML padrão. Se um formato de clipboard falhar, o motor tenta o próximo antes de desistir. As configurações, LISTAS e Histórico também viajam dentro dos pacotes Falcon e Console para reforçar tema, modo seguro, modo ajuda, fonte, assinatura, cores dos fluxos e casos pendentes entre etapas.
+Na V9.11, a memória de LISTAS, Histórico e Configurações é transportada por `localStorage`, `sessionStorage`, `window.name`, clipboard customizado e também um envelope HTML padrão. Se um formato de clipboard falhar, o motor tenta o próximo antes de desistir. As configurações, LISTAS e Histórico também viajam dentro dos pacotes Falcon e Console para reforçar tema, modo seguro, modo ajuda, fonte, assinatura, cores dos fluxos e casos pendentes entre etapas.
 
 LISTAS também possui um cofre dedicado da V9. Esse cofre guarda os casos pendentes por 12 horas, aplica tombstones quando um item é inserido ou removido, e impede que uma cópia antiga do clipboard traga de volta casos já baixados.
+
+Na V9.11, as gravações de LISTAS passam por fila única de mutação. Ao finalizar um caso BANKING como NÃO FRAUDE, a lista aguarda a gravação terminar antes de renderizar, para o caso aparecer imediatamente em qualquer etapa do fluxo.
 
 ## Fluxos
 
@@ -302,6 +304,7 @@ Aplicação:
 - A data inicial é o dia atual.
 - A data final é dois dias depois, salvo regra específica por emissor.
 - O ID do emissor é cruzado pelo nome do emissor; se não localizar, o sistema avisa para conferência manual.
+- A base de emissores foi atualizada pelo documento de seleção enviado, com 382 emissores e aliases para nomes que aparecem diferente entre Console, Falcon e LISTAS.
 
 ## Histórico
 

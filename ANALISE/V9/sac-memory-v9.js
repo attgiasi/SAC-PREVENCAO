@@ -112,6 +112,7 @@
     return source
       .map((item) => ({
         key: normalizeText(item?.key),
+        itemId: normalizeText(item?.itemId),
         removedAt: Number(item?.removedAt || item?.savedAt || 0)
       }))
       .filter((item) => item.key && validAge({ savedAt: item.removedAt }))
@@ -182,7 +183,7 @@
 
   function tombstoneMap(tombstones) {
     const map = new Map();
-    normalizeTombstones(tombstones).forEach((item) => map.set(item.key, Number(item.removedAt || 0)));
+    normalizeTombstones(tombstones).forEach((item) => map.set(item.key, item));
     return map;
   }
 
@@ -195,8 +196,11 @@
     const removals = tombstoneMap(tombstones);
     ["allowlist", "contencao"].forEach((listType) => {
       if (!next.lists?.[listType]) return;
-      const removedAt = removals.get(listIdentity(next, listType)) || 0;
-      if (removedAt >= stamp) next.applied[listType] = true;
+      const removal = removals.get(listIdentity(next, listType));
+      const removedAt = Number(removal?.removedAt || 0);
+      if ((removal?.itemId && removal.itemId === normalizeText(next.id)) || removedAt >= stamp) {
+        next.applied[listType] = true;
+      }
     });
     return next;
   }
@@ -420,7 +424,7 @@
       const baseIdentity = identity(item) || item?.id || "";
       const key = listIdentity(item, listType);
       if (baseIdentity && listType) {
-        memory.listTombstones = mergeTombstones([{ key, removedAt: now() }], memory.listTombstones);
+        memory.listTombstones = mergeTombstones([{ key, itemId: normalizeText(item?.id), removedAt: now() }], memory.listTombstones);
       }
       const changedAt = now();
       const marked = memory.lists.map((entry) => {

@@ -12,7 +12,7 @@ Arquivos carregados pelo favorito:
 - `V9/sac-tabulator-v9.js`
 - `V9/sac-prevencao-v9.js`
 
-O carregador universal aponta exclusivamente para a V9.12 e carrega os motores na ordem correta.
+O carregador universal aponta exclusivamente para a V9.13 e carrega os motores na ordem correta.
 
 Também existe um bookmarklet separado dentro de cada pasta de versão, no formato `bookmarklet-vX.txt`, para testar cada versão isoladamente.
 

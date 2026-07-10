@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V9_20260625";
   const BUILD = "ANALISE/V9";
   const BUILD_FAMILY = "9";
-  const BUILD_VERSION = "9.12";
+  const BUILD_VERSION = "9.13";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -1436,26 +1436,33 @@
     return /^\d{6,12}$/.test(digits) ? digits : "";
   }
   function idText(id) { return textOf(byId(id)); }
+
+  const FALCON_SELECTORS = Object.freeze({
+    caseNumber: "csOvwFrm:TabView:CaSmDtCaseNumber",
+    transactionType: "csOvwFrm:TabView:CaSmDtTranType",
+    cardNumber: "ServiceNumLink",
+    orangeRgb: "rgb(239, 130, 0)",
+    gridBase: "csInvFrm:csInvTbVw:resultGrid:"
+  });
+  const FALCON_ROW_FIELDS = Object.freeze({
+    rule: ["RULESTEXT_VALUE1", "RULESTEXT_VALUE", "RULES_TEXT"],
+    date: ["TRANSACTION_DTTM_VALUE", "TRANSACTION_DATE_VALUE"],
+    value: ["TRANSACTION_AMT_VALUE", "TRANSACTION_AMOUNT_VALUE"],
+    history: ["USER_DATA_20_STRG_VALUE", "USER_DATA_20_VALUE", "USER_DATA_20"],
+    merchant: ["MERCHANT_NAME_VALUE", "MERCHANT_DBA_NAME_VALUE", "CARD_ACCEPTOR_NAME_VALUE"],
+    decision: ["FALCON_DECISION_CODE_VALUE", "FALCON_DECISION_VALUE"],
+    payment: ["TRANSACTION_POSTING_ENTRY_XFLG_VALUE", "TRANSACTION_ENTRY_MODE_VALUE", "POS_ENTRY_MODE_VALUE"]
+  });
+
   function falconCaseNumber() {
     const label = byId("csOvwFrm:TabView:CaSmLbCaseNumber");
     if (label && !normalize(textOf(label)).includes("NUMERO DO CASO")) return "";
-    return numericCase(idText("csOvwFrm:TabView:CaSmDtCaseNumber"));
+    return numericCase(idText(FALCON_SELECTORS.caseNumber));
   }
-  function idPrefixText(prefix, preferredSuffix = "", sourceRows = []) {
-    const nodes = all("[id]").filter((node) => String(node.id || "").startsWith(prefix));
-    if (preferredSuffix) {
-      const exact = nodes.find((node) => node.id.endsWith(`_${preferredSuffix}`));
-      if (exact) return textOf(exact);
-    }
-    for (const row of sourceRows.filter(Boolean)) {
-      const inRow = all("[id]", row).find((node) => String(node.id || "").startsWith(prefix) && textOf(node));
-      if (inRow) return textOf(inRow);
-    }
-    return textOf(nodes.find((node) => textOf(node)));
-  }
+
   function rowElementLooksOrange(row) {
     if (!row) return false;
-    const exact = all("td", row).some((td) => td.style.backgroundColor === "rgb(239, 130, 0)");
+    const exact = all("td", row).some((td) => td.style.backgroundColor === FALCON_SELECTORS.orangeRgb);
     if (exact) return true;
     const nodes = [row, ...all("td,div,span", row).slice(0, 16)];
     return nodes.some((node) => {
@@ -1463,19 +1470,24 @@
       return rgb.length >= 3 && rgb[0] >= 180 && rgb[1] >= 70 && rgb[1] <= 190 && rgb[2] <= 130;
     });
   }
-  function selectFalconTransactionCheckbox() {
-    const orange = orangeFalconRow();
-    if (!orange) return all("input[id*='caseTranGridVwColSelCheckBox']:checked")[0] || null;
-    const inputs = all("input[id*='caseTranGridVwColSelCheckBox']", orange);
-    const candidate = inputs.find((input) => input.checked) || inputs[0];
-    if (candidate && !candidate.checked) {
-      try { candidate.click(); } catch (_err) {}
-      if (!candidate.checked) {
-        candidate.checked = true;
-        candidate.dispatchEvent(new Event("input", { bubbles: true }));
-        candidate.dispatchEvent(new Event("change", { bubbles: true }));
+
+  function setFalconCheckbox(checkbox, checked) {
+    if (!checkbox) return false;
+    if (checkbox.checked !== checked) {
+      try { checkbox.click(); } catch (_err) {}
+      if (checkbox.checked !== checked) {
+        checkbox.checked = checked;
+        checkbox.dispatchEvent(new Event("input", { bubbles: true }));
+        checkbox.dispatchEvent(new Event("change", { bubbles: true }));
       }
     }
+    return checkbox.checked === checked;
+  }
+  function selectFalconTransactionCheckbox(row = orangeFalconRow()) {
+    if (!row) return all("input[id*='caseTranGridVwColSelCheckBox']:checked")[0] || null;
+    const inputs = all("input[id*='caseTranGridVwColSelCheckBox']", row);
+    const candidate = inputs.find((input) => input.checked) || inputs[0];
+    setFalconCheckbox(candidate, true);
     return candidate;
   }
   function selectHoldActionCheckbox() {
@@ -1484,14 +1496,7 @@
       return normalize(descriptor).includes("HOLD") && normalize(descriptor).includes("ACTION");
     });
     if (!checkbox) return { found: false, selected: false };
-    if (!checkbox.checked) {
-      try { checkbox.click(); } catch (_err) {}
-      if (!checkbox.checked) {
-        checkbox.checked = true;
-        checkbox.dispatchEvent(new Event("input", { bubbles: true }));
-        checkbox.dispatchEvent(new Event("change", { bubbles: true }));
-      }
-    }
+    setFalconCheckbox(checkbox, true);
     return { found: true, selected: checkbox.checked };
   }
   function selectHoldRowsCheckboxes() {
@@ -1500,27 +1505,12 @@
     all("tr,[role='row']").forEach((row) => {
       const checkbox = all("input[id*='caseTranGridVwColSelCheckBox']", row)[0];
       if (!checkbox) return;
-      const ruleNode = all("[id*='RULESTEXT_VALUE'],[id*='RULES_TEXT'],[data-column*='rule']", row)[0];
-      const rule = clean(textOf(ruleNode), "");
+      const rule = falconMappedText({ row, rows: [row], rowIndex: falconRowIndex(row, checkbox) }, "rule");
       const isHoldRow = Boolean(rule) && normalize(rule).includes("HOLD");
-      if (!isHoldRow && checkbox.checked) {
-        try { checkbox.click(); } catch (_err) {}
-        if (checkbox.checked) {
-          checkbox.checked = false;
-          checkbox.dispatchEvent(new Event("input", { bubbles: true }));
-          checkbox.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-      }
+      if (!isHoldRow && checkbox.checked) setFalconCheckbox(checkbox, false);
       if (!isHoldRow) return;
       found += 1;
-      if (!checkbox.checked) {
-        try { checkbox.click(); } catch (_err) {}
-        if (!checkbox.checked) {
-          checkbox.checked = true;
-          checkbox.dispatchEvent(new Event("input", { bubbles: true }));
-          checkbox.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-      }
+      setFalconCheckbox(checkbox, true);
       if (checkbox.checked) selected += 1;
     });
     return { found, selected };
@@ -1532,75 +1522,67 @@
     return node?.closest?.("tr,[role='row']") || null;
   }
   function orangeFalconRow() {
-    const exactCell = all("td").find((td) => td.style.backgroundColor === "rgb(239, 130, 0)");
+    const exactCell = all("td").find((td) => td.style.backgroundColor === FALCON_SELECTORS.orangeRgb);
     const exactRow = exactCell?.parentElement || null;
     return exactRow || all("tr,[role='row']").find(rowElementLooksOrange) || null;
   }
-  function falconHistoryNode() {
-    return all("[id]").find((node) => String(node.id || "").startsWith("csInvFrm:csInvTbVw:resultGrid:USER_DATA_20_STRG_VALUE") && textOf(node));
+  function falconIdSuffix(node) {
+    return String(node?.id || "").match(/_(\d+)$/)?.[1] || "";
+  }
+  function falconRowIndex(row, checkbox = null) {
+    return falconIdSuffix(checkbox)
+      || all("[id]", row).map(falconIdSuffix).find(Boolean)
+      || "";
+  }
+  function falconIdMatchesField(id, field) {
+    const prefixes = FALCON_ROW_FIELDS[field] || [];
+    return prefixes.some((prefix) => id.startsWith(`${FALCON_SELECTORS.gridBase}${prefix}`) || id.includes(`:${prefix}`));
+  }
+  function falconMappedText(context, field) {
+    const rowNodes = uniqueNodes([...(context.rows || []), context.orangeRow, context.row]).filter(Boolean);
+    const rowCandidates = rowNodes.flatMap((row) => all("[id]", row).filter((node) => falconIdMatchesField(String(node.id || ""), field) && textOf(node)));
+    const rowExact = context.rowIndex ? rowCandidates.find((node) => node.id.endsWith(`_${context.rowIndex}`)) : null;
+    const contextual = clean(textOf(rowExact || rowCandidates[0]), "");
+    if (contextual) return contextual;
+    if (!context.rowIndex) return "";
+    const exact = all("[id]").find((node) => falconIdMatchesField(String(node.id || ""), field) && node.id.endsWith(`_${context.rowIndex}`) && textOf(node));
+    return clean(textOf(exact), "");
   }
   function falconRowContext() {
-    const checkbox = selectFalconTransactionCheckbox();
     const orangeRow = orangeFalconRow();
+    const checkbox = selectFalconTransactionCheckbox(orangeRow);
     const row = orangeRow || closestGridRow(checkbox);
-    const historyRow = closestGridRow(falconHistoryNode());
-    const rows = uniqueNodes([row, historyRow]);
+    const rows = uniqueNodes([row]);
     return {
       checkbox,
       orangeRow,
       row,
       rows,
-      rowIndex: checkbox?.id?.match(/_(\d+)$/)?.[1] || "",
+      rowIndex: falconRowIndex(row, checkbox),
       text: rows.map(textOf).filter(Boolean).join(" ")
     };
   }
-  function textByPrefixes(prefixes, context) {
-    for (const prefix of prefixes) {
-      const value = clean(idPrefixText(prefix, context.rowIndex, context.rows), "");
-      if (value) return value;
-    }
-    return "";
-  }
-  function valueFromFalconRow(context) {
+  function falconAmountFallback(context) {
     return clean(context.text.match(/(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2})\b/)?.[1], "");
   }
-  function dateFromFalconRow(context) {
+  function falconDateFallback(context) {
     return clean(context.text.match(/\b\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2}\b/)?.[0] || context.text.match(/\b\d{2}\/\d{2}\/\d{4}\b/)?.[0], "");
   }
-  function ruleFromFalconRow(context) {
-    return clean(context.text.match(/\b[A-Z0-9]{2,}(?:_[A-Z0-9]{2,})+\b/)?.[0], "");
-  }
-  function historyFromFalconPage(context) {
-    const candidates = [];
-    const pushHistoryNodes = (root) => {
-      all("[id*='USER_DATA_20']", root).forEach((node) => {
-        const code = extractHistoryCode(textOf(node));
-        if (code) candidates.push(code);
-      });
-    };
-    if (context.orangeRow) pushHistoryNodes(context.orangeRow);
-    context.rows.forEach(pushHistoryNodes);
-    pushHistoryNodes(document);
-    return candidates.find(Boolean) || "";
+  function falconRuleFallback(context) {
+    return clean(context.text.match(/\b[A-Za-z0-9]+(?:_[A-Za-z0-9]+){1,}\b/)?.[0], "");
   }
   function readOriginalOrangeRowData(context) {
-    const data = { value: "", rule: "", date: "", history: "", historyFound: false, merchant: "", decision: "", payment: "" };
-    const row = context.orangeRow || context.row;
-    if (!row) return data;
-    all("td,span,label", row).forEach((el) => {
-      const text = textOf(el);
-      const id = el.id || "";
-      if (!data.date && /\d{2}\/\d{2}\/\d{4}.*:/.test(text)) data.date = text;
-      if (!data.value && /^[0-9]{1,3}(\.[0-9]{3})*,[0-9]{2}$/.test(text) && !id.includes("RULE")) data.value = text;
-      if (!data.rule && (id.includes("RULESTEXT") || /Nega_|Lista/.test(text) || /\b[A-Z0-9]{2,}(?:_[A-Z0-9]{2,})+\b/.test(text))) data.rule = text;
-      if (!data.history && id.includes("USER_DATA_20")) {
-        data.history = text;
-        data.historyFound = true;
-      }
-      if (!data.merchant && id.includes("MERCHANT_NAME")) data.merchant = text;
-      if (!data.decision && id.includes("FALCON_DECISION_CODE")) data.decision = text;
-      if (!data.payment && id.includes("TRANSACTION_POSTING_ENTRY_XFLG")) data.payment = text;
-    });
+    const history = falconMappedText(context, "history");
+    const data = {
+      value: falconMappedText(context, "value") || falconAmountFallback(context),
+      rule: falconMappedText(context, "rule") || falconRuleFallback(context),
+      date: falconMappedText(context, "date") || falconDateFallback(context),
+      history: extractHistoryCode(history),
+      historyFound: Boolean(history),
+      merchant: falconMappedText(context, "merchant"),
+      decision: falconMappedText(context, "decision"),
+      payment: falconMappedText(context, "payment")
+    };
     return data;
   }
   function falconPanelLabelValue(label) {
@@ -1622,26 +1604,22 @@
     const context = falconRowContext();
     const orangeData = readOriginalOrangeRowData(context);
     const caseNumber = falconCaseNumber();
-    const overviewType = idText("csOvwFrm:TabView:CaSmDtTranType");
+    const overviewType = idText(FALCON_SELECTORS.transactionType);
     const panelTransactionType = falconPanelLabelValue("Tipo de transação");
-    const cardNumber = idText("ServiceNumLink");
+    const cardNumber = idText(FALCON_SELECTORS.cardNumber);
     const cardLast4 = last4(cardNumber);
     const transactionTypeText = overviewType || panelTransactionType;
     const cardByTransactionType = isCardTransactionType(transactionTypeText);
-    const rule = clean(
-      orangeData.rule
-      || textByPrefixes(["csInvFrm:csInvTbVw:resultGrid:RULESTEXT_VALUE1", "csInvFrm:csInvTbVw:resultGrid:RULES_TEXT"], context)
-      || ruleFromFalconRow(context)
-    );
+    const rule = clean(orangeData.rule);
     const holdByRule = isHoldRule(rule);
     const flow = (cardByTransactionType || cardLast4) ? "card" : "banking";
     const visualFlow = flow === "banking" && holdByRule ? "hold" : flow;
-    const historyRaw = flow === "card" ? "" : (orangeData.history || historyFromFalconPage(context) || textByPrefixes(["csInvFrm:csInvTbVw:resultGrid:USER_DATA_20_STRG_VALUE"], context));
-    const paymentCode = orangeData.payment || textByPrefixes(["csInvFrm:csInvTbVw:resultGrid:TRANSACTION_POSTING_ENTRY_XFLG_VALUE"], context);
-    const transactionDecision = orangeData.decision || textByPrefixes(["csInvFrm:csInvTbVw:resultGrid:FALCON_DECISION_CODE_VALUE"], context) || clean(context.text.match(/\b(approve|decline)\b/i)?.[0], "");
-    const merchant = orangeData.merchant || textByPrefixes(["csInvFrm:csInvTbVw:resultGrid:MERCHANT_NAME_VALUE"], context);
-    const value = orangeData.value || textByPrefixes(["csInvFrm:csInvTbVw:resultGrid:TRANSACTION_AMT_VALUE", "csInvFrm:csInvTbVw:resultGrid:TRANSACTION_AMOUNT_VALUE"], context) || valueFromFalconRow(context);
-    const transactionDate = orangeData.date || textByPrefixes(["csInvFrm:csInvTbVw:resultGrid:TRANSACTION_DTTM_VALUE", "csInvFrm:csInvTbVw:resultGrid:TRANSACTION_DATE_VALUE"], context) || dateFromFalconRow(context);
+    const historyRaw = flow === "card" ? "" : orangeData.history;
+    const paymentCode = orangeData.payment;
+    const transactionDecision = orangeData.decision || clean(context.text.match(/\b(approve|decline)\b/i)?.[0], "");
+    const merchant = orangeData.merchant;
+    const value = orangeData.value;
+    const transactionDate = orangeData.date;
     const data = {
       type: EXPORT_FALCON,
       flow,
@@ -1652,7 +1630,7 @@
       sourceTransactionType: clean(transactionTypeText),
       caseNumber,
       rowIndex: context.rowIndex,
-      cardNumber: flow === "card" ? cardNumber : "N/A",
+      cardNumber: flow === "card" ? clean(cardNumber) : "N/A",
       cardLast4,
       transactionType: flow === "card"
         ? paymentMethodName(paymentCode, "")

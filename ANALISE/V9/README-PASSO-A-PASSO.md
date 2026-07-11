@@ -1,6 +1,6 @@
 # SAC Prevenção V9
 
-Versão revisada em 10/07/2026. Build interno `9.13`.
+Versão revisada em 10/07/2026. Build interno `9.15`.
 
 ## Estrutura
 
@@ -13,7 +13,7 @@ A V9 fica organizada em blocos claros:
 - `issuer-directory.json`: base de apoio para cruzamento de emissores.
 - `bookmarklet-v9.txt`: favorito dedicado para testar a V9 sem mexer no favorito universal.
 
-Nesta entrega, o favorito universal foi vinculado à V9.13. O arquivo `ANALISE/favorito-universal.bookmarklet.txt` continua igual e carrega `ANALISE/motor-sac-universal.js`, que agora aponta para a V9.
+Nesta entrega, o favorito universal foi vinculado à V9.15. O arquivo `ANALISE/favorito-universal.bookmarklet.txt` continua igual e carrega `ANALISE/motor-sac-universal.js`, que agora aponta para a V9.
 
 ## Blocos revisados
 
@@ -24,15 +24,19 @@ Nesta entrega, o favorito universal foi vinculado à V9.13. O arquivo `ANALISE/f
 - `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
 - `HISTÓRICO`: grava a tabulação sem CPF/CNPJ visível e deve abrir igual em qualquer etapa.
 
-Na V9.13, a memória de LISTAS, Histórico e Configurações é transportada por `localStorage`, `sessionStorage`, `window.name`, clipboard customizado e também um envelope HTML padrão. Se um formato de clipboard falhar, o motor tenta o próximo antes de desistir. As configurações, LISTAS e Histórico também viajam dentro dos pacotes Falcon e Console para reforçar tema, modo seguro, modo ajuda, fonte, assinatura, cores dos fluxos e casos pendentes entre etapas.
+Na V9.15, a memória de LISTAS, Histórico e Configurações é transportada por `localStorage`, `sessionStorage`, `window.name`, clipboard customizado e também um envelope HTML padrão. Se um formato de clipboard falhar, o motor tenta o próximo antes de desistir. As configurações, LISTAS e Histórico também viajam dentro dos pacotes Falcon e Console para reforçar tema, modo seguro, modo ajuda, fonte, assinatura, cores dos fluxos e casos pendentes entre etapas.
 
 LISTAS também possui um cofre dedicado da V9. Esse cofre guarda os casos pendentes por 12 horas, aplica tombstones quando um item é inserido ou removido, e impede que uma cópia antiga do clipboard traga de volta casos já baixados.
 
-Na V9.13, as gravações de LISTAS continuam em fila única de mutação. Ao finalizar um caso BANKING como NÃO FRAUDE, a lista aguarda a gravação terminar antes de renderizar, para o caso aparecer imediatamente em qualquer etapa do fluxo.
+Na V9.15, as gravações de LISTAS continuam em fila única de mutação. Ao finalizar um caso BANKING como NÃO FRAUDE, a lista aguarda a gravação terminar antes de renderizar, para o caso aparecer imediatamente em qualquer etapa do fluxo.
 
 Também foi feito pente fino no caminho ativo da V9: funções internas não utilizadas foram removidas e os aliases de fila de cartão agora aceitam tanto `APPROVE/AUTHORIZED` quanto `DECLINE/DENIED`, sempre selecionando a opção real do dropdown.
 
-Na V9.13, o bloco `FALCON` foi reescrito para usar leitura contextual da linha laranja. A coleta prioriza os campos mapeados do grid (`RULESTEXT`, `TRANSACTION_DTTM`, `TRANSACTION_AMT`, `USER_DATA_20`, `MERCHANT_NAME`, `FALCON_DECISION_CODE` e `TRANSACTION_POSTING_ENTRY_XFLG`) e não usa mais busca global ampla para histórico de infrações.
+O bloco `FALCON` usa leitura contextual da linha laranja. A coleta prioriza os campos mapeados do grid (`RULESTEXT`, `TRANSACTION_DTTM`, `TRANSACTION_AMT`, `USER_DATA_20`, `MERCHANT_NAME`, `FALCON_DECISION_CODE` e `TRANSACTION_POSTING_ENTRY_XFLG`) e não usa busca global ampla para histórico de infrações.
+
+Na V9.15, o bloco `CONSOLE` foi reescrito para reduzir conflitos de versões anteriores: tratativa por botões mapeados (`Backoffice Brasil` e `Global Backoffice`), emissor por botão de emissor, data/status por rótulo próximo e dados de cartão por tabela/célula vinculada aos 4 últimos dígitos coletados no Falcon.
+
+Na V9.15, o Tabulador voltou ao motor de aplicação estável da V9.8: os dropdowns independentes são selecionados uma vez e confirmados de forma curta; somente `Motivo Status` mantém sondagem por depender do carregamento após a decisão.
 
 ## Fluxos
 
@@ -173,7 +177,7 @@ Ao executar o favorito no Tabulador, somente a janela de análise e decisão abr
 Depois do clique em uma decisão:
 
 - a tabulação pronta é copiada automaticamente;
-- os campos independentes são aplicados rapidamente e em rodadas confirmadas;
+- os campos independentes são aplicados rapidamente e confirmados de forma curta;
 - `Fila`, `Status`, `Observações` e campos primários são preenchidos;
 - somente `Motivo Status` aguarda carregamento, pois depende da seleção do status;
 - quando `Motivo Status` é confirmado, a janela `Tabulação pronta` abre.
@@ -199,7 +203,7 @@ Campos primários aplicados no Tabulador:
 - regra;
 - observações/tabulação pronta.
 
-O motor usa aplicação direta em campos e selects, dispara `input`, `change` e `blur`, atualiza `selectpicker` quando existir e faz rodadas de confirmação para evitar falhas intermitentes. Essa é a lógica rápida inspirada na aplicação direta dos códigos base, mas com confirmação e tolerância a variações de texto.
+O motor usa aplicação direta em campos e selects, dispara `input`, `change` e `blur`, atualiza `selectpicker` quando existir e faz confirmação curta para evitar falhas intermitentes. Essa é a lógica rápida inspirada na aplicação direta dos códigos base, preservando tolerância a variações de texto.
 
 Regras de chamada:
 
@@ -225,6 +229,7 @@ Motivo Status:
 - BANKING/HOLD + `FRAUDE`: `FRAUDE TRANSACIONAL`.
 - BANKING/HOLD + `NÃO FRAUDE`: `SEM SUSPEITAS`.
 - BANKING/HOLD + decisões inconclusivas: `DADOS INSUFICIENTES PARA ANÁLISE`.
+- CARTÃO + `FRAUDE`: `CLIENTE SOFREU FRAUDE`, exceto quando `Histórico de compra no estabelecimento` ou `Padrão de compra` for `autofinanciamento`; nesse caso aplica `FRAUDE TRANSACIONAL`.
 - CARTÃO + `NÃO FOI POSSÍVEL CONFIRMAR FRAUDE`: `CLIENTE NÃO ATENDE`.
 - CARTÃO + demais decisões seguem a regra geral.
 

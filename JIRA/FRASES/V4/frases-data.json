@@ -1,7 +1,7 @@
 {
   "version": 4,
   "product": "Frases Prontas - JIRA Prevenção",
-  "updatedAt": "2026-07-09T23:30:00.000Z",
+  "updatedAt": "2026-07-10T00:00:00.000Z",
   "tabs": [
     {
       "id": "jira",
@@ -23,7 +23,7 @@
         {
           "id": "jira-headset-abertura-chamado",
           "title": "Abertura de chamado",
-          "text": "Me chamo {{NOME}}. Como posso ajudar?\n\nApós registrar as informações do chamado, oriente que o retorno será realizado via ticket.",
+          "text": "Meu nome é {{NOME}}. Como posso ajudar?\n\nApós registrar as informações do chamado, oriente que o retorno será realizado via ticket.",
           "tags": [
             "headset",
             "abertura"
@@ -32,7 +32,7 @@
         {
           "id": "jira-headset-fora-escopo",
           "title": "JIRA fora do escopo",
-          "text": "O JIRA informado não está dentro do escopo de atendimento deste canal. Orientamos acionar o CSM responsável ou direcionar o chamado ao time correto.\n\nTemas atendidos pelo canal:\n- Bloqueio de conta ou cartão;\n- Desbloqueio de conta ou cartão;\n- Consultas e motivos de bloqueio;\n- KYC / Onboarding;\n- Análise relacionada à prevenção.",
+          "text": "O JIRA informado não está dentro do escopo de atendimento deste canal. Orientamos acionar o CSM responsável ou direcionar o chamado ao time correto.\n\nTemas atendidos por este canal:\n- Bloqueio de conta ou cartão;\n- Desbloqueio de conta ou cartão;\n- Consultas e motivos de bloqueio;\n- KYC / Onboarding;\n- Análise relacionada à prevenção.",
           "tags": [
             "fora de escopo",
             "headset"
@@ -50,7 +50,7 @@
         {
           "id": "jira-registro-inicial-em-chamados-frase-padrao-1",
           "title": "Frase padrão",
-          "text": "me chamo {{NOME|Nome do atendente}} e serei responsável por dar seguimento à sua solicitação.\nInformo que a tratativa já está em andamento e todas as atualizações serão registradas neste chamado até a conclusão da análise.",
+          "text": "meu nome é {{NOME|Nome do atendente}} e serei responsável por dar seguimento à sua solicitação.\nInformo que a tratativa já está em andamento e que todas as atualizações serão registradas neste chamado até a conclusão da análise.",
           "tags": [
             "Registro inicial em chamados",
             "Frase padrão"
@@ -59,7 +59,7 @@
         {
           "id": "jira-registro-inicial-em-chamados-possivel-interacao-2",
           "title": "Possível interação",
-          "text": "me chamo {{NOME|Nome do atendente}} e serei responsável por dar seguimento à sua solicitação.\nA tratativa já foi iniciada e, caso seja necessário apoio de áreas internas ou informações adicionais, você será informado(a) por este chamado.",
+          "text": "meu nome é {{NOME|Nome do atendente}} e serei responsável por dar seguimento à sua solicitação.\nA tratativa já foi iniciada e, caso seja necessário apoio de áreas internas ou informações adicionais, você será informado(a) por este chamado.",
           "tags": [
             "Registro inicial em chamados",
             "Possível interação"
@@ -68,7 +68,7 @@
         {
           "id": "jira-registro-inicial-em-chamados-atendimento-prioritario-3",
           "title": "Atendimento prioritário",
-          "text": "me chamo {{NOME|Nome do atendente}} e estou dando andamento prioritário à sua solicitação.\nA tratativa já foi iniciada e seguirei com as atualizações por este chamado até a conclusão da análise.",
+          "text": "meu nome é {{NOME|Nome do atendente}} e estou dando andamento prioritário à sua solicitação.\nA tratativa já foi iniciada e seguirei com as atualizações por este chamado até a conclusão da análise.",
           "tags": [
             "Registro inicial em chamados",
             "Atendimento prioritário"
@@ -77,7 +77,7 @@
         {
           "id": "jira-registro-inicial-em-chamados-atendimento-em-andamento-4",
           "title": "Atendimento em andamento",
-          "text": "me chamo {{NOME|Nome do atendente}} e estou responsável pela sua solicitação.\nInformo que a análise já estava em andamento e, a partir deste registro, todas as atualizações serão formalizadas neste chamado.",
+          "text": "meu nome é {{NOME|Nome do atendente}} e estou responsável pela sua solicitação.\nInformo que a análise já estava em andamento e que, a partir deste registro, todas as atualizações serão formalizadas neste chamado.",
           "tags": [
             "Registro inicial em chamados",
             "Atendimento em andamento"
@@ -114,7 +114,7 @@
         {
           "id": "jira-solicitacao-de-prioridade-para-chamados-fora-de-nossa-alcada-atendimento-hotline-1",
           "title": "Atendimento Hotline",
-          "text": "Este caso foi classificado como de alta prioridade, conforme solicitação do cliente.\nPor gentileza, solicitamos que seja tratado com a máxima atenção e agilidade.\nFico à disposição para quaisquer dúvidas.",
+          "text": "Este caso foi classificado como de alta prioridade, conforme solicitação do cliente.\nPor gentileza, solicitamos que seja tratado com a máxima atenção e agilidade.\nPermanecemos à disposição para quaisquer dúvidas.",
           "tags": [
             "Solicitação de prioridade para chamados fora de nossa alçada",
             "Atendimento Hotline"
@@ -132,7 +132,7 @@
         {
           "id": "tabulacao-encerramento-por-falta-de-retorno-do-emissor-tabulacao-sem-retorno-superior-a-7-dias-2",
           "title": "Sem retorno superior a 7 dias",
-          "text": "Em acompanhamento da fila, foi constatado que o chamado {{CHAMADO|Número do chamado}} encontra-se pendente de retorno há mais de sete dias. Sendo assim, o caso foi encerrado por ausência de retorno dentro do prazo previsto.",
+          "text": "Em acompanhamento da fila, foi constatado que o chamado {{CHAMADO|Número do chamado}} encontra-se pendente de retorno há mais de sete dias. Dessa forma, o caso foi encerrado por ausência de retorno dentro do prazo previsto.",
           "noGreeting": true,
           "tags": [
             "Encerramento por falta de retorno do emissor",
@@ -151,7 +151,7 @@
         {
           "id": "jira-encerramento-por-falta-de-retorno-do-emissor-sem-retorno-superior-a-7-dias-1",
           "title": "Sem retorno superior a 7 dias",
-          "text": "Estamos encerrando o chamado devido à ausência de retorno por período superior a sete dias.\nCaso as informações ou solicitações mencionadas venham a ficar disponíveis, orientamos a abertura de um novo chamado.",
+          "text": "Estamos encerrando o chamado devido à ausência de retorno por período superior a sete dias.\nCaso as informações ou solicitações mencionadas fiquem disponíveis, orientamos a abertura de um novo chamado.",
           "tags": [
             "Encerramento por falta de retorno do emissor",
             "Sem retorno superior a 7 dias"
@@ -169,7 +169,7 @@
         {
           "id": "tabulacao-abertura-de-subtask-tabulacao-subtask-time-interno-4",
           "title": "Subtask time interno",
-          "text": "Foi aberta subtask para o time interno, com o objetivo de prestar apoio à demanda vinculada ao chamado principal.\nAnalista: Nome.",
+          "text": "Foi aberta uma subtask para o time interno, com o objetivo de prestar apoio à demanda vinculada ao chamado principal.\nAnalista: Nome.",
           "noGreeting": true,
           "tags": [
             "Abertura de subtask",
@@ -188,7 +188,7 @@
         {
           "id": "jira-abertura-de-subtask-mensagem-no-chamado-principal-1",
           "title": "Mensagem no chamado principal",
-          "text": "Solicitamos apoio do time interno para verificação. Assim que tivermos uma devolutiva, informaremos no chamado.\nPor gentileza, aguardar nosso retorno.",
+          "text": "Solicitamos apoio do time interno para verificação. Assim que tivermos uma devolutiva, informaremos neste chamado.\nPor gentileza, aguarde nosso retorno.",
           "tags": [
             "Abertura de subtask",
             "Mensagem no chamado principal"
@@ -244,7 +244,7 @@
         {
           "id": "tabulacao-conta-liberada-tabulacao-spd-removido-anteriormente-3",
           "title": "SPD removido anteriormente",
-          "text": "Após análise, identificado que o SPD já havia sido removido da conta anteriormente por outro analista.",
+          "text": "Após análise, foi identificado que o SPD já havia sido removido da conta anteriormente por outro analista.",
           "noGreeting": true,
           "tags": [
             "Conta liberada",
@@ -290,7 +290,7 @@
         {
           "id": "jira-conta-liberada-conta-desbloqueada-7",
           "title": "Conta desbloqueada",
-          "text": "Após checagem, identificamos que a conta já se encontra desbloqueada.\nO cliente pode utilizá-la normalmente a partir deste momento.",
+          "text": "Após verificação, identificamos que a conta já se encontra desbloqueada.\nO cliente pode utilizá-la normalmente a partir deste momento.",
           "tags": [
             "Conta liberada",
             "Conta desbloqueada"
@@ -308,7 +308,7 @@
         {
           "id": "tabulacao-sem-alertas-falcon-tabulacao-sem-alerta-falcon-1",
           "title": "Sem alerta Falcon",
-          "text": "Após validação, não consta alerta Falcon para a conta em questão. Realizada inclusão em lista permissiva e solicitado ao emissor o envio de evidências para análise complementar, caso o erro continue ocorrendo.",
+          "text": "Após validação, não consta alerta Falcon para a conta em questão. Foi realizada a inclusão em lista permissiva e foi solicitado ao emissor o envio de evidências para análise complementar, caso o erro continue ocorrendo.",
           "noGreeting": true,
           "tags": [
             "Sem alertas Falcon",
@@ -327,7 +327,7 @@
         {
           "id": "jira-sem-alertas-falcon-encaminhar-para-analise-2",
           "title": "Encaminhar para análise",
-          "text": "Após verificação em API, constatamos que a conta não possui bloqueios de SPD. Adicionalmente, ao validar no sistema antifraude, não foram identificados alertas relacionados a casos pendentes.\nDiante disso, solicitamos, por gentileza, a continuidade da tratativa.\nPermanecemos à disposição para quaisquer esclarecimentos.",
+          "text": "Após verificação via API, constatamos que a conta não possui bloqueios de SPD. Adicionalmente, ao validar o sistema antifraude, não foram identificados alertas relacionados a casos pendentes.\nDiante disso, solicitamos, por gentileza, a continuidade da tratativa.\nPermanecemos à disposição para quaisquer esclarecimentos.",
           "tags": [
             "Sem alertas Falcon",
             "Encaminhar para análise"
@@ -336,7 +336,7 @@
         {
           "id": "jira-sem-alertas-falcon-erro-na-transacao-3",
           "title": "Erro na transação",
-          "text": "Ao verificar o sistema antifraude, não foram localizados alertas relacionados à conta. Diante desse cenário, não identificamos impedimentos para transações em nosso ambiente.\nRessaltamos que existem outras camadas no fluxo de processamento que podem impactar a transação antes mesmo de sua chegada ao nosso sistema, podendo ocorrer a negativa pelo banco de origem.\nRecomendamos solicitar ao portador da conta o E2E da transação, para que possamos acompanhar o motivo da recusa. Nos casos em que não há E2E (como em algumas tentativas de Pix), isso pode indicar que a transação não chegou a ser processada.\nPara os próximos atendimentos, solicitamos, por gentileza, que os chamados contenham as seguintes informações mínimas para análise:\n• Banco de origem (código do banco)\n• E2E da transação (para Pix)\n• Transaction ID ou identificador da transação (para TED ou outros meios)\n• Conta e agência de destino\n• CPF/CNPJ de origem\n• Data e horário aproximado da transação\nCom essas informações, conseguimos repassar ao time interno para nos apoiar na análise.\nAgradecemos a compreensão.",
+          "text": "Ao verificar o sistema antifraude, não foram localizados alertas relacionados à conta. Diante desse cenário, não identificamos impedimentos para transações em nosso ambiente.\nRessaltamos que existem outras camadas no fluxo de processamento que podem impactar a transação antes mesmo de sua chegada ao nosso sistema, incluindo a possibilidade de negativa pelo banco de origem.\nRecomendamos solicitar ao portador da conta o E2E da transação, para que possamos acompanhar o motivo da recusa. Nos casos em que não há E2E, como em algumas tentativas de Pix, isso pode indicar que a transação não chegou a ser processada.\nPara os próximos atendimentos, solicitamos, por gentileza, que os chamados contenham as seguintes informações mínimas para análise:\n• Banco de origem (código do banco)\n• E2E da transação (para Pix)\n• Transaction ID ou identificador da transação (para TED ou outros meios)\n• Conta e agência de destino\n• CPF/CNPJ de origem\n• Data e horário aproximado da transação\nCom essas informações, conseguiremos acionar o time interno para apoio na análise.\nAgradecemos a compreensão.",
           "tags": [
             "Sem alertas Falcon",
             "Erro na transação"
@@ -354,7 +354,7 @@
         {
           "id": "jira-questionamento-sobre-regra-falcon-regra-nao-detalhada-1",
           "title": "Regra não detalhada",
-          "text": "Conforme já informado anteriormente, por questões de segurança, não é possível detalhar a regra específica aplicada. No entanto, esclarecemos que o bloqueio ocorreu devido à identificação de comportamento atípico em relação ao perfil transacional do cliente.\nRessaltamos que a liberação não é permanente. Caso ocorram novas transações fora do padrão esperado, poderão ser aplicados novos bloqueios.\nImportante destacar que isso não significa que todas as transações serão barradas. À medida que novas movimentações são realizadas e passam a compor o histórico da conta, esse comportamento tende a ser reconhecido como habitual pelo sistema.",
+          "text": "Conforme já informado anteriormente, por questões de segurança, não é possível detalhar a regra específica aplicada. No entanto, esclarecemos que o bloqueio ocorreu devido à identificação de comportamento atípico em relação ao perfil transacional do cliente.\nRessaltamos que a liberação não é permanente. Caso ocorram novas transações fora do padrão esperado, novos bloqueios poderão ser aplicados.\nÉ importante destacar que isso não significa que todas as transações serão barradas. À medida que novas movimentações são realizadas e passam a compor o histórico da conta, esse comportamento tende a ser reconhecido como habitual pelo sistema.",
           "tags": [
             "Questionamento sobre regra Falcon",
             "Regra não detalhada"
@@ -437,7 +437,7 @@
         {
           "id": "jira-spd-8-razoes-8-ou-16-com-saldo-2",
           "title": "Razões 8 ou 16 com saldo",
-          "text": "Após análise, identificamos que a conta apresenta informações que não se enquadram na política de risco adotada pela Dock.\nO bloqueio de SPD 8 aplicado não é passível de revisão. Dessa forma, a negativa será mantida.\nInformamos que a conta possui saldo de R$ {{VALOR_SALDO|Valor do saldo}}. Para a devolução dos valores, solicitamos o envio dos dados de uma conta de mesma titularidade.\n\nOrientação de comunicação ao portador:\nPrezado cliente,\nInformamos que não foi possível prosseguir com o desbloqueio e manutenção de sua conta, pois as informações analisadas não estão em conformidade com a Política de Risco adotada pela Dock.\nEsclarecemos que eventual saldo remanescente deverá ser transferido para outra conta de mesma titularidade. Para isso, solicitamos o envio dos seguintes dados:\n• Banco:\n• Agência:\n• Conta:\n• Tipo de conta (corrente ou poupança):",
+          "text": "Após análise, identificamos que a conta apresenta informações que não se enquadram na política de risco adotada pela Dock.\nO bloqueio aplicado pelo SPD 8 não é passível de revisão. Dessa forma, a negativa será mantida.\nInformamos que a conta possui saldo de R$ {{VALOR_SALDO|Valor do saldo}}. Para a devolução dos valores, solicitamos o envio dos dados de uma conta de mesma titularidade.\n\nOrientação de comunicação ao portador:\nPrezado cliente,\nInformamos que não foi possível prosseguir com o desbloqueio e a manutenção de sua conta, pois as informações analisadas não estão em conformidade com a Política de Risco adotada pela Dock.\nEsclarecemos que eventual saldo remanescente deverá ser transferido para outra conta de mesma titularidade. Para isso, solicitamos o envio dos seguintes dados:\n• Banco:\n• Agência:\n• Conta:\n• Tipo de conta (corrente ou poupança):",
           "tags": [
             "SPD 8",
             "Razões 8 ou 16 com saldo"
@@ -455,7 +455,7 @@
         {
           "id": "tabulacao-spd-15-tabulacao-solicitacao-de-documentos-2",
           "title": "Solicitação de documentos",
-          "text": "Solicitado ao emissor o envio da documentação necessária para dar continuidade à análise e tratativa da demanda.",
+          "text": "Foi solicitado ao emissor o envio da documentação necessária para dar continuidade à análise e à tratativa da demanda.",
           "noGreeting": true,
           "tags": [
             "SPD 15",
@@ -474,7 +474,7 @@
         {
           "id": "jira-spd-15-solicitar-documentos-1",
           "title": "Solicitar documentos",
-          "text": "A conta em questão encontra-se bloqueada com o status SPD 15 – Bloqueio Transacional.\nPara que possamos prosseguir com a análise e eventual remoção do bloqueio, solicitamos o envio dos seguintes documentos:\n• Documento de identificação com foto (RG frente e verso ou CNH);\n• Selfie do portador segurando o documento de identificação.\nPermanecemos à disposição para eventuais esclarecimentos.",
+          "text": "A conta em questão encontra-se bloqueada com o status SPD 15 – Bloqueio Transacional.\nPara que possamos prosseguir com a análise e com a eventual remoção do bloqueio, solicitamos o envio dos seguintes documentos:\n• Documento de identificação com foto (RG frente e verso ou CNH);\n• Selfie do portador segurando o documento de identificação.\nPermanecemos à disposição para eventuais esclarecimentos.",
           "tags": [
             "SPD 15",
             "Solicitar documentos"
@@ -502,7 +502,7 @@
         {
           "id": "tabulacao-spd-25-e-spd-17-tabulacao-direcionamento-para-analise-6",
           "title": "Direcionamento para análise",
-          "text": "Chamado direcionado à equipe responsável para seguimento da análise e conclusão da demanda.\nAnalista: Nome.",
+          "text": "O chamado foi direcionado à equipe responsável para seguimento da análise e conclusão da demanda.\nAnalista: Nome.",
           "noGreeting": true,
           "tags": [
             "SPD 25 e SPD 17",
@@ -521,7 +521,7 @@
         {
           "id": "jira-spd-25-e-spd-17-corrigir-fila-n3-fraud-prevention-spd-17-1",
           "title": "Corrigir fila N3 Fraud Prevention - SPD 17",
-          "text": "O cliente em questão encontra-se com o status SPD 17, o qual está fora de nossa alçada de atuação.\nDessa forma, solicitamos, por gentileza, a continuidade da tratativa.",
+          "text": "O cliente em questão encontra-se com o status SPD 17, que está fora de nossa alçada de atuação.\nDessa forma, solicitamos, por gentileza, a continuidade da tratativa.",
           "tags": [
             "SPD 25 e SPD 17",
             "Corrigir fila N3 Fraud Prevention - SPD 17"
@@ -530,7 +530,7 @@
         {
           "id": "jira-spd-25-e-spd-17-corrigir-fila-n3-fraud-prevention-spd-25-2",
           "title": "Corrigir fila N3 Fraud Prevention - SPD 25",
-          "text": "O cliente em questão encontra-se com o status SPD 25, o qual está fora de nossa alçada de atuação.\nDessa forma, solicitamos, por gentileza, a continuidade da tratativa.",
+          "text": "O cliente em questão encontra-se com o status SPD 25, que está fora de nossa alçada de atuação.\nDessa forma, solicitamos, por gentileza, a continuidade da tratativa.",
           "tags": [
             "SPD 25 e SPD 17",
             "Corrigir fila N3 Fraud Prevention - SPD 25"
@@ -548,7 +548,7 @@
         {
           "id": "jira-spd-25-e-spd-17-spd17-com-saldo-4",
           "title": "SPD17 com saldo",
-          "text": "Após análise, identificamos fatores de risco relevantes na conta ID {{CONTA_ID|ID da conta}}, os quais não estão em conformidade com a Política de Risco adotada pela Dock.\nDiante disso, foi aplicado o status SPD 21, e a conta será encaminhada para encerramento por desinteresse comercial.\nDetalhes do procedimento:\n• O saldo remanescente de R$ {{VALOR_SALDO|Valor do saldo}} foi liberado para retirada total;\n• O cliente encontra-se apto a realizar a transferência após este comunicado.\n\nSugestão de comunicação ao portador da conta:\nOlá, {{NOME_CLIENTE|Nome do cliente}}!\nInformamos que a conta de pagamento pré-paga (ID Conta nº {{CONTA_ID|ID da conta}}), de sua titularidade e vinculada ao aplicativo {{APP|Nome do app}}, será cancelada em nossa plataforma no prazo de 30 (trinta) dias, contados a partir do recebimento deste aviso, por motivo de desinteresse comercial.\nA partir do cancelamento, a operacionalização da conta será suspensa. Ressaltamos que há um saldo disponível de {{VALOR_SALDO|Valor do saldo}}, e você está apto a realizar a retirada dentro do período informado.\n\nOrientações em caso de dificuldade na retirada de saldo:\nO cliente pode realizar a retirada por meio de Pix, TED, boleto, entre outros. Caso haja dificuldades, o emissor poderá efetuar a transferência via API (Pix, TED, etc.) ou por meio do Console (TED).\nEm caso de dúvidas no processo, orientamos contatar o CSM responsável.",
+          "text": "Após análise, identificamos fatores de risco relevantes na conta ID {{CONTA_ID|ID da conta}}, os quais não estão em conformidade com a Política de Risco adotada pela Dock.\nDiante disso, foi aplicado o status SPD 21 e a conta será encaminhada para encerramento por desinteresse comercial.\nDetalhes do procedimento:\n• O saldo remanescente de R$ {{VALOR_SALDO|Valor do saldo}} foi liberado para retirada integral;\n• O cliente encontra-se apto a realizar a transferência após este comunicado.\n\nSugestão de comunicação ao portador da conta:\nOlá, {{NOME_CLIENTE|Nome do cliente}}!\nInformamos que a conta de pagamento pré-paga (ID Conta nº {{CONTA_ID|ID da conta}}), de sua titularidade e vinculada ao aplicativo {{APP|Nome do app}}, será cancelada em nossa plataforma no prazo de 30 (trinta) dias, contados a partir do recebimento deste aviso, por motivo de desinteresse comercial.\nA partir do cancelamento, a operacionalização da conta será suspensa. Ressaltamos que há saldo disponível de {{VALOR_SALDO|Valor do saldo}}, e você está apto a realizar a retirada dentro do período informado.\n\nOrientações em caso de dificuldade na retirada de saldo:\nO cliente pode realizar a retirada por meio de Pix, TED, boleto, entre outros. Caso haja dificuldades, o emissor poderá efetuar a transferência via API (Pix, TED etc.) ou por meio do Console (TED).\nEm caso de dúvidas no processo, orientamos contatar o CSM responsável.",
           "tags": [
             "SPD 25 e SPD 17",
             "SPD17 com saldo"
@@ -604,7 +604,7 @@
         {
           "id": "jira-spd-21-sem-saldo-2",
           "title": "Sem saldo",
-          "text": "Após análise, identificamos fatores de risco relevantes na conta ID {{CONTA_ID|ID da conta}}, os quais não estão em conformidade com a Política de Risco adotada pela Dock.\nDessa forma, a negativa será mantida, e a conta será cancelada no prazo de 30 (trinta) dias.\nRessaltamos que a conta não apresenta saldo disponível para repasse.\n\nSugestão de devolutiva ao cliente:\nOlá, {{NOME_CLIENTE|Nome do cliente}}.\nEsperamos que esteja tudo bem com você!\nInformamos que a conta de pagamento pré-paga (ID Conta nº {{CONTA_ID|ID da conta}}), de sua titularidade e vinculada ao aplicativo {{APP|Nome do app}}, permanecerá suspensa e será cancelada em nossa plataforma no prazo de 30 (trinta) dias, contados a partir do recebimento deste aviso.\nRessaltamos que a conta não apresenta saldo disponível para repasse.\nCaso tenha dúvidas ou precise de mais informações, estamos à disposição.",
+          "text": "Após análise, identificamos fatores de risco relevantes na conta ID {{CONTA_ID|ID da conta}}, os quais não estão em conformidade com a Política de Risco adotada pela Dock.\nDessa forma, a negativa será mantida e a conta será cancelada no prazo de 30 (trinta) dias.\nRessaltamos que a conta não apresenta saldo disponível para repasse.\n\nSugestão de devolutiva ao cliente:\nOlá, {{NOME_CLIENTE|Nome do cliente}}.\nEsperamos que esteja tudo bem com você!\nInformamos que a conta de pagamento pré-paga (ID Conta nº {{CONTA_ID|ID da conta}}), de sua titularidade e vinculada ao aplicativo {{APP|Nome do app}}, permanecerá suspensa e será cancelada em nossa plataforma no prazo de 30 (trinta) dias, contados a partir do recebimento deste aviso.\nRessaltamos que a conta não apresenta saldo disponível para repasse.\nCaso tenha dúvidas ou precise de mais informações, estamos à disposição.",
           "tags": [
             "SPD 21",
             "Sem saldo"

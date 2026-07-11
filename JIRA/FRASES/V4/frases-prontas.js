@@ -22,6 +22,7 @@
 
   let data = null;
   let config = null;
+  let firstRun = false;
   let state = {
     tab: "jira",
     view: "home",
@@ -42,11 +43,14 @@
     const base = await loadBaseData();
     data = normalizeData(read("data", null) || base);
     migrateData();
-    config = normalizeConfig(read("config", {}));
+    const storedConfig = read("config", null);
+    firstRun = !storedConfig;
+    config = normalizeConfig(storedConfig || {});
     document.body.appendChild(createPanel());
     applyPreferences();
     renderHome();
     bindEvents();
+    if (firstRun) renderFirstRunModal();
   }
 
   async function loadBaseData() {
@@ -536,6 +540,26 @@
     updateVariablePreview(modal, template);
   }
 
+  function renderFirstRunModal() {
+    const modal = document.createElement("div");
+    modal.className = "fj-modal";
+    modal.innerHTML = `
+      <form class="fj-modal-card" data-form="first-run">
+        <header>
+          <div><strong>Configurar assinatura</strong><span>Informe o nome que será usado nas frases prontas.</span></div>
+        </header>
+        <label>Nome<input name="name" required placeholder="Digite seu nome" autocomplete="name"></label>
+        <section class="fj-edit-preview"><strong>Prévia</strong><pre data-first-run-preview>${esc(DEFAULT_NAME)} | ${esc(signatureArea())}</pre></section>
+        <footer>
+          <span></span>
+          <button type="submit" class="fj-primary">${icon("save")}<span>Salvar assinatura</span></button>
+        </footer>
+      </form>`;
+    root().appendChild(modal);
+    qs("input[name='name']", modal)?.focus();
+    updateFirstRunPreview(modal);
+  }
+
   function copyPhrase(topic, phrase, values = {}) {
     if (phrase.readOnly) {
       toast("Este item é apenas para leitura.");
@@ -624,7 +648,7 @@
       return hydrateBuiltIns(clean(text));
     }
     const parts = [];
-    if (!phrase.noGreeting) parts.push(`Prezados, {{SAUDACAO}};`);
+    if (!phrase.noGreeting) parts.push(`Prezados, {{SAUDACAO}}.`);
     parts.push(sentenceStart(stripGreetingAndSignature(text)));
     if (!phrase.noSignature) parts.push(`Atenciosamente,\n{{ASSINATURA}}`);
     return hydrateBuiltIns(clean(parts.filter(Boolean).join("\n\n")));
@@ -939,6 +963,7 @@
       if (suggestion && config.suggestions) suggestion.outerHTML = suggestionBox();
     }
     if (event.target.closest("[data-form='settings']")) updateSignaturePreview();
+    if (event.target.closest("[data-form='first-run']")) updateFirstRunPreview(event.target.closest(".fj-modal"));
     if (event.target.closest("[data-form='phrase-edit'],[data-form='phrase-add']")) updateLivePreview();
     if (event.target.closest("[data-form='variables']")) {
       const modal = event.target.closest(".fj-modal");
@@ -980,6 +1005,14 @@
       applyPreferences();
       renderSettings();
       toast("Configurações salvas.");
+    }
+    if (form.dataset.form === "first-run") {
+      config.name = clean(form.elements.name.value) || DEFAULT_NAME;
+      saveConfig();
+      firstRun = false;
+      closeModal();
+      renderHome();
+      toast("Assinatura salva.");
     }
     if (form.dataset.form === "topic-add" || form.dataset.form === "topic-edit") saveTopic(form);
     if (form.dataset.form === "phrase-add" || form.dataset.form === "phrase-edit") savePhrase(form);
@@ -1043,6 +1076,10 @@
     const isTyping = target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName);
     if (event.key === "Escape") {
       const modal = qs(".fj-modal", root());
+      if (modal?.querySelector("[data-form='first-run']")) {
+        toast("Informe o nome para salvar a assinatura.");
+        return;
+      }
       if (modal) closeModal();
       else removePanel();
       return;
@@ -1073,6 +1110,14 @@
     });
     const preview = qs(".fj-sign-preview", form);
     if (preview) preview.textContent = `${temp.name} | ${temp.area === CUSTOM_AREA ? temp.customArea || DEFAULT_AREA : temp.area}`;
+  }
+
+  function updateFirstRunPreview(modal) {
+    const form = qs("[data-form='first-run']", modal || root());
+    if (!form) return;
+    const name = clean(form.elements.name.value) || DEFAULT_NAME;
+    const preview = qs("[data-first-run-preview]", form);
+    if (preview) preview.textContent = `${name} | ${signatureArea()}`;
   }
 
   function updateLivePreview() {

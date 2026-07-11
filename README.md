@@ -21,6 +21,7 @@ Principais recursos:
 
 - abas `JIRA` e `TABULAÇÃO JIRA`;
 - clique no card para copiar a frase;
+- primeira execução solicitando o nome e gravando a assinatura;
 - contador de uso por frase copiada;
 - variáveis com janela única para preenchimento;
 - favoritos por tópico;

@@ -59,27 +59,11 @@
   <script>
     var STORE_PREFIX = "jira_frases_v4:";
 
-    seedDefaults();
     loadPanel().then(applyParams);
 
     document.querySelectorAll("[data-preview]").forEach(function (button) {
       button.addEventListener("click", function () { runPreview(button.dataset.preview); });
     });
-
-    function seedDefaults() {
-      if (!localStorage.getItem(STORE_PREFIX + "config")) {
-        localStorage.setItem(STORE_PREFIX + "config", JSON.stringify({
-          name: "Giasi Mandela",
-          area: "SAC Prevenção",
-          customArea: "",
-          theme: "light",
-          fontSize: 13,
-          suggestions: true,
-          favorites: [],
-          usage: {}
-        }));
-      }
-    }
 
     function status(message) {
       document.getElementById("preview-status").textContent = message;
@@ -101,7 +85,6 @@
         Object.keys(localStorage).forEach(function (key) {
           if (key.indexOf(STORE_PREFIX) === 0) localStorage.removeItem(key);
         });
-        seedDefaults();
         return loadPanel();
       }
       loadPanel().then(function () {

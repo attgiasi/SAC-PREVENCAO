@@ -25,6 +25,7 @@ Repositório de hospedagem: `attgiasi/SAC-PREVENCAO`.
 ## Funções Da V4
 
 - Abas: `JIRA` e `TABULAÇÃO JIRA`.
+- Na primeira execução no navegador, solicita o nome do usuário e grava como assinatura.
 - Frases do JIRA Prevenção importadas e organizadas por tópico.
 - Frases de tabulação separadas na aba `TABULAÇÃO JIRA`.
 - Clique no card da frase para copiar.
@@ -39,6 +40,16 @@ Repositório de hospedagem: `attgiasi/SAC-PREVENCAO`.
 - Tema claro/escuro.
 - Aumentar e diminuir fonte.
 - Atalhos: `M` minimiza ou maximiza, `P` restaura, `ESC` fecha e `A` copia a assinatura e fecha.
+
+## Primeira Execução
+
+Quando o bookmarklet é aberto pela primeira vez em um navegador, o painel solicita o nome do operador. Após salvar, esse nome passa a compor a assinatura usada nas frases:
+
+```text
+Nome informado | SAC Prevenção
+```
+
+Depois disso, o nome permanece salvo no próprio navegador e pode ser alterado em `Configurações`.
 
 ## Sugestão Automática
 

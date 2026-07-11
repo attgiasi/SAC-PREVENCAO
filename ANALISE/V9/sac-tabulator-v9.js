@@ -83,6 +83,8 @@
     const select = document.getElementById(id);
     const option = findOption(select, wanted);
     if (!select || !option) return false;
+    const current = select.options?.[select.selectedIndex];
+    if (current && optionMatches(current, wanted, true)) return true;
     optionsOf(select).forEach((item) => { item.selected = false; });
     option.selected = true;
     const index = optionsOf(select).indexOf(option);

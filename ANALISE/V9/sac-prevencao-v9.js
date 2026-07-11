@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V9_20260625";
   const BUILD = "ANALISE/V9";
   const BUILD_FAMILY = "9";
-  const BUILD_VERSION = "9.16";
+  const BUILD_VERSION = "9.17";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -2774,8 +2774,10 @@
   }
   async function selectDropdown(id, wanted, tries = 18, isActive = () => true) {
     if (!canWriteTabulator(isActive) || isMissing(wanted)) return false;
+    if (dropdownSelectionMatches(id, wanted)) return true;
     for (let attempt = 0; attempt < tries; attempt += 1) {
       if (!canWriteTabulator(isActive)) return false;
+      if (dropdownSelectionMatches(id, wanted)) return true;
       const select = byId(id);
       if (select?.options?.length && tabulatorEngine.selectNow(id, wanted)) {
         await wait(16);
@@ -2801,6 +2803,8 @@
       if (!canWriteTabulator(isActive)) return false;
       const select = all("select").find((element) => pattern.test(`${element.id || ""} ${element.name || ""}`));
       if (select?.options?.length) {
+        const selected = select.options?.[select.selectedIndex];
+        if (selected && (optionExactMatches(selected, wanted) || optionMatches(selected, wanted))) return true;
         const option = all("option", select).find((candidate) => optionExactMatches(candidate, wanted))
           || all("option", select).find((candidate) => optionMatches(candidate, wanted));
         if (option && applySelectValue(select, option)) {
@@ -2817,13 +2821,44 @@
     if (!canWriteTabulator(isActive)) return false;
     if (isMissing(childWanted)) return true;
     await selectDropdown(parentId, parentWanted, 20, isActive);
-    for (let attempt = 0; attempt < tries; attempt += 1) {
-      if (!canWriteTabulator(isActive)) return false;
-      if (attempt % 10 === 0) await selectDropdown(parentId, parentWanted, 1, isActive);
-      if (await selectDropdown(childId, childWanted, 1, isActive)) return true;
-      await wait(55);
-    }
-    return false;
+    if (await selectDropdown(childId, childWanted, 2, isActive)) return true;
+    return new Promise((resolve) => {
+      let attempt = 0;
+      let running = false;
+      let done = false;
+      let observer = null;
+      let interval = 0;
+      let timeout = 0;
+      const finish = (ok) => {
+        if (done) return;
+        done = true;
+        try { observer?.disconnect(); } catch (_err) {}
+        clearInterval(interval);
+        clearTimeout(timeout);
+        resolve(ok);
+      };
+      const run = async () => {
+        if (running || done) return;
+        running = true;
+        try {
+          if (!canWriteTabulator(isActive)) return finish(false);
+          if (dropdownSelectionMatches(childId, childWanted)) return finish(true);
+          if (attempt % 8 === 0) await selectDropdown(parentId, parentWanted, 1, isActive);
+          attempt += 1;
+          if (await selectDropdown(childId, childWanted, 1, isActive)) return finish(true);
+          if (attempt >= tries) return finish(false);
+        } finally {
+          running = false;
+        }
+      };
+      try {
+        observer = new MutationObserver(run);
+        observer.observe(byId(childId) || document.documentElement, { childList: true, subtree: true, attributes: true });
+      } catch (_err) {}
+      interval = setInterval(run, 38);
+      timeout = setTimeout(() => finish(false), Math.max(1200, tries * 55));
+      run();
+    });
   }
   async function selectIssuerDropdown(issuer, issuerId = "", isActive = () => true) {
     if (!canWriteTabulator(isActive)) return false;

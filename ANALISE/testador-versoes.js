@@ -11,7 +11,7 @@
     { id: "V6", files: ["V6/sac-prevencao-v6.js"], preview: "V6/preview.html", note: "script único" },
     { id: "V7", files: ["V7/sac-memory-v7.js", "V7/sac-tabulator-v7.js", "V7/sac-prevencao-v7.js"], preview: "V7/preview.html", note: "motores separados" },
     { id: "V8", files: ["V8/sac-memory-v8.js", "V8/sac-tabulator-v8.js", "V8/sac-prevencao-v8.js"], preview: "V8/preview.html", note: "motores separados" },
-    { id: "V9.15", files: ["V9/sac-memory-v9.js", "V9/sac-tabulator-v9.js", "V9/sac-prevencao-v9.js"], preview: "V9/preview.html", note: "produção atual" }
+    { id: "V9.16", files: ["V9/sac-memory-v9.js", "V9/sac-tabulator-v9.js", "V9/sac-prevencao-v9.js"], preview: "V9/preview.html", note: "produção atual" }
   ];
 
   function currentBase() {
@@ -46,7 +46,7 @@
     document.querySelectorAll(
       ".sac-panel,.sac-history-panel,.sac-choice-popover,.sac-side-panel,#sac-notices,.sacv9-window,.sacv9-side,.sacv9-toast-wrap,.sacp-panel,.sacp-modal,.sacp-toast-wrap,.sac-dock,.sac-window,.sac-side,.dock-prevention"
     ).forEach((node) => node.remove());
-    ["SACMemoryV9", "SACTabulatorV9", "SACMemoryV8", "SACTabulatorV8"].forEach((name) => {
+    Object.keys(window).filter((name) => /^SAC(Memory|Tabulator)V\d+$/i.test(name)).forEach((name) => {
       try { delete window[name]; } catch (_err) { window[name] = undefined; }
     });
   }

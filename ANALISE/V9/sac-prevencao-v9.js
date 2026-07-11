@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V9_20260625";
   const BUILD = "ANALISE/V9";
   const BUILD_FAMILY = "9";
-  const BUILD_VERSION = "9.15";
+  const BUILD_VERSION = "9.16";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -677,7 +677,7 @@
 
   // ========================= AJUDA DIDÁTICA =========================
   const ISSUER_HELP = [
-    { match: ["ONLYPAY"], title: "ONLYPAY", items: ["Cliente premiado via JIRA usa allowlist por 5 dias corridos.", "Durante a permissiva, evitar bloqueios de fraude relacionados ao caso validado.", "BANKING não fraude entra em LISTAS quando houver ID conta."] },
+    { match: ["ONLYPAY"], title: "ONLYPAY", items: ["Cliente premiado via JIRA usa allowlist por 5 dias corridos.", "Durante o período de LISTAS, evitar bloqueios de fraude relacionados ao caso validado.", "BANKING não fraude entra em LISTAS quando houver ID conta."] },
     { match: ["SOFISA"], title: "SOFISA", items: ["Regra de contenção usa prazo de 3 dias.", "Não fraude com contenção entra em Allowlist e Contenção.", "Quando não for contenção, seguir prazo padrão da lista aplicável."] },
     { match: ["CONTA SIMPLES", "CONTA SIMPLES 155"], title: "CONTA SIMPLES", items: ["Não enviar para LISTAS quando a conta tiver menos de 3 meses.", "Evitar allowlist para conta nova, CNPJ recente, nome suspeito ou empresa com indício de fraude.", "Para LTDA e S.A., precisa haver de acordo antes de bloquear."] },
     { match: ["AMIGOZ"], title: "AMIGOZ", items: ["Possui PID próprio no fluxo de cartão.", "Bloqueio preventivo só com cliente não reconhecendo ou fraude crítica evidente.", "Tentar contato entre 08h e 22h em suspeita de fraude."] },
@@ -693,7 +693,7 @@
     { match: ["MEU TUDO"], title: "MEU TUDO", items: ["Bloquear somente com confirmação de fraude pelo cliente.", "Sem contato ou sem confirmação: não bloquear apenas por ausência de retorno."] }
   ];
   const RULE_HELP = [
-    { match: ["HOLD"], title: "HOLD", items: ["Bloqueio cautelar Pix tem análise manual e prazo regulatório de até 72h.", "Não aplicar SPD15 nem lista permissiva em tratativa HOLD.", "Não fraude: aprovar transação e aplicar HOLD para liberar o valor.", "Fraude: declinar valor e aplicar HOLD; SPD17 é aplicado automaticamente.", "Se houver múltiplas HOLDs, tratar todas as linhas com regra HOLD."] },
+    { match: ["HOLD"], title: "HOLD", items: ["Bloqueio cautelar Pix tem análise manual e prazo regulatório de até 72h.", "Não aplicar SPD15 nem LISTAS em tratativa HOLD.", "Não fraude: aprovar transação e aplicar HOLD para liberar o valor.", "Fraude: declinar valor e aplicar HOLD; SPD17 é aplicado automaticamente.", "Se houver múltiplas HOLDs, tratar todas as linhas com regra HOLD."] },
     { match: ["DENYLIST_EC"], title: "DENYLIST_EC", items: ["Risco concentrado no estabelecimento comercial.", "Contato e PID são obrigatórios para confirmar se o cliente reconhece a compra.", "Não bloquear automaticamente por conta nova ou transação alta isolada.", "Verificar recorrência, MCC, histórico no estabelecimento e padrão de compra."] },
     { match: ["DENYLIST_CCS"], title: "DENYLIST_CCS", items: ["Origem comum: cliente informou ao CCS que não reconhece a transação.", "O estabelecimento pode ficar em blocklist por 10 dias.", "Validar retorno do emissor/JIRA antes de liberar.", "Atualize o status do caso para não deixar ativo indevidamente."] },
     { match: ["DENYLIST"], title: "DENYLIST", items: ["Lista restritiva exige análise completa antes da decisão.", "Avaliar cadastro, extrato, DICT, similaridade e comportamento transacional.", "Não decidir por um único indício; busque pelo menos duas evidências consistentes.", "Se houver suspeita, aplicar SPD conforme política. Se não houver, liberar por allowlist."] },
@@ -1894,6 +1894,7 @@
     if (!data || data.type !== type) return false;
     const packageFamily = String(data.buildFamily || data.buildVersion || "").split(".")[0];
     if (packageFamily !== BUILD_FAMILY) return false;
+    if (String(data.buildVersion || "") !== BUILD_VERSION) return false;
     const age = Date.now() - Number(data.savedAt || 0);
     return age >= 0 && age < PACKAGE_TTL_MS;
   }
@@ -3702,7 +3703,7 @@
     if (stage === "falcon") return renderFalcon();
     if (stage === "console") return renderConsole();
     if (stage === "tabulador") return renderTabulator();
-    if (["allowlist", "permissiva", "listas", "contencao", "contenção"].includes(stage)) return renderLists(stage === "contencao" || stage === "contenção" ? "contencao" : "allowlist");
+    if (["allowlist", "listas", "contencao", "contenção"].includes(stage)) return renderLists(stage === "contencao" || stage === "contenção" ? "contencao" : "allowlist");
     return runStage(detectStage());
   }
 

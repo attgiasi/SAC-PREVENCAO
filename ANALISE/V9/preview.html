@@ -66,7 +66,7 @@
   <script>
     (() => {
       "use strict";
-      const BUILD_VERSION="9.15";
+      const BUILD_VERSION="9.16";
       const FLOW_COLOR_OPTIONS=[["#111827","preto"],["#22c55e","verde secundário"],["#7c3aed","violeta secundário"],["#ff2d00","laranja alerta"],["#ef4444","vermelho"],["#ff5a1f","laranja vibrante"],["#f59e0b","amarelo"],["#14b8a6","turquesa"],["#2563eb","azul"]];
       const STATUS_OPTIONS=["normal","ativo","bloqueado","bloqueio preventivo falcon 254","cancelada","spd 1","spd 2","spd 8","spd 15","spd 17","spd 21","spd 25","spd 33","outro"];
       const MEDIA_OPTIONS=["não","sim","sem acesso"];
@@ -83,7 +83,7 @@
       const PID_DEFAULT_REQUIRED=["Dois últimos dígitos do CPF","Cinco últimos dígitos do cartão","Data aproximada e estabelecimento da última compra"];
       const PID_DEFAULT_EXTRA=["Data de nascimento completa","Endereço de correspondência cadastrado","Telefone alternativo, se houver","Nome da mãe cadastrada","Limite aproximado do cartão, se for crédito","Saldo da conta, se for pré-pago"];
       const RULE_HELP=[
-        {match:["HOLD"],title:"HOLD",items:["Bloqueio cautelar Pix tem análise manual e prazo regulatório de até 72h.","Não aplicar SPD15 nem lista permissiva em tratativa HOLD.","Não fraude: aprovar transação e aplicar HOLD para liberar o valor.","Fraude: declinar valor e aplicar HOLD; SPD17 é aplicado automaticamente.","Se houver múltiplas HOLDs, tratar todas as linhas com regra HOLD."]},
+        {match:["HOLD"],title:"HOLD",items:["Bloqueio cautelar Pix tem análise manual e prazo regulatório de até 72h.","Não aplicar SPD15 nem LISTAS em tratativa HOLD.","Não fraude: aprovar transação e aplicar HOLD para liberar o valor.","Fraude: declinar valor e aplicar HOLD; SPD17 é aplicado automaticamente.","Se houver múltiplas HOLDs, tratar todas as linhas com regra HOLD."]},
         {match:["DENYLIST_EC"],title:"DENYLIST_EC",items:["Risco concentrado no estabelecimento comercial.","Contato e PID são obrigatórios para confirmar se o cliente reconhece a compra.","Não bloquear automaticamente por conta nova ou transação alta isolada.","Verificar recorrência, MCC, histórico no estabelecimento e padrão de compra."]},
         {match:["DENYLIST_CCS"],title:"DENYLIST_CCS",items:["Origem comum: cliente informou ao CCS que não reconhece a transação.","O estabelecimento pode ficar em blocklist por 10 dias.","Validar retorno do emissor/JIRA antes de liberar.","Atualize o status do caso para não deixar ativo indevidamente."]},
         {match:["DENYLIST"],title:"DENYLIST",items:["Lista restritiva exige análise completa antes da decisão.","Avaliar cadastro, extrato, DICT, similaridade e comportamento transacional.","Não decidir por um único indício; busque pelo menos duas evidências consistentes.","Se houver suspeita, aplicar SPD conforme política. Se não houver, liberar por allowlist."]},
@@ -106,7 +106,7 @@
         {match:["DOMINIO","DOMÍNIO"],title:"Domínio de alto risco",items:["Risco ligado ao local/site de compra, não necessariamente ao cartão.","Validar reputação, domínio recente, comportamento de compra e valor.","Pode indicar phishing, site falso ou estabelecimento de risco."]}
       ];
       const ISSUER_HELP=[
-        {match:["ONLYPAY"],title:"ONLYPAY",items:["Cliente premiado via JIRA usa allowlist por 5 dias corridos.","Durante a permissiva, evitar bloqueios de fraude relacionados ao caso validado.","BANKING não fraude entra em LISTAS quando houver ID conta."]},
+        {match:["ONLYPAY"],title:"ONLYPAY",items:["Cliente premiado via JIRA usa allowlist por 5 dias corridos.","Durante o período de LISTAS, evitar bloqueios de fraude relacionados ao caso validado.","BANKING não fraude entra em LISTAS quando houver ID conta."]},
         {match:["SOFISA"],title:"SOFISA",items:["Regra de contenção usa prazo de 3 dias.","Não fraude com contenção entra em Allowlist e Contenção.","Quando não for contenção, seguir prazo padrão da lista aplicável."]},
         {match:["CONTA SIMPLES","CONTA SIMPLES 155"],title:"CONTA SIMPLES",items:["Não enviar para LISTAS quando a conta tiver menos de 3 meses.","Evitar allowlist para conta nova, CNPJ recente, nome suspeito ou empresa com indício de fraude.","Para LTDA e S.A., precisa haver de acordo antes de bloquear."]},
         {match:["AMIGOZ"],title:"AMIGOZ",items:["Possui PID próprio no fluxo de cartão.","Bloqueio preventivo só com cliente não reconhecendo ou fraude crítica evidente.","Tentar contato entre 08h e 22h em suspeita de fraude."]},

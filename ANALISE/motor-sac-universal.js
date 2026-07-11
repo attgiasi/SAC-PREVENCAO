@@ -1,7 +1,7 @@
 (async function SacPrevencaoUniversalV9() {
   "use strict";
 
-  const VERSION = "9.15.0";
+  const VERSION = "9.16.0";
   const FILES = [
     "V9/sac-memory-v9.js",
     "V9/sac-tabulator-v9.js",
@@ -14,11 +14,10 @@
   })();
 
   try {
-    document.querySelectorAll("script[data-sac-universal='v8'],script[data-sac-universal='v9']").forEach((script) => script.remove());
-    delete window.SACMemoryV8;
-    delete window.SACTabulatorV8;
-    delete window.SACMemoryV9;
-    delete window.SACTabulatorV9;
+    document.querySelectorAll("script[data-sac-universal]").forEach((script) => script.remove());
+    Object.keys(window)
+      .filter((name) => /^SAC(Memory|Tabulator)V\d+$/i.test(name))
+      .forEach((name) => { try { delete window[name]; } catch (_error) {} });
   } catch (_error) {}
 
   for (const file of FILES) {

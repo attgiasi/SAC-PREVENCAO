@@ -91,40 +91,12 @@
     if (setter) setter.call(select, option.value);
     else select.value = option.value;
     refreshSelect(select, option);
-    option.selected = true;
-    if (index >= 0) select.selectedIndex = index;
-    if (setter) setter.call(select, option.value);
-    else select.value = option.value;
     const selected = select.options?.[select.selectedIndex];
     return Boolean(selected && optionMatches(selected, wanted, true));
   }
 
-  function waitAndSelect(id, wanted, timeoutMs = 10000) {
-    if (selectNow(id, wanted)) return Promise.resolve(true);
-    return new Promise((resolve) => {
-      let finished = false;
-      const finish = (result) => {
-        if (finished) return;
-        finished = true;
-        observer.disconnect();
-        clearInterval(interval);
-        clearTimeout(timeout);
-        resolve(result);
-      };
-      const attempt = () => {
-        if (selectNow(id, wanted)) finish(true);
-      };
-      const observer = new MutationObserver(attempt);
-      observer.observe(document.documentElement, { childList: true, subtree: true });
-      const interval = setInterval(attempt, 80);
-      const timeout = setTimeout(() => finish(false), timeoutMs);
-      attempt();
-    });
-  }
-
   window.SACTabulatorV9 = Object.freeze({
-    selectNow,
-    waitAndSelect
+    selectNow
   });
 })();
 

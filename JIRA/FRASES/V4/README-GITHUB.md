@@ -37,6 +37,7 @@ Repositório de hospedagem: `attgiasi/SAC-PREVENCAO`.
 - Botões de editar e excluir frases e tópicos.
 - Exclusão com confirmação.
 - Exportação e importação em JSON universal.
+- Sincronização automática entre abas/janelas abertas na mesma origem do navegador.
 - Tema claro/escuro.
 - Aumentar e diminuir fonte.
 - Atalhos: `M` minimiza ou maximiza, `P` restaura, `ESC` fecha e `A` copia a assinatura e fecha.
@@ -50,6 +51,18 @@ Nome informado | SAC Prevenção
 ```
 
 Depois disso, o nome permanece salvo no próprio navegador e pode ser alterado em `Configurações`.
+
+## Sincronização Entre Janelas
+
+Quando o favorito está aberto em mais de uma aba ou janela da mesma origem, qualquer alteração salva em uma delas é refletida nas demais automaticamente. Isso inclui:
+
+- edição, inclusão, exclusão e reordenação de frases;
+- edição, inclusão, exclusão e reordenação de tópicos;
+- favoritos;
+- assinatura, tema, tamanho da fonte e sugestão automática;
+- contador de uso das frases copiadas.
+
+A sincronização usa os eventos do próprio navegador (`storage` e `BroadcastChannel`). Por segurança, navegadores isolam dados por origem. Assim, páginas de domínios diferentes não conseguem compartilhar o mesmo armazenamento apenas com bookmarklet. Para sincronização entre qualquer domínio do navegador, seria necessário transformar a automação em extensão ou usar um serviço externo de sincronização.
 
 ## Sugestão Automática
 

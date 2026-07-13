@@ -4,6 +4,8 @@
   const PANEL_ID = "jira-frases-panel-v4";
   const STYLE_ID = "jira-frases-style-v4";
   const STORE = "jira_frases_v4";
+  const SYNC_CHANNEL = `${STORE}:sync`;
+  const CLIENT_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   const CDN_URL = "https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/JIRA/FRASES/V4/frases-prontas.min.js";
   const DATA_MARKER = "let BASE_DATA = {\"topics\":[]};";
   let BASE_DATA = {"topics":[]};
@@ -23,6 +25,7 @@
   let data = null;
   let config = null;
   let firstRun = false;
+  let syncChannel = null;
   let state = {
     tab: "jira",
     view: "home",
@@ -884,8 +887,10 @@
     root().addEventListener("dragleave", onDragLeave);
     root().addEventListener("drop", onDrop);
     root().addEventListener("dragend", onDragEnd);
+    setupSync();
     window.__jiraFrasesV4Cleanup = () => {
       document.removeEventListener("keydown", onKey);
+      teardownSync();
       removePanel();
       document.getElementById(STYLE_ID)?.remove();
       delete window.__jiraFrasesV4Cleanup;
@@ -1292,6 +1297,8 @@
   }
 
   function saveConfig() {
+    const stored = read("config", null);
+    if (stored) config.usage = mergeUsage(stored.usage, config.usage);
     write("config", config);
   }
 
@@ -1310,6 +1317,89 @@
 
   function write(key, value) {
     localStorage.setItem(keyOf(key), JSON.stringify(value));
+    publishSync(key, value);
+  }
+
+  function setupSync() {
+    window.addEventListener("storage", onStorageSync);
+    try {
+      syncChannel = new BroadcastChannel(SYNC_CHANNEL);
+      syncChannel.addEventListener("message", onBroadcastSync);
+    } catch {
+      syncChannel = null;
+    }
+  }
+
+  function teardownSync() {
+    window.removeEventListener("storage", onStorageSync);
+    try {
+      syncChannel?.close();
+    } catch {}
+    syncChannel = null;
+  }
+
+  function publishSync(key, value) {
+    try {
+      syncChannel?.postMessage({ source: CLIENT_ID, key, value, at: Date.now() });
+    } catch {}
+  }
+
+  function onStorageSync(event) {
+    if (!event.key || event.storageArea !== localStorage) return;
+    if (event.key !== keyOf("data") && event.key !== keyOf("config")) return;
+    const key = event.key === keyOf("data") ? "data" : "config";
+    try {
+      applyRemoteUpdate(key, event.newValue ? JSON.parse(event.newValue) : null);
+    } catch {}
+  }
+
+  function onBroadcastSync(event) {
+    const message = event.data || {};
+    if (message.source === CLIENT_ID) return;
+    if (message.key !== "data" && message.key !== "config") return;
+    applyRemoteUpdate(message.key, message.value);
+  }
+
+  function applyRemoteUpdate(key, value) {
+    if (!value || !root()) return;
+    if (key === "data") data = normalizeData(value);
+    if (key === "config") {
+      config = normalizeConfig(value);
+      firstRun = false;
+      if (qs("[data-form='first-run']", root())) closeModal();
+    }
+    applyPreferences();
+    refreshSyncedView();
+    toast("Atualização sincronizada.");
+  }
+
+  function refreshSyncedView() {
+    if (!root()) return;
+    if (isEditingActive()) return;
+    if (state.view === "home") return renderHome();
+    if (state.view === "topic") return renderTopic(state.topicId);
+    if (state.view === "search") return renderSearch();
+    if (state.view === "favorites") return renderFavorites();
+    if (state.view === "settings") return renderSettings();
+    if (state.view === "editTopic" || state.view === "addTopic" || state.view === "editPhrase" || state.view === "addPhrase") return;
+    renderHome();
+  }
+
+  function isEditingActive() {
+    const active = document.activeElement;
+    if (!active || !root()?.contains(active)) return false;
+    return /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName) && !!active.closest(".fj-form,.fj-modal-card");
+  }
+
+  function mergeUsage(left, right) {
+    const merged = { ...normalizeUsage(left), ...normalizeUsage(right) };
+    Object.keys(merged).forEach(id => {
+      merged[id] = Math.max(
+        Math.floor(Number(left?.[id]) || 0),
+        Math.floor(Number(right?.[id]) || 0)
+      );
+    });
+    return merged;
   }
 
   function removePanel() {

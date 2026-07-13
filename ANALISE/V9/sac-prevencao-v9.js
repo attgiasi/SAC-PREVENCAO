@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V9_20260625";
   const BUILD = "ANALISE/V9";
   const BUILD_FAMILY = "9";
-  const BUILD_VERSION = "9.17";
+  const BUILD_VERSION = "9.18";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -2646,6 +2646,7 @@
   }
   async function forceFillAny(targets, value, tries = 10, delay = 35, isActive = () => true) {
     if (!canWriteTabulator(isActive) || isMissing(value)) return false;
+    if (fillAnyImmediate(targets, value) && anyTargetMatches(targets, value)) return true;
     for (let attempt = 0; attempt < tries; attempt += 1) {
       if (!canWriteTabulator(isActive)) return false;
       if (anyTargetMatches(targets, value)) return true;
@@ -2656,7 +2657,7 @@
         await wait(delay);
         if (!canWriteTabulator(isActive)) return false;
         if (anyTargetMatches(targets, value)) {
-          await wait(20);
+          await wait(8);
           if (anyTargetMatches(targets, value)) return true;
         }
       }
@@ -2780,20 +2781,20 @@
       if (dropdownSelectionMatches(id, wanted)) return true;
       const select = byId(id);
       if (select?.options?.length && tabulatorEngine.selectNow(id, wanted)) {
-        await wait(16);
+        await wait(8);
         if (!canWriteTabulator(isActive)) return false;
-        if (await waitForDropdownSelection(id, wanted, 4, 24, isActive)) return true;
+        if (await waitForDropdownSelection(id, wanted, 3, 18, isActive)) return true;
       }
       if (select?.options?.length) {
         const option = all("option", select).find((candidate) => optionExactMatches(candidate, wanted))
           || all("option", select).find((candidate) => optionMatches(candidate, wanted));
         if (option && applySelectValue(select, option)) {
-          await wait(16);
+          await wait(8);
           if (!canWriteTabulator(isActive)) return false;
-          if (await waitForDropdownSelection(id, wanted, 4, 24, isActive)) return true;
+          if (await waitForDropdownSelection(id, wanted, 3, 18, isActive)) return true;
         }
       }
-      await wait(24);
+      await wait(18);
     }
     return false;
   }
@@ -2808,12 +2809,12 @@
         const option = all("option", select).find((candidate) => optionExactMatches(candidate, wanted))
           || all("option", select).find((candidate) => optionMatches(candidate, wanted));
         if (option && applySelectValue(select, option)) {
-          await wait(16);
+          await wait(8);
           const selected = select.options?.[select.selectedIndex];
           if (selected && optionMatches(selected, wanted)) return true;
         }
       }
-      await wait(24);
+      await wait(18);
     }
     return false;
   }
@@ -2843,7 +2844,7 @@
         try {
           if (!canWriteTabulator(isActive)) return finish(false);
           if (dropdownSelectionMatches(childId, childWanted)) return finish(true);
-          if (attempt % 8 === 0) await selectDropdown(parentId, parentWanted, 1, isActive);
+          if (attempt % 6 === 0) await selectDropdown(parentId, parentWanted, 1, isActive);
           attempt += 1;
           if (await selectDropdown(childId, childWanted, 1, isActive)) return finish(true);
           if (attempt >= tries) return finish(false);
@@ -2855,17 +2856,32 @@
         observer = new MutationObserver(run);
         observer.observe(byId(childId) || document.documentElement, { childList: true, subtree: true, attributes: true });
       } catch (_err) {}
-      interval = setInterval(run, 38);
+      interval = setInterval(run, 24);
       timeout = setTimeout(() => finish(false), Math.max(1200, tries * 55));
       run();
     });
   }
   async function selectIssuerDropdown(issuer, issuerId = "", isActive = () => true) {
     if (!canWriteTabulator(isActive)) return false;
-    const resolvedId = issuerId || await issuerIdForName(issuer);
-    if (resolvedId && await selectDropdown("ddl_idemissor", resolvedId, 24, isActive)) return true;
-    if (await selectDropdown("ddl_idemissor", issuer, 24, isActive)) return true;
+    if (dropdownSelectionMatches("ddl_idemissor", issuer)) return true;
     const select = byId("ddl_idemissor");
+    if (select?.options?.length) {
+      const directName = all("option", select).find((candidate) => optionExactMatches(candidate, issuer))
+        || all("option", select).find((candidate) => optionMatches(candidate, issuer));
+      if (directName && applySelectValue(select, directName)) {
+        if (await waitForDropdownSelection("ddl_idemissor", directName.value || directName.textContent, 4, 24, isActive)) return true;
+      }
+    }
+    const resolvedId = issuerId || await issuerIdForName(issuer);
+    if (resolvedId && byId("ddl_idemissor")?.options?.length) {
+      const idOption = all("option", byId("ddl_idemissor")).find((candidate) => optionExactMatches(candidate, resolvedId))
+        || all("option", byId("ddl_idemissor")).find((candidate) => optionMatches(candidate, resolvedId));
+      if (idOption && applySelectValue(byId("ddl_idemissor"), idOption)) {
+        if (await waitForDropdownSelection("ddl_idemissor", idOption.value || idOption.textContent, 4, 24, isActive)) return true;
+      }
+    }
+    if (resolvedId && await selectDropdown("ddl_idemissor", resolvedId, 8, isActive)) return true;
+    if (await selectDropdown("ddl_idemissor", issuer, 24, isActive)) return true;
     if (!select?.options?.length || !isActive()) return false;
     const target = normalize(issuer);
     const directory = await loadIssuerDirectory();
@@ -2899,7 +2915,7 @@
     if (!reason) return { reasonOk: true };
     const reasonOk = await selectDependentDropdown("ddl_status", decision, "ddl_motivostatus", reason, 120, isActive);
     if (!canWriteTabulator(isActive)) return { reasonOk: false, cancelled: true };
-    return { reasonOk: reasonOk && await waitForDropdownSelection("ddl_motivostatus", reason, 10, 55, isActive) };
+    return { reasonOk: reasonOk && await waitForDropdownSelection("ddl_motivostatus", reason, 6, 35, isActive) };
   }
   function queueFor(data) {
     const f = data.falcon || {};
@@ -3556,7 +3572,7 @@
     const issuerId = item.issuerId || await issuerIdForName(item.issuer);
     if (!await applyIssuerToAllowlist(issuerId, rowIndex)) missing.push("Emissor");
     try { if (typeof window.setDirty === "function") window.setDirty(); } catch (_err) {}
-    await wait(80);
+    await wait(30);
     return { ok: missing.length === 0, missing, rowIndex };
   }
   async function markListDone(id, listType) {

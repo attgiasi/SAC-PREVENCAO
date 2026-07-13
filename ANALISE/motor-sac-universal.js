@@ -1,7 +1,7 @@
 (async function SacPrevencaoUniversalV9() {
   "use strict";
 
-  const VERSION = "9.17.0";
+  const VERSION = "9.18.0";
   const FILES = [
     "V9/sac-memory-v9.js",
     "V9/sac-tabulator-v9.js",

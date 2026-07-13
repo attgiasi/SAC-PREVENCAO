@@ -1,6 +1,6 @@
 # SAC Prevenção V9
 
-Versão revisada em 11/07/2026. Build interno `9.17`.
+Versão revisada em 12/07/2026. Build interno `9.18`.
 
 ## Estrutura
 
@@ -13,7 +13,7 @@ A V9 fica organizada em blocos claros:
 - `issuer-directory.json`: base de apoio para cruzamento de emissores.
 - `bookmarklet-v9.txt`: favorito dedicado para testar a V9 sem mexer no favorito universal.
 
-Nesta entrega, o favorito universal foi vinculado à V9.17. O arquivo `ANALISE/favorito-universal.bookmarklet.txt` continua igual e carrega `ANALISE/motor-sac-universal.js`, que agora aponta para a V9.
+Nesta entrega, o favorito universal foi vinculado à V9.18. O arquivo `ANALISE/favorito-universal.bookmarklet.txt` continua igual e carrega `ANALISE/motor-sac-universal.js`, que agora aponta para a V9.
 
 ## Blocos revisados
 
@@ -24,19 +24,19 @@ Nesta entrega, o favorito universal foi vinculado à V9.17. O arquivo `ANALISE/f
 - `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
 - `HISTÓRICO`: grava a tabulação sem CPF/CNPJ visível e deve abrir igual em qualquer etapa.
 
-Na V9.17, a memória de LISTAS, Histórico e Configurações é transportada por `localStorage`, `sessionStorage`, `window.name`, clipboard customizado e também um envelope HTML padrão. Se um formato de clipboard falhar, o motor tenta o próximo antes de desistir. As configurações, LISTAS e Histórico também viajam dentro dos pacotes Falcon e Console para reforçar tema, modo seguro, modo ajuda, fonte, assinatura, cores dos fluxos e casos pendentes entre etapas.
+Na V9.18, a memória de LISTAS, Histórico e Configurações é transportada por `localStorage`, `sessionStorage`, `window.name`, clipboard customizado e também um envelope HTML padrão. Se um formato de clipboard falhar, o motor tenta o próximo antes de desistir. As configurações, LISTAS e Histórico também viajam dentro dos pacotes Falcon e Console para reforçar tema, modo seguro, modo ajuda, fonte, assinatura, cores dos fluxos e casos pendentes entre etapas.
 
 LISTAS também possui um cofre dedicado da V9. Esse cofre guarda os casos pendentes por 12 horas, aplica tombstones quando um item é inserido ou removido, e impede que uma cópia antiga do clipboard traga de volta casos já baixados.
 
-Na V9.17, as gravações de LISTAS continuam em fila única de mutação. Ao finalizar um caso BANKING como NÃO FRAUDE, a lista aguarda a gravação terminar antes de renderizar, para o caso aparecer imediatamente em qualquer etapa do fluxo.
+Na V9.18, as gravações de LISTAS continuam em fila única de mutação. Ao finalizar um caso BANKING como NÃO FRAUDE, a lista aguarda a gravação terminar antes de renderizar, para o caso aparecer imediatamente em qualquer etapa do fluxo.
 
 Também foi feito pente fino no caminho ativo da V9: funções internas não utilizadas foram removidas e os aliases de fila de cartão agora aceitam tanto `APPROVE/AUTHORIZED` quanto `DECLINE/DENIED`, sempre selecionando a opção real do dropdown.
 
 O bloco `FALCON` usa leitura contextual da linha laranja. A coleta prioriza os campos mapeados do grid (`RULESTEXT`, `TRANSACTION_DTTM`, `TRANSACTION_AMT`, `USER_DATA_20`, `MERCHANT_NAME`, `FALCON_DECISION_CODE` e `TRANSACTION_POSTING_ENTRY_XFLG`) e não usa busca global ampla para histórico de infrações.
 
-Na V9.17, o bloco `CONSOLE` foi reescrito para reduzir conflitos de versões anteriores: tratativa por botões mapeados (`Backoffice Brasil` e `Global Backoffice`), emissor por botão de emissor, data/status por rótulo próximo e dados de cartão por tabela/célula vinculada aos 4 últimos dígitos coletados no Falcon.
+Na V9.18, o bloco `CONSOLE` foi reescrito para reduzir conflitos de versões anteriores: tratativa por botões mapeados (`Backoffice Brasil` e `Global Backoffice`), emissor por botão de emissor, data/status por rótulo próximo e dados de cartão por tabela/célula vinculada aos 4 últimos dígitos coletados no Falcon.
 
-Na V9.17, o Tabulador mantém o motor de aplicação estável da V9.8 e acelera as confirmações: dropdown que já está correto não dispara novo evento, e `Motivo Status` reage por observação de carregamento além da sondagem curta. Pacotes Falcon/Console só são aceitos quando pertencem à build atual, evitando mistura com dados de versões anteriores.
+Na V9.18, o Tabulador mantém o motor de aplicação estável da V9.8 e acelera as confirmações: dropdown que já está correto não dispara novo evento, o emissor é priorizado por nome no formulário do Tabulador, campos de texto fazem uma tentativa imediata antes dos ciclos de segurança, e `Motivo Status` reage por observação de carregamento além da sondagem curta. Pacotes Falcon/Console só são aceitos quando pertencem à build atual, evitando mistura com dados de versões anteriores.
 
 ## Fluxos
 

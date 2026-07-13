@@ -11,7 +11,8 @@
     { id: "V6", files: ["V6/sac-prevencao-v6.js"], preview: "V6/preview.html", note: "script único" },
     { id: "V7", files: ["V7/sac-memory-v7.js", "V7/sac-tabulator-v7.js", "V7/sac-prevencao-v7.js"], preview: "V7/preview.html", note: "motores separados" },
     { id: "V8", files: ["V8/sac-memory-v8.js", "V8/sac-tabulator-v8.js", "V8/sac-prevencao-v8.js"], preview: "V8/preview.html", note: "motores separados" },
-    { id: "V9.18", files: ["V9/sac-memory-v9.js", "V9/sac-tabulator-v9.js", "V9/sac-prevencao-v9.js"], preview: "V9/preview.html", note: "produção atual" }
+    { id: "V9.18", files: ["V9/sac-memory-v9.js", "V9/sac-tabulator-v9.js", "V9/sac-prevencao-v9.js"], preview: "V9/preview.html", note: "produção atual" },
+    { id: "V10.0", files: ["V10/sac-memory-v10.js", "V10/sac-tabulator-v10.js", "V10/sac-prevencao-v10.js"], preview: "V10/preview.html", note: "teste LISTAS" }
   ];
 
   function currentBase() {

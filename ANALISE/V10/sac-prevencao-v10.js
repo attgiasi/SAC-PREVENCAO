@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V10_20260713";
   const BUILD = "ANALISE/V10";
   const BUILD_FAMILY = "10";
-  const BUILD_VERSION = "10.0";
+  const BUILD_VERSION = "10.1";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -241,7 +241,7 @@
     }
   }
   function packageMemorySnapshot() {
-    const snap = memory.mergeCurrentMirrors?.() || memory.snapshot?.() || {};
+    const snap = memory.state?.get?.() || memory.mergeCurrentMirrors?.() || memory.snapshot?.() || {};
     return {
       schema: 1,
       savedAt: Date.now(),
@@ -254,7 +254,7 @@
   }
   function hydrateMemoryFromPackage(data) {
     if (!data?.sharedMemory) return;
-    try { memory.mergeSnapshot?.(data.sharedMemory); } catch (_err) {}
+    try { memory.state?.merge?.(data.sharedMemory) || memory.mergeSnapshot?.(data.sharedMemory); } catch (_err) {}
   }
   const previousBuildFamily = storageGet("activeBuildFamily");
   if (previousBuildFamily && previousBuildFamily !== BUILD_FAMILY) {
@@ -703,7 +703,7 @@
       .sac-textarea{width:100%;height:232px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);font:700 calc(10.5px * var(--sac-font-scale))/1.08 Consolas,Menlo,monospace;padding:6px;resize:none;overflow:hidden;white-space:pre-wrap}.sac-motive{height:62px;font:800 calc(11px * var(--sac-font-scale))/1.2 Inter,Segoe UI,Arial,sans-serif}.sac-final-textarea{height:286px;font-size:calc(10.8px * var(--sac-font-scale));line-height:1.12}.sac-final-textarea.sac-final-card{height:214px}
       #sac-notices{position:fixed;left:50%;right:auto;bottom:16px;transform:translateX(-50%);z-index:2147483647;display:grid;gap:6px;justify-items:center;pointer-events:none}.sac-notice{width:min(360px,calc(100vw - 36px));border:1px solid #38506c;border-left:4px solid #2563eb;border-radius:8px;background:#101722;color:#f8fbff;padding:8px 10px;font:800 11.5px/1.22 Inter,Segoe UI,Arial,sans-serif;box-shadow:0 10px 26px rgba(0,0,0,.24);opacity:.96;text-align:left;pointer-events:auto}.sac-notice.success{border-left-color:#16a34a;background:#062e1b;color:#ecfdf5}.sac-notice.warn{border-left-color:#d97706;background:#351f05;color:#fff7ed}.sac-notice.warn-pulse{animation:sacPulseOrange 1.15s ease-in-out infinite}.sac-notice.error{border-left-color:#dc2626;background:#3a0d0d;color:#fef2f2}.sac-notice.info{border-left-color:#2563eb;background:#0b2442;color:#eff6ff}.sac-notice.sac-light{background:#fff;color:#172033;border-color:#cbd5e1}.sac-notice.sac-light.success{background:#ecfdf5;color:#064e3b}.sac-notice.sac-light.warn{background:#fff7ed;color:#7c2d12}.sac-notice.sac-light.error{background:#fef2f2;color:#7f1d1d}.sac-notice.sac-light.info{background:#eff6ff;color:#1e3a8a}
       .sac-choice-popover{position:fixed;right:14px;top:72px;z-index:2147483647;width:min(354px,calc(100vw - 28px));display:grid;gap:6px;padding:0 8px 8px;border:1px solid var(--sac-border);border-top:3px solid var(--sac-primary);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);box-shadow:0 18px 44px rgba(0,0,0,.32);font-family:Inter,Segoe UI,Arial,sans-serif;box-sizing:border-box!important}.sac-choice-popover.sac-minimized{display:none!important}.sac-choice-popover *{box-sizing:border-box!important}.sac-choice-head{margin:0 -8px;padding:7px 8px;background:var(--sac-primary);color:#fff;display:flex;justify-content:space-between;align-items:center;border-radius:6px 6px 0 0}.sac-choice-head strong{font-size:12px}.sac-choice-head button{width:24px;height:24px;padding:0;border-color:#fecaca;background:#dc2626;color:#fff}.sac-choice-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px}.sac-choice-popover label{display:flex;gap:5px;align-items:flex-start;min-width:0;min-height:34px;border:1px solid var(--sac-border);border-radius:5px;background:var(--sac-card);padding:5px;font-size:9.5px;font-weight:850;line-height:1.15;cursor:pointer;word-break:normal;overflow-wrap:normal;hyphens:none;white-space:normal}.sac-choice-popover label>span{display:block;min-width:0;white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none}.sac-choice-popover label:hover{border-color:#38bdf8;background:#10263a;color:#edf3fb}.sac-light.sac-choice-popover label:hover{background:#eef7ff;color:#172033}.sac-choice-popover input[type="checkbox"]{flex:0 0 auto;margin:1px 0 0}.sac-choice-extra{display:grid!important;gap:4px;min-height:0!important;font-size:10.5px!important}.sac-choice-extra input{width:100%;height:30px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);padding:5px;font-weight:850}.sac-choice-popover .sac-choice-actions{display:grid;grid-template-columns:1fr;gap:6px}.sac-choice-popover button{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-primary);color:#fff;padding:8px;font-weight:950;cursor:pointer}.sac-choice-popover button.secondary{background:transparent;color:var(--sac-text)}.sac-pid-panel{width:360px!important;min-width:360px!important;max-width:360px!important;padding:0 10px 10px!important}.sac-pid-panel .sac-choice-head{margin:0 -10px}.sac-pid-groups{display:grid;gap:7px}.sac-pid-group{display:grid;gap:4px}.sac-pid-group strong{font-size:10px;color:var(--sac-muted);text-transform:uppercase}.sac-pid-grid{display:grid;grid-template-columns:1fr;gap:4px}.sac-pid-card{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 7px;min-height:31px;font-size:10.5px;font-weight:850;line-height:1.12;display:grid;grid-template-columns:22px 1fr;align-items:center;gap:5px}.sac-pid-card b{display:grid;place-items:center;width:20px;height:20px;border-radius:4px;background:var(--sac-primary);color:#fff;font-size:9px}.sac-pid-note{border:1px solid #f59e0b;border-radius:6px;background:#3a230b;color:#fff7ed;padding:6px;font-size:10.5px;font-weight:900;line-height:1.18}.sac-light .sac-pid-note{background:#fff7ed;color:#7c2d12}
-      .sac-apply-status{border:1px solid var(--sac-border);border-left:4px solid #2563eb;border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:7px;font-size:calc(10.5px * var(--sac-font-scale));font-weight:900;line-height:1.15}.sac-apply-status.ok{border-left-color:#16a34a}.sac-apply-status.warn{border-left-color:#d97706}.sac-apply-status.error{border-left-color:#dc2626}
+      .sac-apply-status{border:1px solid var(--sac-border);border-left:4px solid #2563eb;border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:7px;font-size:calc(10.5px * var(--sac-font-scale));font-weight:900;line-height:1.15}.sac-apply-status.ok{border-left-color:#16a34a}.sac-apply-status.warn{border-left-color:#d97706}.sac-apply-status.error{border-left-color:#dc2626}.sac-issue-list{display:grid;gap:4px;margin-top:6px}.sac-issue-list span{display:block;border:1px solid #f59e0b;border-radius:5px;background:rgba(245,158,11,.12);padding:5px 6px;color:var(--sac-text);font-size:calc(10px * var(--sac-font-scale));font-weight:900;text-align:left}
       .sac-history-panel{--sac-history-tone:#64748b;position:fixed;left:10px;top:10px;z-index:2147483647;width:min(780px,calc(100vw - 20px));max-height:min(720px,calc(100vh - 20px));border:1px solid var(--sac-border);border-top:3px solid var(--sac-history-tone);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);font-family:Inter,Segoe UI,Arial,sans-serif;box-shadow:0 18px 44px rgba(0,0,0,.30);overflow:hidden}.sac-history-head{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--sac-history-tone);color:#fff;padding:8px;font-weight:950;cursor:grab;user-select:none;touch-action:none}.sac-history-tools{display:grid;grid-template-columns:1fr 126px;gap:6px;padding:7px;border-bottom:1px solid var(--sac-border);background:var(--sac-panel)}.sac-history-tools input,.sac-history-tools select{min-width:0;height:34px;border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-input);color:var(--sac-text);padding:7px 9px;font-weight:900;outline:none}.sac-history-tools input:hover,.sac-history-tools select:hover,.sac-history-tools input:focus,.sac-history-tools select:focus{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.18)}.sac-light .sac-history-tools input:hover,.sac-light .sac-history-tools select:hover,.sac-light .sac-history-tools input:focus,.sac-light .sac-history-tools select:focus{background:#eef7ff;color:#172033}.sac-history-body{display:grid;grid-template-columns:236px 1fr;gap:6px;padding:6px}.sac-history-list{display:grid;gap:4px;align-content:start;max-height:560px;overflow:auto;padding-right:3px}.sac-history-list button{text-align:left;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:7px;font-weight:900;line-height:1.1;cursor:pointer}.sac-history-list button:hover,.sac-history-list button.active{border-color:#38bdf8;background:#10263a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.12);transform:translateY(-1px)}.sac-light .sac-history-list button:hover,.sac-light .sac-history-list button.active{background:#eef7ff;color:#172033}.sac-history-list small{display:block;color:var(--sac-muted);font-size:10px;margin-top:2px}.sac-history-empty{color:var(--sac-muted);font-weight:850;padding:8px}.sac-history-detail textarea{height:520px;overflow:auto;resize:none}.sac-list-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px}.sac-list-tabs button{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:8px 6px;font-size:11px;font-weight:950;cursor:pointer}.sac-list-tabs button:hover,.sac-list-tabs button.active{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-light .sac-list-tabs button:hover,.sac-light .sac-list-tabs button.active{background:#eef7ff;color:#172033}.sac-allowlist-list{display:grid;gap:5px;max-height:min(560px,calc(100vh - 210px));overflow:auto;padding-right:3px}.sac-allowlist-item{border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-card);padding:6px;display:grid;grid-template-columns:1fr 72px;gap:6px;align-items:stretch}.sac-allowlist-item:hover{border-color:#38bdf8;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-allowlist-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px}.sac-allowlist-actions{display:grid;grid-template-rows:1fr 1fr;gap:4px}.sac-allowlist-actions button{border:0;border-radius:6px;color:#fff;font-size:10px;font-weight:950;cursor:pointer}.sac-allowlist-actions [data-list-apply]{background:#16a34a}.sac-allowlist-actions [data-list-remove]{background:#dc2626}
       .sac-help-btn{position:absolute;top:3px;right:3px;width:18px;height:18px;border:1px solid #fde68a;border-radius:999px;background:#d4af37;color:#1f1600;font-size:11px;font-weight:950;line-height:1;display:grid;place-items:center;padding:0;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.16)}.sac-help-btn:hover{filter:brightness(1.12);box-shadow:0 0 0 2px rgba(250,204,21,.32)}
       .sac-side-panel{position:fixed;z-index:2147483647;width:320px;max-height:min(560px,calc(100vh - 16px));overflow:hidden;border:1px solid var(--sac-border);border-top:3px solid var(--sac-primary);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);box-shadow:0 18px 44px rgba(0,0,0,.32);font-family:Inter,Segoe UI,Arial,sans-serif;text-align:left}.sac-side-panel.sac-minimized{display:none!important}.sac-side-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 8px;background:var(--sac-primary);color:#fff;font-size:12px;font-weight:950;text-align:left}.sac-side-body{display:grid;gap:5px;padding:7px;overflow:hidden;text-align:left}.sac-side-group{display:grid;gap:4px;min-width:0;text-align:left}.sac-side-group-title{border-left:3px solid var(--sac-primary);padding-left:6px;color:var(--sac-text);font-size:10px;font-weight:950;text-transform:uppercase;line-height:1.1;text-align:left}.sac-side-card{display:block;min-width:0;max-width:100%;min-height:32px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 6px;text-align:left;overflow:hidden}.sac-side-card span{display:block;max-width:100%;font-size:10px;line-height:1.16;color:var(--sac-muted);font-weight:800;white-space:normal;word-break:normal;overflow-wrap:break-word;text-align:left}
@@ -898,6 +898,7 @@
           </div>
           <button class="sac-toggle ${getSafeMode() ? "on" : ""}" data-action="safe-mode" aria-pressed="${getSafeMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Modo seguro</span><b>${getSafeMode() ? "Ligado" : "Desligado"}</b></button>
           <button class="sac-toggle ${getHelpMode() ? "on" : ""}" data-action="help-mode" aria-pressed="${getHelpMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Modo ajuda</span><b>${getHelpMode() ? "Ligado" : "Desligado"}</b></button>
+          <button data-action="self-test">Teste rápido da V10</button>
           ${signatureConfig}
           <div class="sac-flow-legend">
             <span><i style="background:${escapeHtml(getFlowTone("banking"))}"></i>BANKING</span>
@@ -1004,6 +1005,7 @@
       closeSidePanels(panel.id);
       reload();
     });
+    panel.querySelector("[data-action='self-test']")?.addEventListener("click", () => runQuickSelfTest(panel));
     const refreshSignaturePreview = () => {
       const selectedSector = panel.querySelector("[data-signature-sector]")?.value || DEFAULT_SIGNATURE_SECTOR;
       const custom = clean(panel.querySelector("[data-signature-custom]")?.value, "");
@@ -2111,6 +2113,58 @@
       statement: "sem suspeitas"
     };
   }
+  async function runQuickSelfTest(ownerPanel = null) {
+    const falcon = {
+      ...emptyFalconData(),
+      caseNumber: "99990001",
+      transactionType: "Pix enviado",
+      value: "1.400,00",
+      rule: "Teste_V10_Nao_Fraude",
+      history: "0000000000",
+      historyFound: true,
+      transactionDate: "13/07/2026 10:34",
+      orangeFound: true,
+      buildFamily: BUILD_FAMILY,
+      buildVersion: BUILD_VERSION,
+      savedAt: Date.now(),
+      sharedMemory: packageMemorySnapshot()
+    };
+    const consoleData = {
+      type: EXPORT_CONSOLE,
+      flow: "banking",
+      visualFlow: "banking",
+      falcon,
+      treatment: TREATMENT.brasil.label,
+      treatmentKind: "brasil",
+      treatmentLabel: TREATMENT.brasil.label,
+      isGlobal: false,
+      account: "16740",
+      accountStatus: "ativa",
+      cpfCnpj: "111.111.111-11",
+      registrationDate: "02/07/2025",
+      issuer: "IFOOD",
+      issuerId: "520",
+      cardId: "N/A",
+      cardNumber: "N/A",
+      cardLast4: "N/A",
+      cardType: "N/A",
+      cardStatus: "N/A",
+      cardMatched: true,
+      fields: defaultConsoleFields("banking", false),
+      buildFamily: BUILD_FAMILY,
+      buildVersion: BUILD_VERSION,
+      savedAt: Date.now(),
+      sharedMemory: packageMemorySnapshot()
+    };
+    const falconPackage = { ...falcon, type: EXPORT_FALCON, sharedMemory: packageMemorySnapshot() };
+    writeJson("lastFalcon", falconPackage);
+    writeJson("lastConsole", consoleData);
+    memory.transport.set("falcon", falconPackage);
+    memory.transport.set("console", consoleData);
+    ownerPanel?.querySelector(".sac-config")?.classList.remove("open");
+    showNotice("Teste rápido carregado. Abrindo o Tabulador com dados fictícios.", "info", 10000);
+    await renderTabulator(consoleData);
+  }
 
   // ========================= CONSOLE: JANELA ========================
   async function renderConsole() {
@@ -2425,6 +2479,22 @@
     status.className = `sac-apply-status ${type}`;
     status.textContent = message;
   }
+  function setDecisionIssues(panel, labels = []) {
+    let list = panel.querySelector("#sac-decision-issues");
+    const unique = Array.from(new Set(labels.filter(Boolean)));
+    if (!unique.length) {
+      list?.remove();
+      return;
+    }
+    if (!list) {
+      list = document.createElement("div");
+      list.id = "sac-decision-issues";
+      list.className = "sac-issue-list";
+      panel.querySelector("#sac-decision-progress")?.insertAdjacentElement("afterend", list)
+        || panel.querySelector(".sac-body")?.appendChild(list);
+    }
+    list.innerHTML = unique.map((label) => `<span>${escapeHtml(label)}</span>`).join("");
+  }
   function tabulatorIssueMessage(labels) {
     return labels.map((label) => `Tabulador > ${label}`).join("; ");
   }
@@ -2456,11 +2526,13 @@
         const location = workflowIssueMessage(data, missing);
         showNotice(`Não foi possível aplicar a decisão. Inconsistência em: ${location}.`, "error", 15000);
         setDecisionProgress(panel, `Inconsistência encontrada em: ${location}.`, "error");
+        setDecisionIssues(panel, missing.map((label) => workflowIssueMessage(data, [label])));
         setDecisionButtonsEnabled(panel, true);
         panel.dataset.decisionApplying = "false";
         return;
       }
       showNotice(`Atenção: inconsistência em ${workflowIssueMessage(data, missing)}, mas o modo seguro está desligado.`, "warn", 14000);
+      setDecisionIssues(panel, missing.map((label) => workflowIssueMessage(data, [label])));
     }
     setDecisionProgress(panel, "Aplicando todos os campos no Tabulador. Apenas Motivo Status pode aguardar carregamento.");
     startTabulatorWriting();
@@ -2487,12 +2559,16 @@
       const location = tabulatorIssueMessage(criticalPending);
       showNotice(`Não foi possível confirmar: ${location}.`, "error", 15000);
       setDecisionProgress(panel, `Inconsistência obrigatória em: ${location}.`, "error");
+      setDecisionIssues(panel, criticalPending.map((label) => `Tabulador > ${label}`));
       setDecisionButtonsEnabled(panel, true);
       stopTabulatorWriting(panel);
       return;
     }
     if (!applied.ok) {
       showNotice(`Ação necessária: confira ${tabulatorIssueMessage(applied.pending)}.`, "warn-pulse", 15000);
+      setDecisionIssues(panel, applied.pending.map((label) => `Tabulador > ${label}`));
+    } else {
+      setDecisionIssues(panel, []);
     }
     fillObservationText(text);
     stopTabulatorWriting(panel);
@@ -3102,6 +3178,40 @@
     });
     return ok;
   }
+  function tabulatorTextFieldMap(data, tabulationText = "") {
+    const f = data.falcon || {};
+    const value = clean(f.value, "").replace("R$", "").trim();
+    const ecValue = data.flow === "card" ? f.merchant : f.transactionType;
+    const fields = [
+      { type: "input", label: "Valor da transação", value, targets: [{ id: "txt_ValorTransacao" }, { name: "_partial_Falcon.ValorTransacao" }, { pattern: /valor.*transa/i }] },
+      { type: "input", label: "Número do caso", value: f.caseNumber, targets: [{ name: "_partial_Falcon.NumeroCaso" }, { id: "txt_NumeroCaso" }, { pattern: /numero.*caso|caso.*numero/i }] },
+      { type: "input", label: data.flow === "card" ? "Estabelecimento" : "Tipo de transação", value: ecValue, targets: [{ name: "_partial_Falcon.EcTransacao" }, { pattern: /ecTransacao|estabelecimento|tipoTransacao/i }] },
+      { type: "input", label: "Regra", value: f.rule, targets: [{ name: "_partial_Falcon.RegraListada" }, { pattern: /regra.*list/i }] },
+      { type: "input", label: "Observações", value: tabulationText, targets: [{ id: "txt_obs" }, { name: "_partial_Falcon.Observacao" }, { pattern: /observa|descricao|comentario/i, selector: "textarea,input" }] }
+    ];
+    if (f.transactionDate?.includes("/")) {
+      const [date, time] = f.transactionDate.split(/\s+/);
+      if (date) fields.push({ type: "input", label: "Data", value: date.split("/").reverse().join("-"), targets: [{ id: "txt_data_entrada" }, { name: "_partial_Falcon.DataEntrada" }, { pattern: /data.*entrada/i }] });
+      if (time) fields.push({ type: "input", label: "Hora", value: trimTimeToMinute(time), targets: [{ id: "txt_hora_entrada" }, { name: "_partial_Falcon.HoraEntrada" }, { pattern: /hora.*entrada/i }] });
+    }
+    return fields;
+  }
+  function tabulatorDropdownFieldMap(data) {
+    const callValues = tabulatorCallValues(data);
+    const queue = queueFor(data);
+    return [
+      { type: "select", id: "ddl_tabulador", label: "Tabulador Falcon", value: "Falcon", optional: !byId("ddl_tabulador") },
+      { type: "select", id: "ddl_TipoChamada", label: "Tipo de chamada", value: callValues.type },
+      { type: "select", id: "ddl_ChamadaAtiva", label: "Status chamada", value: callValues.result },
+      { type: "select", id: "ddl_Fila", label: "Fila", value: queue || "", optional: !queue }
+    ];
+  }
+  async function applyMappedTabulatorFields(fields, isActive = () => true) {
+    const engine = window.SACTabulatorV10;
+    if (!engine?.applyMap) return { ok: true, pending: [] };
+    const result = await engine.applyMap(fields, { wait, isActive });
+    return result || { ok: false, pending: fields.map((field) => field.label || field.id) };
+  }
   async function applyPrimaryTabulatorFields(data, isActive = () => true) {
     if (!canWriteTabulator(isActive)) return { ok: false, pending: [], cancelled: true };
     const pending = [];
@@ -3117,17 +3227,11 @@
 
     primeTabulatorFields(data, "", "");
     const tasks = [
-      applyInput([{ id: "txt_ValorTransacao" }, { name: "_partial_Falcon.ValorTransacao" }, { pattern: /valor.*transa/i }], clean(f.value, "").replace("R$", "").trim(), "Valor da transação"),
-      applyInput([{ name: "_partial_Falcon.NumeroCaso" }, { id: "txt_NumeroCaso" }, { pattern: /numero.*caso|caso.*numero/i }], f.caseNumber, "Número do caso"),
-      applyInput([{ name: "_partial_Falcon.EcTransacao" }, { pattern: /ecTransacao|estabelecimento|tipoTransacao/i }], data.flow === "card" ? f.merchant : f.transactionType, data.flow === "card" ? "Estabelecimento" : "Tipo de transação"),
-      applyInput([{ name: "_partial_Falcon.RegraListada" }, { pattern: /regra.*list/i }], f.rule, "Regra")
+      applyMappedTabulatorFields(tabulatorTextFieldMap(data, ""), isActive).then((result) => {
+        (result.pending || []).forEach(addPending);
+        return result.ok;
+      })
     ];
-
-    if (f.transactionDate?.includes("/")) {
-      const [date, time] = f.transactionDate.split(/\s+/);
-      if (date) tasks.push(applyInput([{ id: "txt_data_entrada" }, { name: "_partial_Falcon.DataEntrada" }, { pattern: /data.*entrada/i }], date.split("/").reverse().join("-"), "Data"));
-      if (time) tasks.push(applyInput([{ id: "txt_hora_entrada" }, { name: "_partial_Falcon.HoraEntrada" }, { pattern: /hora.*entrada/i }], trimTimeToMinute(time), "Hora"));
-    }
 
     tasks.push((async () => {
       const docKind = documentKind(data.cpfCnpj);
@@ -3147,38 +3251,17 @@
       return applyInput(targets, doc, docKind, 14, 18);
     })());
 
-    const callValues = tabulatorCallValues(data);
     const queue = queueFor(data);
-    tasks.push((async () => {
-      if (byId("ddl_tabulador")) {
-        const ok = await selectDropdown("ddl_tabulador", "Falcon", 20, isActive)
-          && await waitForDropdownSelection("ddl_tabulador", "Falcon", 8, 45, isActive);
-        if (!ok) addPending("Tabulador Falcon");
-      }
-    })());
+    tasks.push(applyMappedTabulatorFields(tabulatorDropdownFieldMap(data), isActive).then((result) => {
+      (result.pending || []).forEach(addPending);
+      return result.ok;
+    }));
     tasks.push(selectIssuerDropdown(data.issuer, data.issuerId, isActive).then((ok) => {
       if (!ok) addPending("Emissor");
       return ok;
     }));
-    tasks.push(selectDropdown("ddl_TipoChamada", callValues.type, 26, isActive).then(async (ok) => {
-      const confirmed = ok && await waitForDropdownSelection("ddl_TipoChamada", callValues.type, 8, 45, isActive);
-      if (!confirmed) addPending("Tipo de chamada");
-      return ok;
-    }));
-    tasks.push(selectDropdown("ddl_ChamadaAtiva", callValues.result, 26, isActive).then(async (ok) => {
-      const confirmed = ok && await waitForDropdownSelection("ddl_ChamadaAtiva", callValues.result, 8, 45, isActive);
-      if (!confirmed) addPending("Status chamada");
-      return ok;
-    }));
     if (!queue) {
       addPending(data.flow === "card" ? "Fila cartão/decisão da transação" : "Fila");
-    } else {
-      tasks.push((async () => {
-        let ok = await selectDropdown("ddl_Fila", queue, 40, isActive);
-        if (!ok) ok = await selectDropdown("ddl_Fila", queue, 20, isActive);
-        const confirmed = ok && await waitForDropdownSelection("ddl_Fila", queue, 10, 45, isActive);
-        if (!confirmed) addPending("Fila");
-      })());
     }
 
     await Promise.allSettled(tasks);
@@ -3351,8 +3434,10 @@
   function listItemKey(item) {
     const caseKey = alnumOnly(item?.caseNumber);
     const accountKey = alnumOnly(item?.account);
+    const documentKey = alnumOnly(item?.documentValue || item?.document || "");
+    const issuerKey = alnumOnly(item?.issuer || "");
     const typeKey = `${Boolean(item?.lists?.allowlist)}:${Boolean(item?.lists?.contencao)}`;
-    return caseKey || accountKey ? `${caseKey}:${accountKey}:${typeKey}` : `${item?.id || ""}:${typeKey}`;
+    return caseKey || accountKey || documentKey || issuerKey ? `${caseKey}:${accountKey}:${documentKey}:${issuerKey}:${typeKey}` : `${item?.id || ""}:${typeKey}`;
   }
   function validPendingListItems(items) {
     const byKey = new Map();
@@ -3390,15 +3475,30 @@
   function rememberImmediateListItem(item, existing = []) {
     return writeImmediateListMirror([item, ...readImmediateListMirror(), ...(Array.isArray(existing) ? existing : [])]);
   }
+  async function hydrateListClipboardFast(hasLocalItems) {
+    if (!memory.hydrateFromClipboard) return;
+    const timeout = hasLocalItems ? 180 : 900;
+    await Promise.race([
+      memory.hydrateFromClipboard().catch(() => null),
+      wait(timeout)
+    ]);
+  }
   async function readListQueue(options = {}) {
     if (options.waitForPending !== false) await waitForListMutations();
-    await memory.hydrateFromClipboard?.();
-    memory.mergeCurrentMirrors?.();
+    memory.state?.get?.() || memory.mergeCurrentMirrors?.();
     const byItemId = new Map();
     [...readImmediateListMirror(), ...memory.lists.all()].forEach((item) => {
       const keyValue = listItemKey(item);
       if (keyValue && !byItemId.has(keyValue)) byItemId.set(keyValue, item);
     });
+    if (options.hydrateClipboard !== false) {
+      await hydrateListClipboardFast(Boolean(byItemId.size));
+      memory.state?.get?.() || memory.mergeCurrentMirrors?.();
+      [...readImmediateListMirror(), ...memory.lists.all()].forEach((item) => {
+        const keyValue = listItemKey(item);
+        if (keyValue && !byItemId.has(keyValue)) byItemId.set(keyValue, item);
+      });
+    }
     const list = Array.from(byItemId.values());
     const filtered = validPendingListItems(list);
     writeImmediateListMirror(filtered);
@@ -3412,7 +3512,7 @@
   }
   async function writeListQueue(list) {
     const next = writeImmediateListMirror(list);
-    memory.mergeCurrentMirrors?.();
+    memory.state?.get?.() || memory.mergeCurrentMirrors?.();
     memory.lists.replace(next);
     memory.commitCurrentText?.().then((result) => {
       clipboardEnvelopeReady = Boolean(result?.memoryCopied);
@@ -3476,6 +3576,7 @@
       const immediateItem = { ...item, issuerId: initialIssuerId };
       const next = [immediateItem, ...withoutCurrentCase];
       rememberImmediateListItem(immediateItem, withoutCurrentCase);
+      memory.lists.upsert?.(immediateItem);
       await writeListQueue(next);
       if (!initialIssuerId) {
         issuerIdForName(data.issuer).then((resolvedIssuerId) => {

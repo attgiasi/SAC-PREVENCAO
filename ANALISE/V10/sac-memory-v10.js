@@ -7,6 +7,8 @@
   const HTML_TYPE = "text/html";
   const HTML_MARKER = "SAC_PREVENCAO_MEMORY_V10";
   const BOOT_KEY = "__SAC_PREVENCAO_SHARED_MEMORY__";
+  const STATE_KEY = "sac_prevencao_V10:state";
+  const STATE_SESSION_KEY = "sac_prevencao_V10:state_session";
   const HISTORY_KEY = "sac_prevencao_V10:history";
   const LISTS_KEY = "sac_prevencao_V10:lists";
   const LISTS_VAULT_KEY = "sac_prevencao_V10:lists_vault";
@@ -31,7 +33,9 @@
   const identity = (item) => {
     const caseNumber = identityPart(item?.caseNumber);
     const account = identityPart(item?.account);
-    return caseNumber || account ? `${caseNumber}:${account}` : "";
+    const documentValue = identityPart(item?.documentValue || item?.document || item?.cpfCnpj);
+    const issuer = identityPart(item?.issuer);
+    return caseNumber || account || documentValue || issuer ? `${caseNumber}:${account}:${documentValue}:${issuer}` : "";
   };
   const listIdentity = (item, listType = "") => `${identity(item) || item?.id || ""}:${normalizeText(listType)}`;
   const redactDocuments = (value) => String(value || "")
@@ -229,6 +233,8 @@
 
   const localStore = storageOf("localStorage");
   const sessionStore = storageOf("sessionStorage");
+  const localState = localStore ? readJson(localStore, STATE_KEY, null) : null;
+  const sessionState = sessionStore ? readJson(sessionStore, STATE_SESSION_KEY, null) : null;
   const localHistory = localStore ? readJson(localStore, HISTORY_KEY, []) : [];
   const localLists = localStore ? readJson(localStore, LISTS_KEY, []) : [];
   const localListsVault = localStore ? readJson(localStore, LISTS_VAULT_KEY, []) : [];
@@ -238,13 +244,15 @@
   const localTransport = sessionStore ? readJson(sessionStore, TRANSPORT_KEY, {}) : {};
   const bootMemory = window[BOOT_KEY];
   const windowNameMemory = readWindowNameMemory();
-  let memory = normalizeMemory(bootMemory);
-  memory.listTombstones = mergeTombstones(memory.listTombstones, localTombstones, windowNameMemory.listTombstones);
-  memory.settings = mergeSettings(localSettings, windowNameMemory.settings, memory.settings);
-  memory.history = mergeHistory(memory.history, localHistory, windowNameMemory.history);
-  memory.listsVault = mergeLists(memory.listsVault, localListsVault, sessionListsVault, windowNameMemory.listsVault, localLists, windowNameMemory.lists);
-  memory.lists = mergeLists(memory.lists, memory.listsVault, localLists, windowNameMemory.lists);
-  memory.transport = { ...localTransport, ...windowNameMemory.transport, ...memory.transport };
+  let memory = normalizeMemory(localState || sessionState || bootMemory);
+  const localStateMemory = normalizeMemory(localState);
+  const sessionStateMemory = normalizeMemory(sessionState);
+  memory.listTombstones = mergeTombstones(memory.listTombstones, localStateMemory.listTombstones, sessionStateMemory.listTombstones, localTombstones, windowNameMemory.listTombstones);
+  memory.settings = mergeSettings(localStateMemory.settings, sessionStateMemory.settings, localSettings, windowNameMemory.settings, memory.settings);
+  memory.history = mergeHistory(memory.history, localStateMemory.history, sessionStateMemory.history, localHistory, windowNameMemory.history);
+  memory.listsVault = mergeLists(memory.listsVault, localStateMemory.listsVault, localStateMemory.lists, sessionStateMemory.listsVault, sessionStateMemory.lists, localListsVault, sessionListsVault, windowNameMemory.listsVault, localLists, windowNameMemory.lists);
+  memory.lists = mergeLists(memory.lists, memory.listsVault, localStateMemory.lists, sessionStateMemory.lists, localLists, windowNameMemory.lists);
+  memory.transport = { ...localTransport, ...localStateMemory.transport, ...sessionStateMemory.transport, ...windowNameMemory.transport, ...memory.transport };
   window[BOOT_KEY] = memory;
 
   function persistMirrors() {
@@ -258,6 +266,8 @@
     if (localStore) writeJson(localStore, LIST_TOMBSTONES_KEY, memory.listTombstones);
     if (localStore) writeJson(localStore, SETTINGS_KEY, memory.settings);
     if (sessionStore) writeJson(sessionStore, TRANSPORT_KEY, memory.transport);
+    if (localStore) writeJson(localStore, STATE_KEY, memory);
+    if (sessionStore) writeJson(sessionStore, STATE_SESSION_KEY, memory);
     writeWindowNameMemory(memory);
     window[BOOT_KEY] = memory;
   }
@@ -275,6 +285,8 @@
 
   function mergeCurrentMirrors() {
     const localHistoryNow = localStore ? readJson(localStore, HISTORY_KEY, []) : [];
+    const localStateNow = localStore ? normalizeMemory(readJson(localStore, STATE_KEY, null)) : normalizeMemory(null);
+    const sessionStateNow = sessionStore ? normalizeMemory(readJson(sessionStore, STATE_SESSION_KEY, null)) : normalizeMemory(null);
     const localListsNow = localStore ? readJson(localStore, LISTS_KEY, []) : [];
     const localListsVaultNow = localStore ? readJson(localStore, LISTS_VAULT_KEY, []) : [];
     const sessionListsVaultNow = sessionStore ? readJson(sessionStore, LISTS_VAULT_KEY, []) : [];
@@ -282,12 +294,12 @@
     const localSettingsNow = localStore ? readJson(localStore, SETTINGS_KEY, {}) : {};
     const localTransportNow = sessionStore ? readJson(sessionStore, TRANSPORT_KEY, {}) : {};
     const windowNameNow = readWindowNameMemory();
-    memory.listTombstones = mergeTombstones(memory.listTombstones, localTombstonesNow, windowNameNow.listTombstones);
-    memory.settings = mergeSettings(localSettingsNow, windowNameNow.settings, memory.settings);
-    memory.history = mergeHistory(memory.history, localHistoryNow, windowNameNow.history);
-    memory.listsVault = mergeLists(memory.listsVault, localListsVaultNow, sessionListsVaultNow, windowNameNow.listsVault, localListsNow, windowNameNow.lists);
-    memory.lists = mergeLists(memory.lists, memory.listsVault, localListsNow, windowNameNow.lists);
-    memory.transport = { ...localTransportNow, ...windowNameNow.transport, ...memory.transport };
+    memory.listTombstones = mergeTombstones(memory.listTombstones, localStateNow.listTombstones, sessionStateNow.listTombstones, localTombstonesNow, windowNameNow.listTombstones);
+    memory.settings = mergeSettings(localStateNow.settings, sessionStateNow.settings, localSettingsNow, windowNameNow.settings, memory.settings);
+    memory.history = mergeHistory(memory.history, localStateNow.history, sessionStateNow.history, localHistoryNow, windowNameNow.history);
+    memory.listsVault = mergeLists(memory.listsVault, localStateNow.listsVault, localStateNow.lists, sessionStateNow.listsVault, sessionStateNow.lists, localListsVaultNow, sessionListsVaultNow, windowNameNow.listsVault, localListsNow, windowNameNow.lists);
+    memory.lists = mergeLists(memory.lists, memory.listsVault, localStateNow.lists, sessionStateNow.lists, localListsNow, windowNameNow.lists);
+    memory.transport = { ...localTransportNow, ...localStateNow.transport, ...sessionStateNow.transport, ...windowNameNow.transport, ...memory.transport };
     memory.savedAt = now();
     persistMirrors();
     return snapshot();
@@ -413,6 +425,21 @@
       persistMirrors();
       return memory.lists.map((item) => ({ ...item }));
     },
+    key(item, listType = "") {
+      return listIdentity(item, listType);
+    },
+    upsert(item) {
+      const nextItem = {
+        ...item,
+        savedAt: Number(item?.savedAt || now()),
+        updatedAt: now()
+      };
+      memory.lists = mergeLists([nextItem], memory.lists, memory.listsVault);
+      memory.listsVault = memory.lists;
+      memory.savedAt = now();
+      persistMirrors();
+      return this.all();
+    },
     replace(items) {
       memory.lists = mergeLists(Array.isArray(items) ? items : [], memory.listsVault);
       memory.listsVault = memory.lists;
@@ -490,6 +517,22 @@
     }
   };
 
+  const state = {
+    get() {
+      return mergeCurrentMirrors();
+    },
+    update(mutator) {
+      mergeCurrentMirrors();
+      const draft = snapshot();
+      const result = typeof mutator === "function" ? mutator(draft) : mutator;
+      const next = result && typeof result === "object" ? result : draft;
+      return setSnapshot(next);
+    },
+    merge(incoming) {
+      return mergeIncomingMemory(incoming);
+    }
+  };
+
   window.SACMemoryV10 = Object.freeze({
     type: TYPE,
     bootKey: BOOT_KEY,
@@ -501,6 +544,7 @@
     commit,
     commitCurrentText,
     transport,
+    state,
     lists,
     settings,
     history,

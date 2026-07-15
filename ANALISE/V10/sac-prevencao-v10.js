@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V10_20260713";
   const BUILD = "ANALISE/V10";
   const BUILD_FAMILY = "10";
-  const BUILD_VERSION = "10.1";
+  const BUILD_VERSION = "10.2";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -3475,9 +3475,9 @@
   function rememberImmediateListItem(item, existing = []) {
     return writeImmediateListMirror([item, ...readImmediateListMirror(), ...(Array.isArray(existing) ? existing : [])]);
   }
-  async function hydrateListClipboardFast(hasLocalItems) {
+  async function hydrateListClipboardFast(hasLocalItems, mode = "fast") {
     if (!memory.hydrateFromClipboard) return;
-    const timeout = hasLocalItems ? 180 : 900;
+    const timeout = mode === "full" ? 3200 : hasLocalItems ? 260 : 1200;
     await Promise.race([
       memory.hydrateFromClipboard().catch(() => null),
       wait(timeout)
@@ -3492,7 +3492,7 @@
       if (keyValue && !byItemId.has(keyValue)) byItemId.set(keyValue, item);
     });
     if (options.hydrateClipboard !== false) {
-      await hydrateListClipboardFast(Boolean(byItemId.size));
+      await hydrateListClipboardFast(Boolean(byItemId.size), options.hydrateClipboard === "full" ? "full" : "fast");
       memory.state?.get?.() || memory.mergeCurrentMirrors?.();
       [...readImmediateListMirror(), ...memory.lists.all()].forEach((item) => {
         const keyValue = listItemKey(item);
@@ -3548,7 +3548,11 @@
         return retireCurrentCaseFromLists(queue, data);
       }
       const initialIssuerId = data.issuerId || issuerIdOverride(data.issuer) || digitsOnly(data.issuer) || "";
-      if ((initialIssuerId === "155" || normalize(data.issuer).includes("CONTA SIMPLES")) && isRecentRegistration(data.registrationDate)) {
+      const resolvedIssuerId = initialIssuerId || await Promise.race([
+        issuerIdForName(data.issuer).catch(() => ""),
+        wait(1600).then(() => "")
+      ]);
+      if ((resolvedIssuerId === "155" || normalize(data.issuer).includes("CONTA SIMPLES")) && isRecentRegistration(data.registrationDate)) {
         showNotice("Conta Simples 155 com cadastro menor que 3 meses não foi enviada para LISTAS.", "info", 10000);
         return retireCurrentCaseFromLists(queue, data);
       }
@@ -3573,12 +3577,12 @@
         updatedAt: Date.now()
       };
       showNotice(lists.contencao ? "Caso finalizado e guardado em LISTAS com CPF/CNPJ." : "Caso finalizado e guardado em LISTAS com ID da conta.", "info");
-      const immediateItem = { ...item, issuerId: initialIssuerId };
+      const immediateItem = { ...item, issuerId: resolvedIssuerId || "" };
       const next = [immediateItem, ...withoutCurrentCase];
       rememberImmediateListItem(immediateItem, withoutCurrentCase);
       memory.lists.upsert?.(immediateItem);
       await writeListQueue(next);
-      if (!initialIssuerId) {
+      if (!resolvedIssuerId) {
         issuerIdForName(data.issuer).then((resolvedIssuerId) => {
           if (!resolvedIssuerId) return;
           const refreshed = readImmediateListMirror().map((entry) => (
@@ -3804,7 +3808,7 @@
     closeSidePanels();
     activeTab = activeTab === "contencao" ? "contencao" : "allowlist";
     storageSet("activeListTab", activeTab);
-    const queue = await readListQueue();
+    const queue = await readListQueue({ hydrateClipboard: "full" });
     const items = await Promise.all(queue.map(async (item) => ({ ...item, issuerId: item.issuerId || await issuerIdForName(item.issuer) })));
     const visible = items.filter((item) => item.lists?.[activeTab] && !item.applied?.[activeTab]);
     const body = section("Listas", `
@@ -3843,7 +3847,7 @@
       if (!itemEl) return;
       const id = itemEl.dataset.listId;
       const listType = itemEl.dataset.listType;
-      const item = (await readListQueue()).find((entry) => entry.id === id);
+      const item = (await readListQueue({ hydrateClipboard: "full" })).find((entry) => entry.id === id);
       if (!item) return;
       if (event.target.closest("[data-list-remove]")) {
         if (!await removeListItem(id, listType)) {

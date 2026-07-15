@@ -1,11 +1,11 @@
-(async function SacPrevencaoUniversalV9() {
+(async function SacPrevencaoUniversalV10() {
   "use strict";
 
-  const VERSION = "9.18.0";
+  const VERSION = "10.2.0";
   const FILES = [
-    "V9/sac-memory-v9.js",
-    "V9/sac-tabulator-v9.js",
-    "V9/sac-prevencao-v9.js"
+    "V10/sac-memory-v10.js",
+    "V10/sac-tabulator-v10.js",
+    "V10/sac-prevencao-v10.js"
   ];
 
   const current = (() => {
@@ -26,7 +26,7 @@
       url.searchParams.set("v", VERSION);
       url.searchParams.set("cache", String(Date.now()));
       const script = document.createElement("script");
-      script.dataset.sacUniversal = "v9";
+      script.dataset.sacUniversal = "v10";
       script.src = url.href;
       script.async = false;
       script.onload = resolve;

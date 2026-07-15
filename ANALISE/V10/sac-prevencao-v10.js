@@ -4,13 +4,12 @@
   const APP = "sac_prevencao_V10_20260713";
   const BUILD = "ANALISE/V10";
   const BUILD_FAMILY = "10";
-  const BUILD_VERSION = "10.2";
+  const BUILD_VERSION = "10.3";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
   const EXPORT_FALCON = "SAC_FALCON";
   const EXPORT_CONSOLE = "SAC_CONSOLE";
-  const DEFAULT_SIGNATURE_NAME = "";
   const DEFAULT_SIGNATURE_SECTOR = "SAC Prevenção";
   const SIGNATURE_SECTORS = ["SAC Prevenção", "Dock Teck Prevenção", "Backoffice Prevenção"];
   const LIST_ENGINE_KEY = `${APP}:lists_immediate`;
@@ -898,7 +897,6 @@
           </div>
           <button class="sac-toggle ${getSafeMode() ? "on" : ""}" data-action="safe-mode" aria-pressed="${getSafeMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Modo seguro</span><b>${getSafeMode() ? "Ligado" : "Desligado"}</b></button>
           <button class="sac-toggle ${getHelpMode() ? "on" : ""}" data-action="help-mode" aria-pressed="${getHelpMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Modo ajuda</span><b>${getHelpMode() ? "Ligado" : "Desligado"}</b></button>
-          <button data-action="self-test">Teste rápido da V10</button>
           ${signatureConfig}
           <div class="sac-flow-legend">
             <span><i style="background:${escapeHtml(getFlowTone("banking"))}"></i>BANKING</span>
@@ -1005,7 +1003,6 @@
       closeSidePanels(panel.id);
       reload();
     });
-    panel.querySelector("[data-action='self-test']")?.addEventListener("click", () => runQuickSelfTest(panel));
     const refreshSignaturePreview = () => {
       const selectedSector = panel.querySelector("[data-signature-sector]")?.value || DEFAULT_SIGNATURE_SECTOR;
       const custom = clean(panel.querySelector("[data-signature-custom]")?.value, "");
@@ -2113,59 +2110,6 @@
       statement: "sem suspeitas"
     };
   }
-  async function runQuickSelfTest(ownerPanel = null) {
-    const falcon = {
-      ...emptyFalconData(),
-      caseNumber: "99990001",
-      transactionType: "Pix enviado",
-      value: "1.400,00",
-      rule: "Teste_V10_Nao_Fraude",
-      history: "0000000000",
-      historyFound: true,
-      transactionDate: "13/07/2026 10:34",
-      orangeFound: true,
-      buildFamily: BUILD_FAMILY,
-      buildVersion: BUILD_VERSION,
-      savedAt: Date.now(),
-      sharedMemory: packageMemorySnapshot()
-    };
-    const consoleData = {
-      type: EXPORT_CONSOLE,
-      flow: "banking",
-      visualFlow: "banking",
-      falcon,
-      treatment: TREATMENT.brasil.label,
-      treatmentKind: "brasil",
-      treatmentLabel: TREATMENT.brasil.label,
-      isGlobal: false,
-      account: "16740",
-      accountStatus: "ativa",
-      cpfCnpj: "111.111.111-11",
-      registrationDate: "02/07/2025",
-      issuer: "IFOOD",
-      issuerId: "520",
-      cardId: "N/A",
-      cardNumber: "N/A",
-      cardLast4: "N/A",
-      cardType: "N/A",
-      cardStatus: "N/A",
-      cardMatched: true,
-      fields: defaultConsoleFields("banking", false),
-      buildFamily: BUILD_FAMILY,
-      buildVersion: BUILD_VERSION,
-      savedAt: Date.now(),
-      sharedMemory: packageMemorySnapshot()
-    };
-    const falconPackage = { ...falcon, type: EXPORT_FALCON, sharedMemory: packageMemorySnapshot() };
-    writeJson("lastFalcon", falconPackage);
-    writeJson("lastConsole", consoleData);
-    memory.transport.set("falcon", falconPackage);
-    memory.transport.set("console", consoleData);
-    ownerPanel?.querySelector(".sac-config")?.classList.remove("open");
-    showNotice("Teste rápido carregado. Abrindo o Tabulador com dados fictícios.", "info", 10000);
-    await renderTabulator(consoleData);
-  }
-
   // ========================= CONSOLE: JANELA ========================
   async function renderConsole() {
     const falcon = await loadFalconPackage();

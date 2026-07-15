@@ -1,6 +1,6 @@
 # SAC Prevenção V10
 
-Versão revisada em 14/07/2026. Build interno `10.2`.
+Versão revisada em 14/07/2026. Build interno `10.3`.
 
 ## Estrutura
 
@@ -13,7 +13,7 @@ A V10 fica organizada em blocos claros:
 - `issuer-directory.json`: base de apoio para cruzamento de emissores.
 - `bookmarklet-v10.txt`: favorito dedicado para testar a V10 diretamente.
 
-Nesta entrega, a V10.2 passou a ser carregada pelo favorito universal.
+Nesta entrega, a V10.3 passou a ser carregada pelo favorito universal.
 
 ## Blocos revisados
 
@@ -24,23 +24,21 @@ Nesta entrega, a V10.2 passou a ser carregada pelo favorito universal.
 - `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
 - `HISTÓRICO`: grava a tabulação sem CPF/CNPJ visível e deve abrir igual em qualquer etapa.
 
-Na V10.2, a memória de LISTAS, Histórico e Configurações usa um estado central da V10 e também é espelhada por `localStorage`, `sessionStorage`, `window.name`, clipboard customizado e envelope HTML padrão. Se um formato de clipboard falhar, o motor usa os espelhos locais antes de desistir. As configurações, LISTAS e Histórico também viajam dentro dos pacotes Falcon e Console para reforçar tema, modo seguro, modo ajuda, fonte, assinatura, cores dos fluxos e casos pendentes entre etapas.
+Na V10.3, a memória de LISTAS, Histórico e Configurações usa um estado central da V10 e também é espelhada por `localStorage`, `sessionStorage`, `window.name`, clipboard customizado e envelope HTML padrão. Se um formato de clipboard falhar, o motor usa os espelhos locais antes de desistir. As configurações, LISTAS e Histórico também viajam dentro dos pacotes Falcon e Console para reforçar tema, modo seguro, modo ajuda, fonte, assinatura, cores dos fluxos e casos pendentes entre etapas.
 
 LISTAS também possui um cofre dedicado da V10. Esse cofre guarda os casos pendentes por 12 horas, aplica tombstones quando um item é inserido ou removido, e impede que uma cópia antiga do clipboard traga de volta casos já baixados.
 
-Na V10.2, as gravações de LISTAS continuam em fila única de mutação e também entram primeiro em uma fila imediata. Ao finalizar um caso BANKING como NÃO FRAUDE, o caso é gravado no estado central antes de qualquer cópia ou leitura de clipboard. Ao abrir LISTAS, a leitura aguarda a hidratação completa da memória compartilhada antes de renderizar a janela, reduzindo perda ou atraso de itens entre Falcon, Console e Tabulador.
+Na V10.3, as gravações de LISTAS continuam em fila única de mutação e também entram primeiro em uma fila imediata. Ao finalizar um caso BANKING como NÃO FRAUDE, o caso é gravado no estado central antes de qualquer cópia ou leitura de clipboard. Ao abrir LISTAS, a leitura aguarda a hidratação completa da memória compartilhada antes de renderizar a janela, reduzindo perda ou atraso de itens entre Falcon, Console e Tabulador.
 
 O Tabulador possui um mapa fixo de aplicação: cada campo tem tipo, seletor, valor esperado e validação. Dropdowns são selecionados pela opção real, não por texto colado, e qualquer inconsistência aparece no painel do Tabulador com o nome do campo.
-
-Há um botão `Teste rápido da V10` nas configurações para carregar dados fictícios e abrir o Tabulador, útil para validar versão, memória e aplicação sem usar dados reais.
 
 Também foi feito pente fino no caminho ativo da V10: funções internas não utilizadas foram removidas e os aliases de fila de cartão agora aceitam tanto `APPROVE/AUTHORIZED` quanto `DECLINE/DENIED`, sempre selecionando a opção real do dropdown.
 
 O bloco `FALCON` usa leitura contextual da linha laranja. A coleta prioriza os campos mapeados do grid (`RULESTEXT`, `TRANSACTION_DTTM`, `TRANSACTION_AMT`, `USER_DATA_20`, `MERCHANT_NAME`, `FALCON_DECISION_CODE` e `TRANSACTION_POSTING_ENTRY_XFLG`) e não usa busca global ampla para histórico de infrações.
 
-Na V10.2, o bloco `CONSOLE` foi reescrito para reduzir conflitos de versões anteriores: tratativa por botões mapeados (`Backoffice Brasil` e `Global Backoffice`), emissor por botão de emissor, data/status por rótulo próximo e dados de cartão por tabela/célula vinculada aos 4 últimos dígitos coletados no Falcon.
+Na V10.3, o bloco `CONSOLE` foi reescrito para reduzir conflitos de versões anteriores: tratativa por botões mapeados (`Backoffice Brasil` e `Global Backoffice`), emissor por botão de emissor, data/status por rótulo próximo e dados de cartão por tabela/célula vinculada aos 4 últimos dígitos coletados no Falcon.
 
-Na V10.2, o Tabulador mantém a base estável da V9.18 e adiciona uma preparação do formulário: após a decisão, o dropdown principal do Tabulador alterna para o placeholder e volta para `Falcon` antes da aplicação dos campos. A V10 também acelera confirmações: dropdown que já está correto não dispara novo evento, o emissor é priorizado por nome no formulário do Tabulador, campos de texto fazem uma tentativa imediata antes dos ciclos de segurança, e `Motivo Status` reage por observação de carregamento além da sondagem curta. Pacotes Falcon/Console só são aceitos quando pertencem à build atual, evitando mistura com dados de versões anteriores.
+Na V10.3, o Tabulador mantém a base estável da V9.18 e adiciona uma preparação do formulário: após a decisão, o dropdown principal do Tabulador alterna para o placeholder e volta para `Falcon` antes da aplicação dos campos. A V10 também acelera confirmações: dropdown que já está correto não dispara novo evento, o emissor é priorizado por nome no formulário do Tabulador, campos de texto fazem uma tentativa imediata antes dos ciclos de segurança, e `Motivo Status` reage por observação de carregamento além da sondagem curta. Pacotes Falcon/Console só são aceitos quando pertencem à build atual, evitando mistura com dados de versões anteriores.
 
 ## Fluxos
 

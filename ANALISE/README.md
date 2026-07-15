@@ -12,7 +12,7 @@ Arquivos carregados pelo favorito:
 - `V10/sac-tabulator-v10.js`
 - `V10/sac-prevencao-v10.js`
 
-O carregador universal aponta exclusivamente para a V10.2 e carrega os motores na ordem correta.
+O carregador universal aponta exclusivamente para a V10.3 e carrega os motores na ordem correta.
 
 ## Versão de teste
 

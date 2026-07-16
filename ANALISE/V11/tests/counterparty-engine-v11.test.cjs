@@ -139,11 +139,16 @@ assert.equal(engine.classifyFromRegistry({ cnpj, issuer: "Outro", direction: "or
 
 const operationalRegistry = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "counterparty-registry-v11.json"), "utf8"));
 engine.loadSnapshot(operationalRegistry, { persist: false });
-assert.equal(engine.getState().recordCount, 18);
+assert.equal(engine.getState().recordCount, 102);
+assert.equal(operationalRegistry.records.every((record) => engine.validateCnpj(record.cnpj)), true);
+assert.equal(operationalRegistry.records.filter((record) => record.cnpj === "56195099000189").length, 2);
+assert.equal(operationalRegistry.records.some((record) => record.aliases?.includes("MARCAS")), false);
 assert.equal(engine.classifyFromRegistry({ cnpj: "42040830000192", issuer: "Outro", direction: "origem" }).classification, "TRUSTED");
 assert.equal(engine.classifyFromRegistry({ cnpj: "42040830000192", issuer: "Outro", direction: "destino" }).classification, "UNKNOWN");
 assert.equal(engine.classifyFromRegistry({ cnpj: "65629658000102", issuer: "Outro", direction: "origem" }).classification, "UNTRUSTED");
 assert.equal(engine.classifyFromRegistry({ cnpj: "65629658000102", issuer: "Outro", direction: "destino" }).classification, "UNTRUSTED");
+assert.equal(engine.classifyFromRegistry({ cnpj: "46786961000174", issuer: "Outro", direction: "destino" }).classification, "TRUSTED");
+assert.equal(engine.classifyFromRegistry({ cnpj: "55997392000105", issuer: "Outro", direction: "origem" }).classification, "REVIEW");
 assert.equal(engine.classifyFromRegistry({ cnpj: "56195099000189", issuer: "Outro", direction: "origem" }).classification, "REVIEW");
 
 console.log("OK - motor de contrapartes V11 validado");

@@ -2,7 +2,7 @@
 
 Esta arquitetura prepara a consulta de CNPJs confiáveis e não confiáveis sem ativar decisões automáticas. A conclusão continua pertencendo ao analista.
 
-A base operacional inicial contém 18 CNPJs confirmados pelo usuário em 16/07/2026: nove origens classificadas como confiáveis, oito contrapartes de BET classificadas como atenção elevada e GAMEWIZ BRASIL LTDA em revisão. GAMEWIZ aparece na lista nacional da SPA pelas Portarias 464 e 465, de 10/03/2025, portanto não é marcada automaticamente como não confiável.
+A base combina 18 registros confirmados pelo usuário com 82 CNPJs autorizados nacionalmente pela SPA e dois CNPJs operando por decisão judicial. Como GAMEWIZ BRASIL LTDA está tanto na lista operacional de revisão quanto na lista nacional da SPA, o resultado permanece `REVIEW` por conflito explícito.
 
 ## Arquivos
 
@@ -75,6 +75,21 @@ O motor usa um provedor substituível:
 O método `useProvider()` permite trocar o GitHub por um provedor que implemente `load()` e, opcionalmente, `subscribe()`. Assim a lógica de classificação não precisa ser reescrita.
 
 Nunca colocar token administrativo, chave `service_role` ou token do GitHub no bookmarklet. O navegador deve receber somente leitura dos campos necessários. Dados transacionais, CPF, conta e valores não devem ser enviados para a base de CNPJs.
+
+## Sincronização oficial da SPA
+
+O script `tools/sync-spa-registry.ps1` baixa as duas bases publicadas pelo Ministério da Fazenda, extrai os CNPJs, consolida marcas e preserva todos os registros internos.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\sync-spa-registry.ps1
+```
+
+- autorização nacional: `TRUSTED`, categoria `BET_AUTHORIZED`, prioridade 300;
+- decisão judicial: `REVIEW`, categoria `BET_JUDICIAL`, prioridade 250;
+- atenção interna: prioridade 200;
+- classificação manual de mesma prioridade pode produzir conflito `REVIEW`.
+
+O sincronizador remove somente registros gerados anteriormente com os prefixos `spa-national-` e `spa-judicial-`. A lista operacional nunca é apagada por essa atualização.
 
 ## Cache e indisponibilidade
 

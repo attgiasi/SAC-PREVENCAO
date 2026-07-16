@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 15/07/2026. Build interno `11.2`.
+Versão de testes revisada em 16/07/2026. Build interno `11.3`.
 
 ## Estrutura
 
@@ -9,11 +9,16 @@ A V11 fica organizada em blocos claros:
 - `sac-prevencao-v11.js`: interface, coleta, fluxos Falcon/Console/Tabulador, Histórico e LISTAS.
 - `sac-memory-v11.js`: memória própria da V11 para pacotes entre etapas, Histórico e LISTAS.
 - `sac-tabulator-v11.js`: motor rápido de aplicação dos campos no Tabulador.
+- `sac-counterparty-v11.js`: arquitetura independente para classificação assistida de CNPJs.
+- `counterparty-registry-v11.json`: snapshot versionado da base de CNPJs; permanece vazio até receber dados confirmados.
+- `counterparty-registry-v11.schema.json`: contrato dos registros de contrapartes.
 - `preview.html`: prévia interativa fiel ao comportamento visual principal.
 - `issuer-directory.json`: base de apoio para cruzamento de emissores.
 - `bookmarklet-v11.txt`: favorito dedicado para testar a V11 diretamente.
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
+
+A V11.3 prepara o motor de CNPJs como infraestrutura inativa. Ele não lê a página transacional, não altera decisões e não interfere nos fluxos atuais. As regras transacionais serão ativadas somente depois do envio da página e dos books atualizados. Consulte `README-CNPJ.md`.
 
 ## Blocos revisados
 

@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V11_20260715";
   const BUILD = "ANALISE/V11";
   const BUILD_FAMILY = "11";
-  const BUILD_VERSION = "11.2";
+  const BUILD_VERSION = "11.3";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;

@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/attgiasi/SAC-PREVENCAO/ANALISE/V11/counterparty-registry-v11.schema.json",
+  "title": "Registro de contrapartes SAC Prevenção V11",
+  "type": "object",
+  "required": ["schemaVersion", "version", "updatedAt", "records"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "version": { "type": "string", "minLength": 1 },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "records": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/record" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "record": {
+      "type": "object",
+      "required": ["id", "classification", "directions", "issuers", "reason", "source"],
+      "anyOf": [
+        { "required": ["cnpj"] },
+        { "required": ["root"] }
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "cnpj": { "type": "string", "pattern": "^[A-Za-z0-9.\\/\\- ]+$" },
+        "root": { "type": "string", "pattern": "^[A-Za-z0-9.\\/\\- ]+$" },
+        "scope": { "enum": ["EXACT", "ROOT"] },
+        "legalName": { "type": "string" },
+        "aliases": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "classification": { "enum": ["TRUSTED", "UNTRUSTED", "REVIEW", "UNKNOWN"] },
+        "directions": {
+          "type": "array",
+          "items": { "enum": ["ORIGIN", "DESTINATION", "BOTH"] },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "issuers": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true },
+        "category": {
+          "enum": [
+            "PAYROLL",
+            "BENEFIT",
+            "MERCHANT",
+            "PAYMENT_PROCESSOR",
+            "BET_AUTHORIZED",
+            "BET_JUDICIAL",
+            "BET_NOT_LISTED",
+            "BET_INTERNAL_DENY",
+            "OTHER"
+          ]
+        },
+        "reason": { "type": "string", "minLength": 1 },
+        "source": {
+          "type": "object",
+          "required": ["type", "label"],
+          "properties": {
+            "type": { "enum": ["INTERNAL", "SPA", "RFB", "JUDICIAL", "ISSUER", "OTHER"] },
+            "label": { "type": "string", "minLength": 1 },
+            "url": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "validFrom": { "type": "string", "format": "date-time" },
+        "validUntil": { "type": "string", "format": "date-time" },
+        "reviewedAt": { "type": "string", "format": "date-time" },
+        "active": { "type": "boolean" },
+        "priority": { "type": "integer", "minimum": -1000, "maximum": 1000 }
+      },
+      "additionalProperties": false
+    }
+  }
+}

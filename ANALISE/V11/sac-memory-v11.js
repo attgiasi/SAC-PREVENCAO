@@ -37,7 +37,17 @@
     const issuer = identityPart(item?.issuer);
     return caseNumber || account || documentValue || issuer ? `${caseNumber}:${account}:${documentValue}:${issuer}` : "";
   };
-  const listIdentity = (item, listType = "") => `${identity(item) || item?.id || ""}:${normalizeText(listType)}`;
+  const listBaseIdentity = (item) => {
+    const caseNumber = identityPart(item?.caseNumber);
+    if (caseNumber) return `CASE:${caseNumber}`;
+    return identity(item) || normalizeText(item?.id);
+  };
+  const listIdentity = (item, listType = "") => `${listBaseIdentity(item)}:${normalizeText(listType)}`;
+  const legacyListIdentity = (item, listType = "") => `${identity(item) || item?.id || ""}:${normalizeText(listType)}`;
+  const listIdentityAliases = (item, listType = "") => Array.from(new Set([
+    listIdentity(item, listType),
+    legacyListIdentity(item, listType)
+  ].filter(Boolean)));
   const redactDocuments = (value) => String(value || "")
     .replace(/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, "[CPF protegido]")
     .replace(/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, "[CNPJ protegido]");
@@ -81,10 +91,11 @@
 
   function writeWindowNameMemory(value) {
     try {
-      const name = String(window.name || "");
-      const cleanName = name.includes(WINDOW_NAME_KEY)
-        ? name.slice(0, name.indexOf(WINDOW_NAME_KEY)).replace(/\n+$/, "")
-        : name;
+      const cleanName = String(window.name || "")
+        .split("\n")
+        .filter((line) => !line.startsWith(WINDOW_NAME_KEY))
+        .join("\n")
+        .replace(/\n+$/, "");
       const encoded = encodeURIComponent(JSON.stringify(normalizeMemory(value)));
       window.name = `${cleanName}${cleanName ? "\n" : ""}${WINDOW_NAME_KEY}${encoded}`;
       return true;
@@ -200,9 +211,12 @@
     const removals = tombstoneMap(tombstones);
     ["allowlist", "contencao"].forEach((listType) => {
       if (!next.lists?.[listType]) return;
-      const removal = removals.get(listIdentity(next, listType));
+      const removal = listIdentityAliases(next, listType)
+        .map((key) => removals.get(key))
+        .filter(Boolean)
+        .sort((a, b) => Number(b.removedAt || 0) - Number(a.removedAt || 0))[0];
       const removedAt = Number(removal?.removedAt || 0);
-      if ((removal?.itemId && removal.itemId === normalizeText(next.id)) || removedAt >= stamp) {
+      if (removedAt >= stamp) {
         next.applied[listType] = true;
       }
     });
@@ -219,7 +233,7 @@
     groups.flat().filter(validAge).forEach((item) => {
       const normalizedItem = applyListTombstones(item, tombstones);
       if (!hasPendingList(normalizedItem)) return;
-      const baseIdentity = identity(normalizedItem) || normalizedItem?.id;
+      const baseIdentity = listBaseIdentity(normalizedItem) || normalizedItem?.id;
       const key = `${baseIdentity}:${Boolean(normalizedItem?.lists?.allowlist)}:${Boolean(normalizedItem?.lists?.contencao)}`;
       const previous = byIdentity.get(key);
       if (!previous || itemStamp(normalizedItem) >= itemStamp(previous)) {
@@ -448,14 +462,18 @@
       return this.all();
     },
     markDone(item, listType) {
-      const baseIdentity = identity(item) || item?.id || "";
-      const key = listIdentity(item, listType);
+      const baseIdentity = listBaseIdentity(item) || item?.id || "";
+      const keys = listIdentityAliases(item, listType);
       if (baseIdentity && listType) {
-        memory.listTombstones = mergeTombstones([{ key, itemId: normalizeText(item?.id), removedAt: now() }], memory.listTombstones);
+        const removedAt = now();
+        memory.listTombstones = mergeTombstones(
+          keys.map((key) => ({ key, itemId: normalizeText(item?.id), removedAt })),
+          memory.listTombstones
+        );
       }
       const changedAt = now();
       const marked = memory.lists.map((entry) => {
-        if ((identity(entry) || entry.id) !== baseIdentity) return entry;
+        if ((listBaseIdentity(entry) || entry.id) !== baseIdentity) return entry;
         return {
           ...entry,
           applied: { ...(entry.applied || {}), [listType]: true },

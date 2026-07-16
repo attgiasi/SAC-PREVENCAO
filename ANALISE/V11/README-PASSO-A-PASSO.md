@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 15/07/2026. Build interno `11.0`.
+Versão de testes revisada em 15/07/2026. Build interno `11.1`.
 
 ## Estrutura
 
@@ -28,7 +28,7 @@ Na V11, a memória de LISTAS, Histórico e Configurações usa um estado central
 
 LISTAS também possui um cofre dedicado da V11. Esse cofre guarda os casos pendentes por 12 horas, aplica tombstones quando um item é inserido ou removido, e impede que uma cópia antiga do clipboard traga de volta casos já baixados.
 
-Na V11, as gravações de LISTAS continuam em fila única de mutação e também entram primeiro em uma fila imediata. Ao finalizar um caso BANKING como NÃO FRAUDE, o caso é gravado no estado central antes de qualquer cópia ou leitura de clipboard. Ao abrir LISTAS, os espelhos são mesclados pela gravação mais recente, reduzindo perda ou atraso de itens entre Falcon, Console e Tabulador.
+Na V11.1, as gravações de LISTAS usam fila única de mutação, cofre persistente e espelho imediato. Ao finalizar um caso BANKING como NÃO FRAUDE, a gravação é confirmada antes de a janela fechar. A leitura da janela LISTAS passa primeiro pelo motor de tombstones, impedindo que cópias antigas reapresentem itens já inseridos. Os blocos compartilhados em `window.name` também são preservados sem apagar LISTAS, Histórico ou Configurações uns dos outros.
 
 O Tabulador possui um mapa fixo de aplicação: cada campo tem tipo, seletor, valor esperado e validação. Dropdowns são selecionados pela opção real, não por texto colado, e qualquer inconsistência aparece no painel do Tabulador com o nome do campo.
 
@@ -307,6 +307,10 @@ Regras:
 - Se a regra contiver `CONTENÇÃO` ou variações sem acento, o caso também entra na aba `CONTENÇÃO`.
 - Se depois o mesmo caso/conta for decidido como fraude ou outra decisão, o item é removido da lista pendente.
 - Os itens só saem da lista após `INSERIR` ou `REMOVER`.
+- O número do caso é a identidade principal da fila: repetir o mesmo caso atualiza o registro, sem duplicá-lo.
+- Um BANKING `NÃO FRAUDE` com regra de `CONTENÇÃO` aparece imediatamente nas abas `ALLOWLIST` e `CONTENÇÃO`.
+- Se ID da conta ou CPF/CNPJ estiver temporariamente ausente, o registro permanece visível e a inclusão é bloqueada até o dado ser corrigido; ele não é descartado silenciosamente.
+- A janela de tabulação não fecha se o motor não confirmar a gravação do caso em LISTAS.
 
 Aplicação:
 
@@ -344,6 +348,13 @@ O sistema mostra principalmente:
 - alerta quando o modo seguro estiver desligado;
 - conclusão de etapa;
 - confirmação de cópia/finalização.
+
+## Barra e configurações
+
+- `⚙️`: abre Configurações.
+- `🕘`: abre o Histórico.
+- `🔄`: recarrega a automação.
+- O tamanho da fonte usa um controle segmentado `A− | percentual | A+`, com áreas de clique maiores.
 
 ## Atalhos
 

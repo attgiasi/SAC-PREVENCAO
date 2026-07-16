@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V11_20260715";
   const BUILD = "ANALISE/V11";
   const BUILD_FAMILY = "11";
-  const BUILD_VERSION = "11.0";
+  const BUILD_VERSION = "11.1";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -149,10 +149,11 @@
   }
   function writeSharedSettings(settings) {
     try {
-      const name = String(window.name || "");
-      const cleanName = name.includes(SETTINGS_WINDOW_NAME_KEY)
-        ? name.slice(0, name.indexOf(SETTINGS_WINDOW_NAME_KEY)).replace(/\n+$/, "")
-        : name;
+      const cleanName = String(window.name || "")
+        .split("\n")
+        .filter((line) => !line.startsWith(SETTINGS_WINDOW_NAME_KEY))
+        .join("\n")
+        .replace(/\n+$/, "");
       const encoded = encodeURIComponent(JSON.stringify(settings || {}));
       window.name = `${cleanName}${cleanName ? "\n" : ""}${SETTINGS_WINDOW_NAME_KEY}${encoded}`;
       return true;
@@ -228,10 +229,11 @@
   }
   function writeWindowNameBlock(marker, value) {
     try {
-      const name = String(window.name || "");
-      const cleanName = name.includes(marker)
-        ? name.slice(0, name.indexOf(marker)).replace(/\n+$/, "")
-        : name;
+      const cleanName = String(window.name || "")
+        .split("\n")
+        .filter((line) => !line.startsWith(marker))
+        .join("\n")
+        .replace(/\n+$/, "");
       const encoded = encodeURIComponent(JSON.stringify(value || []));
       window.name = `${cleanName}${cleanName ? "\n" : ""}${marker}${encoded}`;
       return true;
@@ -692,8 +694,8 @@
       .sac-panel.sac-listas-panel{--sac-panel-width:min(720px,calc(100vw - 16px));left:8px;right:auto;top:8px;max-height:calc(100vh - 16px)}
       .sac-dark{--sac-bg:#121a26;--sac-panel:#1b2635;--sac-card:#111927;--sac-border:#465a73;--sac-text:#edf3fb;--sac-muted:#b9c7d9;--sac-input:#0f1724}.sac-light{--sac-bg:#fff;--sac-panel:#f3f6fa;--sac-card:#fff;--sac-border:#c9d6e6;--sac-text:#172033;--sac-muted:#5b697f;--sac-input:#fff}
       .sac-head{position:relative;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 8px;background:var(--sac-primary);color:#fff;cursor:grab;user-select:none;touch-action:none;text-shadow:0 1px 1px rgba(0,0,0,.55),0 0 1px rgba(0,0,0,.72)}.sac-head:active,.sac-history-head:active{cursor:grabbing}.sac-panel.sac-minimized .sac-body,.sac-panel.sac-minimized .sac-config{display:none!important}.sac-title{display:flex;align-items:center;gap:6px;font-size:calc(12px * var(--sac-font-scale));font-weight:950;line-height:1.1}.sac-flow-dot{width:10px;height:10px;border-radius:999px;background:var(--sac-primary);border:2px solid rgba(255,255,255,.72);box-shadow:0 0 0 1px rgba(0,0,0,.2)}.sac-subtitle{font-size:calc(9px * var(--sac-font-scale));opacity:.9;font-weight:800;max-width:260px;line-height:1.15}
-      .sac-actions{display:flex;gap:4px}.sac-icon{width:25px;height:25px;border:1px solid rgba(255,255,255,.35);border-radius:5px;background:rgba(255,255,255,.14);color:#fff;cursor:pointer;font-weight:950;display:grid;place-items:center;padding:0;text-shadow:0 1px 1px rgba(0,0,0,.55),0 0 1px rgba(0,0,0,.72)}.sac-icon.close{background:#dc2626;border-color:#fecaca;color:#fff}
-      .sac-config{position:fixed;left:auto;top:8px;width:360px;max-width:calc(100vw - 16px);z-index:2147483647;display:none;gap:7px;padding:8px;border:1px solid var(--sac-border);border-radius:8px;background:var(--sac-bg);box-shadow:0 14px 34px rgba(0,0,0,.28)}.sac-config.open{display:grid}.sac-config-title{font-size:11px;font-weight:950;color:var(--sac-muted);text-transform:uppercase}.sac-config-preview{border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-card);padding:7px;color:var(--sac-text);font-size:11px;font-weight:900;overflow-wrap:anywhere}.sac-config input,.sac-config select,.sac-config button{width:100%;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);padding:7px;font-weight:850}.sac-config input:hover,.sac-config select:hover,.sac-config button:hover,.sac-config input:focus,.sac-config select:focus,.sac-config button:focus{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.22);outline:none;filter:brightness(1.08)}.sac-light .sac-config input:hover,.sac-light .sac-config select:hover,.sac-light .sac-config button:hover,.sac-light .sac-config input:focus,.sac-light .sac-config select:focus,.sac-light .sac-config button:focus{background:#eef7ff;color:#172033}.sac-config-row{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:0;align-items:stretch}.sac-config-row button{font-size:12px;font-weight:950;padding:7px 4px}.sac-config-row button:first-child{border-radius:6px 0 0 6px}.sac-config-row button:last-child{border-radius:0 6px 6px 0;border-left:0}.sac-font-value{display:grid;place-items:center;border-top:1px solid var(--sac-border);border-bottom:1px solid var(--sac-border);background:var(--sac-card);color:var(--sac-muted);font-size:11px;font-weight:950;padding:0 8px}.sac-flow-legend{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}.sac-flow-legend span{display:flex;align-items:center;gap:4px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 4px;font-size:9px;font-weight:950;color:var(--sac-muted)}.sac-flow-legend i{width:10px;height:10px;border-radius:999px;display:inline-block}.sac-signature-editor,.sac-color-editor{display:none;gap:6px}.sac-signature-editor.open,.sac-color-editor.open{display:grid}.sac-color-row{display:grid;grid-template-columns:62px minmax(0,1fr);gap:6px;align-items:center}.sac-color-row strong{font-size:10px;color:var(--sac-muted);font-weight:950}.sac-color-swatches{display:flex;gap:5px;flex-wrap:nowrap;align-items:center}.sac-color-swatch{width:20px!important;height:20px!important;min-width:20px;border-radius:999px!important;padding:0!important;border:2px solid var(--sac-border)!important;background:var(--swatch)!important;cursor:pointer}.sac-color-swatch.active{border-color:#fff!important;box-shadow:0 0 0 2px var(--swatch)}.sac-light .sac-color-swatch.active{border-color:#172033!important}.sac-signature-custom[hidden]{display:none!important}.sac-toggle{display:grid!important;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;justify-items:start;gap:7px;text-align:left}.sac-toggle span:not(.sac-switch),.sac-toggle b{justify-self:start;text-align:left}.sac-toggle b{font-size:10px;color:var(--sac-muted)}.sac-switch{position:relative;width:32px;height:18px;border-radius:999px;background:#64748b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}.sac-switch:after{content:"";position:absolute;left:3px;top:3px;width:12px;height:12px;border-radius:999px;background:#fff;transition:.15s}.sac-toggle.on .sac-switch{background:#16a34a}.sac-toggle.on .sac-switch:after{left:17px}.sac-toggle.on b{color:#86efac}
+      .sac-actions{display:flex;gap:4px}.sac-icon{width:28px;height:28px;border:1px solid rgba(255,255,255,.38);border-radius:5px;background:rgba(255,255,255,.15);color:#fff;cursor:pointer;font-size:15px;line-height:1;font-weight:950;display:grid;place-items:center;padding:0;text-shadow:0 1px 1px rgba(0,0,0,.55),0 0 1px rgba(0,0,0,.72)}.sac-icon.sac-emoji-icon{font-family:"Segoe UI Emoji","Apple Color Emoji",sans-serif;font-size:17px}.sac-icon.sac-emoji-icon span{display:grid;place-items:center;width:100%;height:100%;line-height:1}.sac-icon.close{background:#dc2626;border-color:#fecaca;color:#fff}
+      .sac-config{position:fixed;left:auto;top:8px;width:360px;max-width:calc(100vw - 16px);z-index:2147483647;display:none;gap:7px;padding:8px;border:1px solid var(--sac-border);border-radius:8px;background:var(--sac-bg);box-shadow:0 14px 34px rgba(0,0,0,.28)}.sac-config.open{display:grid}.sac-config-title{font-size:11px;font-weight:950;color:var(--sac-muted);text-transform:uppercase}.sac-config-preview{border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-card);padding:7px;color:var(--sac-text);font-size:11px;font-weight:900;overflow-wrap:anywhere}.sac-config input,.sac-config select,.sac-config button{width:100%;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);padding:7px;font-weight:850}.sac-config input:hover,.sac-config select:hover,.sac-config button:hover,.sac-config input:focus,.sac-config select:focus,.sac-config button:focus{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.22);outline:none;filter:brightness(1.08)}.sac-light .sac-config input:hover,.sac-light .sac-config select:hover,.sac-light .sac-config button:hover,.sac-light .sac-config input:focus,.sac-light .sac-config select:focus,.sac-light .sac-config button:focus{background:#eef7ff;color:#172033}.sac-font-block{display:grid;gap:4px}.sac-font-label{color:var(--sac-muted);font-size:10px;font-weight:950;text-transform:uppercase}.sac-config-row{display:grid;grid-template-columns:54px minmax(0,1fr) 54px;gap:0;align-items:stretch;border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-card);overflow:hidden}.sac-config-row button{min-height:36px;border:0!important;border-radius:0!important;background:var(--sac-input);font-size:16px;font-weight:950;padding:6px 4px;box-shadow:none!important}.sac-config-row button+*{border-left:1px solid var(--sac-border)}.sac-config-row button:hover,.sac-config-row button:focus{background:#12314a!important;color:#fff!important;filter:none!important}.sac-light .sac-config-row button:hover,.sac-light .sac-config-row button:focus{background:#e0f2fe!important;color:#172033!important}.sac-font-value{display:grid;place-items:center;background:var(--sac-card);color:var(--sac-text);font-size:12px;font-weight:950;padding:0 8px}.sac-flow-legend{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}.sac-flow-legend span{display:flex;align-items:center;gap:4px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 4px;font-size:9px;font-weight:950;color:var(--sac-muted)}.sac-flow-legend i{width:10px;height:10px;border-radius:999px;display:inline-block}.sac-signature-editor,.sac-color-editor{display:none;gap:6px}.sac-signature-editor.open,.sac-color-editor.open{display:grid}.sac-color-row{display:grid;grid-template-columns:62px minmax(0,1fr);gap:6px;align-items:center}.sac-color-row strong{font-size:10px;color:var(--sac-muted);font-weight:950}.sac-color-swatches{display:flex;gap:5px;flex-wrap:nowrap;align-items:center}.sac-color-swatch{width:20px!important;height:20px!important;min-width:20px;border-radius:999px!important;padding:0!important;border:2px solid var(--sac-border)!important;background:var(--swatch)!important;cursor:pointer}.sac-color-swatch.active{border-color:#fff!important;box-shadow:0 0 0 2px var(--swatch)}.sac-light .sac-color-swatch.active{border-color:#172033!important}.sac-signature-custom[hidden]{display:none!important}.sac-toggle{display:grid!important;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;justify-items:start;gap:7px;text-align:left}.sac-toggle span:not(.sac-switch),.sac-toggle b{justify-self:start;text-align:left}.sac-toggle b{font-size:10px;color:var(--sac-muted)}.sac-switch{position:relative;width:32px;height:18px;border-radius:999px;background:#64748b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}.sac-switch:after{content:"";position:absolute;left:3px;top:3px;width:12px;height:12px;border-radius:999px;background:#fff;transition:.15s}.sac-toggle.on .sac-switch{background:#16a34a}.sac-toggle.on .sac-switch:after{left:17px}.sac-toggle.on b{color:#86efac}
       .sac-body{padding:5px;display:grid;gap:5px}.sac-section{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-panel);padding:5px}.sac-section-title{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--sac-muted);font-size:calc(9px * var(--sac-font-scale));font-weight:950;text-transform:uppercase;margin-bottom:4px}.sac-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}.sac-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.sac-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.sac-single-alert{grid-column:1/-1;min-height:50px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:calc(13px * var(--sac-font-scale));font-weight:950;letter-spacing:.02em}
       .sac-kv{position:relative;min-width:0;min-height:34px;margin-top:7px;border:1px solid var(--sac-border);border-radius:5px;background:var(--sac-card);padding:7px 4px 4px;transition:border-color .15s,background .15s,box-shadow .15s,color .15s;cursor:pointer}.sac-kv:hover,.sac-field:hover{border-color:#38bdf8;background:#10263a;box-shadow:0 0 0 2px rgba(56,189,248,.12)}.sac-kv.sac-copied{border-color:#22c55e!important;box-shadow:0 0 0 2px rgba(34,197,94,.28)!important}.sac-light .sac-kv:hover,.sac-light .sac-field:hover{background:#eef7ff;color:#172033}.sac-kv-label{position:absolute;top:-8px;left:4px;max-width:calc(100% - 8px);padding:1px 3px;border-radius:3px;background:var(--sac-panel);font-size:calc(8px * var(--sac-font-scale));font-weight:900;color:var(--sac-muted);line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sac-kv-value{display:flex;align-items:center;min-height:23px;font-size:calc(11px * var(--sac-font-scale));font-weight:800;color:var(--sac-text);line-height:1.08;overflow-wrap:anywhere}.sac-light .sac-kv:hover .sac-kv-label,.sac-light .sac-kv:hover .sac-kv-value{color:#172033}.sac-missing{border-color:#f59e0b!important;background:#3a230b!important;animation:sacPulseOrange 1s ease-in-out infinite}.sac-light .sac-missing{background:#fff7ed!important}.sac-history-ok{background:#052e1a;border-color:#15803d}.sac-history-warn,.sac-alert-warn{background:#3a230b;border-color:#c2410c}.sac-history-danger,.sac-alert-danger{background:#3a0d0d;border-color:#ef4444;animation:sacPulseRed 1s ease-in-out infinite}.sac-light .sac-history-ok{background:#ecfdf5;border-color:#86efac}.sac-light .sac-history-warn,.sac-light .sac-alert-warn{background:#fff7ed;border-color:#fdba74}.sac-light .sac-history-danger,.sac-light .sac-alert-danger{background:#fef2f2}@keyframes sacPulseRed{0%,100%{box-shadow:0 0 0 rgba(239,68,68,0);filter:saturate(1)}50%{box-shadow:0 0 12px rgba(239,68,68,.65);filter:saturate(1.35)}}@keyframes sacPulseOrange{0%,100%{box-shadow:0 0 0 rgba(245,158,11,0)}50%{box-shadow:0 0 12px rgba(245,158,11,.70)}}
       .sac-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}.sac-console-flags{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.sac-console-flags .sac-toggle{min-height:34px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:6px 5px;cursor:pointer;grid-template-columns:28px minmax(0,1fr)!important}.sac-console-flags .sac-toggle b{display:none}.sac-console-flags .sac-toggle span:not(.sac-switch){font-size:calc(9.4px * var(--sac-font-scale));font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sac-console-flags .sac-toggle[aria-disabled="true"]{opacity:.52;cursor:not-allowed}.sac-console-flags .sac-toggle:hover{border-color:#38bdf8;background:#10263a;box-shadow:0 0 0 2px rgba(56,189,248,.12)}.sac-light .sac-console-flags .sac-toggle:hover{background:#eef7ff;color:#172033}.sac-field{display:grid;gap:2px;min-width:0;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:4px;transition:border-color .15s,box-shadow .15s,background .15s}.sac-field span{display:block;font-size:calc(8.4px * var(--sac-font-scale));font-weight:900;color:var(--sac-muted);line-height:1.05}.sac-field select,.sac-field input{width:100%;height:28px;border:1px solid var(--sac-border);border-radius:5px;background:var(--sac-input);color:var(--sac-text);font-size:calc(10.6px * var(--sac-font-scale));font-weight:800;padding:3px}.sac-field select:hover,.sac-field select:focus,.sac-field input:hover,.sac-field input:focus{border-color:#38bdf8;background:#10263a;color:#edf3fb;outline:none;box-shadow:0 0 0 2px rgba(56,189,248,.16)}.sac-light .sac-field select:hover,.sac-light .sac-field select:focus,.sac-light .sac-field input:hover,.sac-light .sac-field input:focus{background:#eef7ff;color:#172033}.sac-other-input[hidden]{display:none!important}
@@ -880,19 +882,22 @@
           <div class="sac-subtitle">${escapeHtml(`${subtitle || BUILD} · V${BUILD_VERSION}`)}</div>
         </div>
         <div class="sac-actions">
-          <button class="sac-icon" data-action="config" aria-label="Configurações">⚙</button>
-          <button class="sac-icon" data-action="history" aria-label="Histórico">◷</button>
-          <button class="sac-icon" data-action="reload" aria-label="Recarregar">⟳</button>
-          <button class="sac-icon" data-action="minimize" aria-label="Minimizar">_</button>
-          <button class="sac-icon close" data-action="close" aria-label="Fechar">×</button>
+          <button class="sac-icon sac-emoji-icon" data-action="config" aria-label="Abrir configurações" title="Configurações"><span aria-hidden="true">⚙️</span></button>
+          <button class="sac-icon sac-emoji-icon" data-action="history" aria-label="Abrir histórico" title="Histórico"><span aria-hidden="true">🕘</span></button>
+          <button class="sac-icon sac-emoji-icon" data-action="reload" aria-label="Recarregar automação" title="Recarregar"><span aria-hidden="true">🔄</span></button>
+          <button class="sac-icon" data-action="minimize" aria-label="Minimizar" title="Minimizar">_</button>
+          <button class="sac-icon close" data-action="close" aria-label="Fechar" title="Fechar">×</button>
         </div>
         <div class="sac-config" hidden>
           <div class="sac-config-title">Configurações</div>
           <button data-action="theme">${getTheme() === "dark" ? "☀ Tema claro" : "☾ Tema escuro"}</button>
-          <div class="sac-config-row">
-            <button data-action="font-minus" aria-label="Diminuir fonte">−A</button>
-            <span class="sac-font-value" data-font-value>${Math.round(getFontScale() * 100)}%</span>
-            <button data-action="font-plus" aria-label="Aumentar fonte">A+</button>
+          <div class="sac-font-block">
+            <span class="sac-font-label">Tamanho da fonte</span>
+            <div class="sac-config-row">
+              <button data-action="font-minus" aria-label="Diminuir fonte" title="Diminuir fonte">A−</button>
+              <span class="sac-font-value" data-font-value>${Math.round(getFontScale() * 100)}%</span>
+              <button data-action="font-plus" aria-label="Aumentar fonte" title="Aumentar fonte">A+</button>
+            </div>
           </div>
           <button class="sac-toggle ${getSafeMode() ? "on" : ""}" data-action="safe-mode" aria-pressed="${getSafeMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Modo seguro</span><b>${getSafeMode() ? "Ligado" : "Desligado"}</b></button>
           <button class="sac-toggle ${getHelpMode() ? "on" : ""}" data-action="help-mode" aria-pressed="${getHelpMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Modo ajuda</span><b>${getHelpMode() ? "Ligado" : "Desligado"}</b></button>
@@ -2619,7 +2624,15 @@
         return;
       }
       event.currentTarget.disabled = true;
-      const queue = await (panel.__sacListQueuePromise || updateListsForFinalDecision(data, decision));
+      let queue = [];
+      try {
+        queue = await (panel.__sacListQueuePromise || updateListsForFinalDecision(data, decision));
+      } catch (_err) {
+        panel.__sacListQueuePromise = null;
+        event.currentTarget.disabled = false;
+        showNotice("Não confirmei a gravação deste caso em LISTAS. A janela foi mantida aberta para tentar novamente.", "error", 16000);
+        return;
+      }
       const history = addHistory(data, decision, text);
       await copyText(text, queue, history);
       if ((queue.length || history.length) && !clipboardEnvelopeReady) {
@@ -3420,7 +3433,7 @@
     return text.includes("CONTENCAO") || text.includes("CONTENSAO");
   }
   function listTypesFor(data) {
-    if (data.flow !== "banking" || data.visualFlow === "hold") {
+    if (normalize(data.flow) !== "BANKING" || normalize(data.visualFlow) === "HOLD") {
       return { allowlist: false, contencao: false };
     }
     return {
@@ -3456,10 +3469,11 @@
   }
   function listItemKey(item) {
     const caseKey = alnumOnly(item?.caseNumber);
+    if (caseKey) return `CASE:${caseKey}`;
     const accountKey = alnumOnly(item?.account);
     const documentKey = alnumOnly(item?.documentValue || item?.document || "");
     const issuerKey = alnumOnly(item?.issuer || "");
-    return caseKey || accountKey || documentKey || issuerKey ? `${caseKey}:${accountKey}:${documentKey}:${issuerKey}` : String(item?.id || "");
+    return accountKey || documentKey || issuerKey ? `${accountKey}:${documentKey}:${issuerKey}` : String(item?.id || "");
   }
   function validPendingListItems(items) {
     const byKey = new Map();
@@ -3511,10 +3525,10 @@
       memory.state?.get?.() || memory.mergeCurrentMirrors?.();
       merged = validPendingListItems([...merged, ...readImmediateListMirror(), ...memory.lists.all()]);
     }
-    const filtered = validPendingListItems(merged);
-    writeImmediateListMirror(filtered);
-    memory.lists.replace(filtered);
-    return filtered;
+    memory.lists.replace(validPendingListItems(merged));
+    const authoritative = validPendingListItems(memory.lists.all());
+    writeImmediateListMirror(authoritative);
+    return authoritative;
   }
   function hasPendingListApplication(item) {
     const pendingAllowlist = item?.lists?.allowlist && !item?.applied?.allowlist;
@@ -3522,17 +3536,23 @@
     return Boolean(pendingAllowlist || pendingContencao);
   }
   async function writeListQueue(list) {
-    const next = writeImmediateListMirror(list);
     memory.state?.get?.() || memory.mergeCurrentMirrors?.();
-    memory.lists.replace(next);
-    memory.commitCurrentText?.().then((result) => {
-      clipboardEnvelopeReady = Boolean(result?.memoryCopied);
-    }).catch(() => {});
-    return true;
+    memory.lists.replace(validPendingListItems(list));
+    const authoritative = validPendingListItems(memory.lists.all());
+    writeImmediateListMirror(authoritative);
+    try {
+      const result = await memory.commitCurrentText?.();
+      if (result) clipboardEnvelopeReady = Boolean(result.memoryCopied);
+    } catch (_err) {}
+    return authoritative;
   }
   function sameListIdentity(item, data) {
-    return alnumOnly(item?.caseNumber) === alnumOnly(data?.falcon?.caseNumber)
-      && alnumOnly(item?.account) === alnumOnly(data?.account);
+    const itemCase = alnumOnly(item?.caseNumber);
+    const dataCase = alnumOnly(data?.falcon?.caseNumber);
+    if (itemCase && dataCase) return itemCase === dataCase;
+    const itemAccount = alnumOnly(item?.account);
+    const dataAccount = alnumOnly(data?.account);
+    return Boolean(itemAccount && dataAccount && itemAccount === dataAccount);
   }
   async function retireCurrentCaseFromLists(queue, data) {
     const currentItems = queue.filter((item) => sameListIdentity(item, data));
@@ -3541,8 +3561,7 @@
       if (item.lists?.contencao) memory.lists.markDone?.(item, "contencao");
     });
     const withoutCurrentCase = queue.filter((item) => !sameListIdentity(item, data));
-    await writeListQueue(withoutCurrentCase);
-    return withoutCurrentCase;
+    return writeListQueue(withoutCurrentCase);
   }
   async function updateListsForFinalDecision(data, decision) {
     return enqueueListMutation(async () => {
@@ -3565,10 +3584,8 @@
       }
       const account = clean(data.account, "");
       const documentValue = documentFieldValue(data.cpfCnpj);
-      if (!account || (lists.contencao && !documentValue)) {
-        showNotice(lists.contencao && !documentValue ? "Regra de contenção detectada, mas faltou CPF/CNPJ para a LISTAS." : "Caso não fraude salvo, mas faltou ID da conta para a LISTAS.", "warn");
-        return retireCurrentCaseFromLists(queue, data);
-      }
+      if (!account) showNotice("Caso guardado em LISTAS, mas falta o ID da conta para concluir a inclusão.", "warn", 12000);
+      if (lists.contencao && !documentValue) showNotice("Caso guardado nas duas abas, mas falta CPF/CNPJ para concluir a Contenção.", "warn", 12000);
       queue.filter((entry) => sameListIdentity(entry, data)).forEach((entry) => {
         if (entry.lists?.allowlist) memory.lists.markDone?.(entry, "allowlist");
         if (entry.lists?.contencao) memory.lists.markDone?.(entry, "contencao");
@@ -3591,10 +3608,20 @@
       };
       showNotice(lists.contencao ? "Caso finalizado e guardado em LISTAS com CPF/CNPJ." : "Caso finalizado e guardado em LISTAS com ID da conta.", "info");
       const next = [item, ...withoutCurrentCase];
-      writeImmediateListMirror(next);
       memory.lists.upsert?.(item);
-      await writeListQueue(next);
-      return next;
+      let persisted = await writeListQueue(next);
+      const saved = persisted.find((entry) => sameListIdentity(entry, data));
+      const fullyPending = Boolean(saved?.lists?.allowlist && !saved?.applied?.allowlist)
+        && (!lists.contencao || Boolean(saved?.lists?.contencao && !saved?.applied?.contencao));
+      if (!fullyPending) {
+        memory.lists.upsert?.(item);
+        persisted = await writeListQueue([item, ...persisted]);
+      }
+      const confirmed = persisted.find((entry) => sameListIdentity(entry, data));
+      if (!confirmed?.lists?.allowlist || confirmed.applied?.allowlist || (lists.contencao && (!confirmed.lists?.contencao || confirmed.applied?.contencao))) {
+        throw new Error("LISTAS_PERSISTENCE_NOT_CONFIRMED");
+      }
+      return persisted;
     });
   }
   function hotlistInputs() {

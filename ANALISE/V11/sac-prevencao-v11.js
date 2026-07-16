@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V11_20260715";
   const BUILD = "ANALISE/V11";
   const BUILD_FAMILY = "11";
-  const BUILD_VERSION = "11.1";
+  const BUILD_VERSION = "11.2";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -506,6 +506,20 @@
     storageSet("fontScale", String(next));
     all(".sac-panel").forEach((panel) => panel.style.setProperty("--sac-font-scale", String(next)));
     all("[data-font-value]").forEach((node) => node.textContent = `${Math.round(next * 100)}%`);
+    return next;
+  };
+  const adjustFontScale = (delta) => {
+    const openConfigs = all(".sac-config.open").map((config) => ({ config, panel: config.closest(".sac-panel") }));
+    const next = setFontScale(getFontScale() + delta);
+    openConfigs.forEach(({ config, panel }) => {
+      config.hidden = false;
+      config.classList.add("open");
+      if (panel) {
+        panel.style.zIndex = "2147483646";
+        placeConfigPanel(panel, config);
+      }
+    });
+    return next;
   };
   function syncLiveSettings() {
     const theme = getTheme();
@@ -987,8 +1001,16 @@
       setTheme(getTheme() === "dark" ? "light" : "dark");
       reload();
     });
-    panel.querySelector("[data-action='font-minus']")?.addEventListener("click", () => setFontScale(getFontScale() - 0.05));
-    panel.querySelector("[data-action='font-plus']")?.addEventListener("click", () => setFontScale(getFontScale() + 0.05));
+    panel.querySelector("[data-action='font-minus']")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      adjustFontScale(-0.05);
+    });
+    panel.querySelector("[data-action='font-plus']")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      adjustFontScale(0.05);
+    });
     panel.querySelector("[data-action='safe-mode']")?.addEventListener("click", (event) => {
       const next = !getSafeMode();
       setSafeMode(next);
@@ -1118,6 +1140,8 @@
     if (event.key.toLowerCase() === "m") { panel.__sacKeys.toggleMinimize?.(); event.preventDefault(); }
     if (event.key.toLowerCase() === "p") { panel.__sacKeys.resetPosition?.(); event.preventDefault(); }
     if (event.key.toLowerCase() === "a" && panel.querySelector("[data-signature-name]")) { panel.__sacKeys.openConfig?.(); panel.querySelector("[data-signature-name]")?.focus(); event.preventDefault(); }
+    if (event.key === "+" || event.key === "Add") { adjustFontScale(0.05); event.preventDefault(); }
+    if (event.key === "-" || event.key === "Subtract") { adjustFontScale(-0.05); event.preventDefault(); }
     if (event.key === "Enter") { panel.__sacKeys.onEnter?.(); event.preventDefault(); }
     if (["1", "2", "3", "4"].includes(event.key)) {
       panel.querySelector(`[data-decision-index="${Number(event.key) - 1}"]`)?.click();

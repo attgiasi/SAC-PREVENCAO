@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 15/07/2026. Build interno `11.1`.
+Versão de testes revisada em 15/07/2026. Build interno `11.2`.
 
 ## Estrutura
 
@@ -28,7 +28,7 @@ Na V11, a memória de LISTAS, Histórico e Configurações usa um estado central
 
 LISTAS também possui um cofre dedicado da V11. Esse cofre guarda os casos pendentes por 12 horas, aplica tombstones quando um item é inserido ou removido, e impede que uma cópia antiga do clipboard traga de volta casos já baixados.
 
-Na V11.1, as gravações de LISTAS usam fila única de mutação, cofre persistente e espelho imediato. Ao finalizar um caso BANKING como NÃO FRAUDE, a gravação é confirmada antes de a janela fechar. A leitura da janela LISTAS passa primeiro pelo motor de tombstones, impedindo que cópias antigas reapresentem itens já inseridos. Os blocos compartilhados em `window.name` também são preservados sem apagar LISTAS, Histórico ou Configurações uns dos outros.
+Desde a V11.1, as gravações de LISTAS usam fila única de mutação, cofre persistente e espelho imediato. Ao finalizar um caso BANKING como NÃO FRAUDE, a gravação é confirmada antes de a janela fechar. A leitura da janela LISTAS passa primeiro pelo motor de tombstones, impedindo que cópias antigas reapresentem itens já inseridos. Os blocos compartilhados em `window.name` também são preservados sem apagar LISTAS, Histórico ou Configurações uns dos outros.
 
 O Tabulador possui um mapa fixo de aplicação: cada campo tem tipo, seletor, valor esperado e validação. Dropdowns são selecionados pela opção real, não por texto colado, e qualquer inconsistência aparece no painel do Tabulador com o nome do campo.
 
@@ -355,6 +355,7 @@ O sistema mostra principalmente:
 - `🕘`: abre o Histórico.
 - `🔄`: recarrega a automação.
 - O tamanho da fonte usa um controle segmentado `A− | percentual | A+`, com áreas de clique maiores.
+- Aumentar ou diminuir a fonte atualiza o layout sem fechar o painel de Configurações.
 
 ## Atalhos
 
@@ -365,6 +366,8 @@ O sistema mostra principalmente:
 - `P`: volta à posição inicial.
 - `T`: alterna tema.
 - `R` ou `0`: recarrega a automação.
+- `+`: aumenta a fonte.
+- `-`: diminui a fonte.
 
 ## Instalação
 

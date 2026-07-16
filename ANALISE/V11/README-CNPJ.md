@@ -7,7 +7,10 @@ A base combina 18 registros confirmados pelo usuário com 82 CNPJs autorizados n
 ## Arquivos
 
 - `sac-counterparty-v11.js`: motor de validação, atualização, cache e classificação.
+- `sac-corporate-v11.js`: motor cadastral que cruza a situação da Receita Federal com a classificação operacional.
+- `sac-transaction-v11.js`: motor de sinais transacionais. Nesta versão, P2P soma um ponto favorável a não fraude e a classificação do CNPJ pode complementar a leitura.
 - `counterparty-registry-v11.json`: snapshot seguro e versionado. Começa vazio para não inventar classificações.
+- `rfb-cnpj-registry-v11.json`: snapshot compacto reservado aos dados oficiais já sincronizados.
 - `counterparty-registry-v11.schema.json`: contrato dos dados aceitos.
 
 ## Resultado operacional
@@ -99,9 +102,38 @@ O sincronizador remove somente registros gerados anteriormente com os prefixos `
 - falha de rede mantém o snapshot anterior marcado como `stale`;
 - versão e data da base acompanham todo resultado.
 
-## Próxima integração
+## Integração no Console
 
-Quando a página transacional e os books atualizados estiverem disponíveis, o Console fornecerá ao motor somente:
+O `Modo investigação` fica desligado por padrão. Quando ativado nas Configurações, o rodapé do Console exibe os botões compactos `Verificar CNPJ` e `Análise transacional`. O comando de `Mídia desabonadora` aparece somente quando houver CPF elegível.
+
+- `Análise transacional`: avalia somente sinais explicitamente cadastrados. P2P adiciona um ponto favorável a não fraude.
+- `Verificar CNPJ`: consulta a base versionada e mostra classificação, justificativa, fonte e versão em um painel lateral de grids.
+- a mesma consulta mostra situação cadastral, data da situação, razão social, nome fantasia, abertura e CNAE quando o snapshot oficial estiver sincronizado.
+- situação `INAPTA`, `BAIXADA`, `SUSPENSA` ou `NULA` e empresa com menos de três meses recebem alerta pulsante vermelho.
+- nenhum resultado seleciona decisão ou Motivo Status automaticamente.
+
+Os HTMLs do Falcon disponíveis em 16/07/2026 contêm CPF/ID dos clientes, contas de origem e crédito e nome do pagador, mas não contêm o CNPJ da contraparte. Por segurança, o campo de consulta permanece manual até que o elemento real seja mapeado. O documento do titular coletado no Console nunca é reutilizado como CNPJ da contraparte.
+
+## Situação cadastral da Receita Federal
+
+O cruzamento mantém duas conclusões separadas:
+
+1. situação cadastral oficial: `ATIVA`, `SUSPENSA`, `INAPTA`, `BAIXADA` ou `NULA`;
+2. classificação operacional: `TRUSTED`, `UNTRUSTED`, `REVIEW` ou `UNKNOWN`.
+
+Situação `ATIVA` não transforma automaticamente uma contraparte em confiável. Situação diferente de `ATIVA` gera revisão cadastral, mesmo que exista um cadastro favorável na lista interna.
+
+O arquivo público no GitHub não recebe credenciais. Consulta oficial em tempo real exige API contratada do SERPRO e um serviço intermediário autorizado, pois o segredo OAuth nunca pode ficar no bookmarklet. Sem esse serviço, `rfb-cnpj-registry-v11.json` deve ser atualizado a partir dos dados abertos oficiais da Receita. Enquanto não houver sincronização, a tela informa `DADO DA RECEITA NÃO SINCRONIZADO` sem inventar situação cadastral.
+
+## Mídia e análise transacional
+
+O motor transacional lê somente sinais explícitos. P2P soma um ponto favorável a não fraude; limites de tempo, valor e velocidade serão adicionados apenas após o HTML da página transacional e os books atualizados serem mapeados.
+
+A investigação de mídia usa transporte entre páginas. O Console cria um pedido com número do caso e CPF, e o BigData devolve um resultado vinculado à mesma identidade. Resultado sem processo criminal compatível é `SEM MÍDIA` e atualiza o campo do Console para `não`. A coleta automática permanece bloqueada enquanto o adaptador `SACBigDataMediaAdapter` não tiver seletores confirmados.
+
+## Próxima integração automática
+
+Quando a página que expõe o CNPJ da contraparte estiver disponível, o Console fornecerá ao motor somente:
 
 ```js
 await window.SACCounterpartyV11.classify({
@@ -111,4 +143,4 @@ await window.SACCounterpartyV11.classify({
 });
 ```
 
-O painel transacional exibirá a classificação, o motivo, a fonte, a validade e a particularidade do emissor. As regras de velocidade, valores e comportamento só serão implementadas depois do mapeamento dos books, sem limites presumidos.
+As regras adicionais de velocidade, valores e comportamento só serão implementadas depois do mapeamento dos books, sem limites presumidos.

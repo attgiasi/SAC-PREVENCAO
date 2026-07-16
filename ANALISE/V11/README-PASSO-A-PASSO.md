@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 16/07/2026. Build interno `11.5`.
+Versão de testes revisada em 16/07/2026. Build interno `11.7`.
 
 ## Estrutura
 
@@ -10,6 +10,10 @@ A V11 fica organizada em blocos claros:
 - `sac-memory-v11.js`: memória própria da V11 para pacotes entre etapas, Histórico e LISTAS.
 - `sac-tabulator-v11.js`: motor rápido de aplicação dos campos no Tabulador.
 - `sac-counterparty-v11.js`: arquitetura independente para classificação assistida de CNPJs.
+- `sac-corporate-v11.js`: consulta cadastral e cruzamento com dados oficiais da Receita Federal.
+- `sac-transaction-v11.js`: motor de sinais da análise transacional do Console.
+- `sac-media-v11.js`: transporte seguro do pedido e do resultado entre Console e BigData.
+- `sac-transaction-v11.js`: análise assistida de sinais transacionais, com P2P como ponto favorável a não fraude.
 - `counterparty-registry-v11.json`: snapshot versionado da base de CNPJs; permanece vazio até receber dados confirmados.
 - `counterparty-registry-v11.schema.json`: contrato dos registros de contrapartes.
 - `preview.html`: prévia interativa fiel ao comportamento visual principal.
@@ -18,7 +22,7 @@ A V11 fica organizada em blocos claros:
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.5 prepara o motor de CNPJs como infraestrutura inativa. Ele não lê a página transacional, não altera decisões e não interfere nos fluxos atuais. A base combina 18 registros operacionais com 82 CNPJs autorizados nacionalmente pela SPA e dois CNPJs operando por decisão judicial. As regras transacionais serão ativadas somente depois do envio da página e dos books atualizados. Consulte `README-CNPJ.md`.
+A V11.7 adiciona o `Modo investigação`, desligado por padrão. Quando ativado nas Configurações, o rodapé do Console mostra comandos compactos para `Verificar CNPJ`, `Análise transacional` e, quando existir CPF elegível, `Mídia desabonadora`. Cada comando abre um painel lateral em grids. Nenhum resultado toma a decisão pelo analista. Consulte `README-CNPJ.md`.
 
 ## Blocos revisados
 
@@ -97,12 +101,23 @@ O botão de configuração abre uma janela lateral. Cada item fica em um grid pr
 - tamanho da fonte;
 - modo seguro;
 - modo ajuda;
+- modo investigação;
 - cores dos fluxos;
 - assinatura, apenas no Tabulador.
 
 A assinatura é solicitada somente na primeira vez em que o Tabulador precisar finalizar uma decisão. Depois de salva, fica guardada na memória local enquanto o código estiver em uso.
 
 O complemento padrão é `SAC Prevenção`. Também existem `Dock Teck Prevenção`, `Backoffice Prevenção` e opção personalizada.
+
+## Modo Investigação
+
+O `Modo investigação` é compartilhado entre as etapas e fica desligado por padrão. Quando ligado, os comandos aparecem na parte inferior do Console, sem alterar o layout do Falcon ou do Tabulador:
+
+- `Verificar CNPJ`: cruza a classificação interna, a lista SPA e o cadastro oficial disponível. Situação `INAPTA`, `BAIXADA`, `SUSPENSA` ou `NULA` e abertura inferior a três meses pulsam em vermelho. Sem snapshot oficial sincronizado, informa que o dado da Receita está indisponível em vez de presumir um status.
+- `Análise transacional`: avalia a página transacional do próprio Console. P2P é um sinal favorável à decisão de não fraude, mas não decide o caso sozinho.
+- `Mídia desabonadora`: aparece somente quando há CPF. O Console grava um pedido identificado por número do caso e CPF; a página do BigData devolve o resultado para o mesmo caso. Sem ocorrência, retorna exatamente `SEM MÍDIA` e define o dropdown como `não`.
+
+Os motores estão isolados por adaptadores. A leitura automática do extrato e do BigData permanece desativada até que os respectivos HTMLs e books sejam mapeados. Isso evita busca ampla, associação com a pessoa errada e dados inventados.
 
 ## Modo Seguro
 

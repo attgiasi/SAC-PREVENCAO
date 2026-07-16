@@ -99,6 +99,21 @@ engine.loadSnapshot({
 assert.equal(engine.validateCnpj(cnpj), true);
 assert.equal(engine.validateCnpj(alphanumericCnpj), true);
 assert.equal(engine.validateCnpj("00000000000000"), false);
+assert.deepEqual(
+  { ...engine.selectFalconCounterparty({ transactionType: "Depósito bancário de varejo", debitCustomerId: cnpj, creditCustomerId: "11111111111" }) },
+  {
+    transactionType: "DEPOSITO BANCARIO DE VAREJO",
+    direction: "ORIGIN",
+    sourceField: "DEBIT_CUSTOMER_XID_VALUE",
+    sourceLabel: "ID do cliente de origem",
+    document: cnpj,
+    cnpj,
+    cpf: ""
+  }
+);
+assert.equal(engine.selectFalconCounterparty({ transactionType: "Pagamento bancário de varejo", debitCustomerId: cnpj, creditCustomerId: "11111111111" }).document, "11111111111");
+assert.equal(engine.selectFalconCounterparty({ transactionType: "Pagamento bancário de varejo", creditCustomerId: secondBranch }).cnpj, secondBranch);
+assert.equal(engine.selectFalconCounterparty({ transactionType: "Transferência Pix", debitCustomerId: cnpj, creditCustomerId: secondBranch }).document, "");
 assert.equal(engine.getState().recordCount, 3);
 assert.equal(engine.classifyFromRegistry({ cnpj, issuer: "Outro", direction: "crédito" }).classification, "TRUSTED");
 assert.equal(engine.classifyFromRegistry({ cnpj, issuer: "Emissor Teste", direction: "origem" }).classification, "UNTRUSTED");

@@ -3,7 +3,7 @@
 
   if (window.SACCounterpartyV11) return;
 
-  const ENGINE_VERSION = "1.0.0";
+  const ENGINE_VERSION = "1.1.0";
   const CACHE_KEY = "sac_prevencao_V11:counterparty_registry";
   const CONFIG_KEY = "sac_prevencao_V11:counterparty_config";
   const DEFAULT_ENDPOINT = "https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/ANALISE/V11/counterparty-registry-v11.json";
@@ -95,6 +95,39 @@
     if (["ORIGIN", "ORIGEM", "CREDIT", "CREDITO", "ENTRADA"].includes(direction)) return "ORIGIN";
     if (["DESTINATION", "DESTINO", "DEBIT", "DEBITO", "SAIDA"].includes(direction)) return "DESTINATION";
     return "BOTH";
+  }
+
+  function selectFalconCounterparty(input = {}) {
+    const transactionType = normalizeText(input.transactionType);
+    const isRetailDeposit = transactionType.includes("DEPOSITO BANCARIO DE VAREJO");
+    const isRetailPayment = transactionType.includes("PAGAMENTO BANCARIO DE VAREJO");
+    const direction = isRetailDeposit ? "ORIGIN" : isRetailPayment ? "DESTINATION" : "BOTH";
+    const sourceField = isRetailDeposit
+      ? "DEBIT_CUSTOMER_XID_VALUE"
+      : isRetailPayment
+        ? "CREDIT_CUSTOMER_XID_VALUE"
+        : "";
+    const sourceLabel = isRetailDeposit
+      ? "ID do cliente de origem"
+      : isRetailPayment
+        ? "ID do cliente de crédito"
+        : "";
+    const rawDocument = isRetailDeposit
+      ? input.debitCustomerId
+      : isRetailPayment
+        ? input.creditCustomerId
+        : "";
+    const document = normalizeCnpj(rawDocument);
+
+    return Object.freeze({
+      transactionType,
+      direction,
+      sourceField,
+      sourceLabel,
+      document,
+      cnpj: validateCnpj(document) ? document : "",
+      cpf: /^\d{11}$/.test(document) ? document : ""
+    });
   }
 
   function normalizeClassification(value) {
@@ -411,6 +444,7 @@
     normalizeCnpj,
     validateCnpj,
     normalizeDirection,
+    selectFalconCounterparty,
     classify,
     classifyFromRegistry,
     refresh,

@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 16/07/2026. Build interno `11.7`.
+Versão de testes revisada em 16/07/2026. Build interno `11.8`.
 
 ## Estrutura
 
@@ -22,7 +22,7 @@ A V11 fica organizada em blocos claros:
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.7 adiciona o `Modo investigação`, desligado por padrão. Quando ativado nas Configurações, o rodapé do Console mostra comandos compactos para `Verificar CNPJ`, `Análise transacional` e, quando existir CPF elegível, `Mídia desabonadora`. Cada comando abre um painel lateral em grids. Nenhum resultado toma a decisão pelo analista. Consulte `README-CNPJ.md`.
+A V11.8 adiciona o `Modo investigação`, desligado por padrão. Quando ativado nas Configurações, o rodapé do Console mostra comandos compactos para `Verificar CNPJ`, `Análise transacional` e, quando existir CPF elegível, `Mídia desabonadora`. O Falcon também mostra `Análise transacional` quando houver linhas no grid. Cada comando abre um painel lateral em grids, possui `X` e fecha ao clicar novamente no próprio comando. Nenhum resultado toma a decisão pelo analista. Consulte `README-CNPJ.md`.
 
 ## Blocos revisados
 
@@ -111,13 +111,21 @@ O complemento padrão é `SAC Prevenção`. Também existem `Dock Teck Prevenç�
 
 ## Modo Investigação
 
-O `Modo investigação` é compartilhado entre as etapas e fica desligado por padrão. Quando ligado, os comandos aparecem na parte inferior do Console, sem alterar o layout do Falcon ou do Tabulador:
+O `Modo investigação` é compartilhado entre as etapas e fica desligado por padrão. Quando ligado, os comandos aparecem na parte inferior do Console e, quando houver transações, também no Falcon:
 
 - `Verificar CNPJ`: cruza a classificação interna, a lista SPA e o cadastro oficial disponível. Situação `INAPTA`, `BAIXADA`, `SUSPENSA` ou `NULA` e abertura inferior a três meses pulsam em vermelho. Sem snapshot oficial sincronizado, informa que o dado da Receita está indisponível em vez de presumir um status.
-- `Análise transacional`: avalia a página transacional do próprio Console. P2P é um sinal favorável à decisão de não fraude, mas não decide o caso sozinho.
+- `Análise transacional no Console`: prepara a avaliação da página transacional do Console. P2P é um sinal favorável à decisão de não fraude, mas não decide o caso sozinho.
+- `Análise transacional no Falcon`: lê todas as linhas visíveis do grid, agrupa contrapartes, quantidade e valores e cruza CNPJs com a base operacional. O painel não altera o caso.
 - `Mídia desabonadora`: aparece somente quando há CPF. O Console grava um pedido identificado por número do caso e CPF; a página do BigData devolve o resultado para o mesmo caso. Sem ocorrência, retorna exatamente `SEM MÍDIA` e define o dropdown como `não`.
 
 Os motores estão isolados por adaptadores. A leitura automática do extrato e do BigData permanece desativada até que os respectivos HTMLs e books sejam mapeados. Isso evita busca ampla, associação com a pessoa errada e dados inventados.
+
+Nos fluxos BANKING e HOLD, a contraparte é coletada da mesma linha laranja usada para regra, data e valor:
+
+- `Depósito bancário de varejo`: usa `DEBIT_CUSTOMER_XID_VALUE`, exibido como `ID do cliente de origem`.
+- `Pagamento bancário de varejo`: usa `CREDIT_CUSTOMER_XID_VALUE`, exibido como `ID do cliente de crédito`.
+- um valor de 14 caracteres válido preenche automaticamente a verificação de CNPJ;
+- um valor de 11 dígitos é mantido como CPF e nunca é enviado à consulta empresarial.
 
 ## Modo Seguro
 

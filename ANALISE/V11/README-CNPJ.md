@@ -104,7 +104,7 @@ O sincronizador remove somente registros gerados anteriormente com os prefixos `
 
 ## Integração no Console
 
-O `Modo investigação` fica desligado por padrão. Quando ativado nas Configurações, o rodapé do Console exibe os botões compactos `Verificar CNPJ` e `Análise transacional`. O comando de `Mídia desabonadora` aparece somente quando houver CPF elegível.
+O `Modo investigação` fica desligado por padrão. Quando ativado nas Configurações, o rodapé do Console exibe os botões compactos `Verificar CNPJ` e `Análise transacional`. O comando de `Mídia desabonadora` aparece somente quando houver CPF elegível. No Falcon, `Análise transacional` aparece quando o grid possuir transações.
 
 - `Análise transacional`: avalia somente sinais explicitamente cadastrados. P2P adiciona um ponto favorável a não fraude.
 - `Verificar CNPJ`: consulta a base versionada e mostra classificação, justificativa, fonte e versão em um painel lateral de grids.
@@ -112,7 +112,7 @@ O `Modo investigação` fica desligado por padrão. Quando ativado nas Configura
 - situação `INAPTA`, `BAIXADA`, `SUSPENSA` ou `NULA` e empresa com menos de três meses recebem alerta pulsante vermelho.
 - nenhum resultado seleciona decisão ou Motivo Status automaticamente.
 
-Os HTMLs do Falcon disponíveis em 16/07/2026 contêm CPF/ID dos clientes, contas de origem e crédito e nome do pagador, mas não contêm o CNPJ da contraparte. Por segurança, o campo de consulta permanece manual até que o elemento real seja mapeado. O documento do titular coletado no Console nunca é reutilizado como CNPJ da contraparte.
+O Falcon não possui uma coluna chamada CNPJ, mas a contraparte pode estar nos IDs da linha laranja. Em `Depósito bancário de varejo`, o motor lê `DEBIT_CUSTOMER_XID_VALUE`; em `Pagamento bancário de varejo`, lê `CREDIT_CUSTOMER_XID_VALUE`. A seleção é feita no mesmo índice da linha de regra, data e valor. Quando o ID passa na validação de CNPJ, o painel é preenchido automaticamente. Caso seja CPF ou valor inválido, a consulta empresarial permanece vazia. O documento do titular do Console nunca é reutilizado como contraparte.
 
 ## Situação cadastral da Receita Federal
 

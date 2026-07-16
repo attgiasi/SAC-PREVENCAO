@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V11_20260715";
   const BUILD = "ANALISE/V11";
   const BUILD_FAMILY = "11";
-  const BUILD_VERSION = "11.7";
+  const BUILD_VERSION = "11.8";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -740,6 +740,7 @@
       .sac-side-panel{position:fixed;z-index:2147483647;width:320px;max-height:min(560px,calc(100vh - 16px));overflow:hidden;border:1px solid var(--sac-border);border-top:3px solid var(--sac-primary);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);box-shadow:0 18px 44px rgba(0,0,0,.32);font-family:Inter,Segoe UI,Arial,sans-serif;text-align:left}.sac-side-panel.sac-minimized{display:none!important}.sac-side-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 8px;background:var(--sac-primary);color:#fff;font-size:12px;font-weight:950;text-align:left}.sac-side-body{display:grid;gap:5px;padding:7px;overflow:hidden;text-align:left}.sac-side-group{display:grid;gap:4px;min-width:0;text-align:left}.sac-side-group-title{border-left:3px solid var(--sac-primary);padding-left:6px;color:var(--sac-text);font-size:10px;font-weight:950;text-transform:uppercase;line-height:1.1;text-align:left}.sac-side-card{display:block;min-width:0;max-width:100%;min-height:32px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 6px;text-align:left;overflow:hidden}.sac-side-card span{display:block;max-width:100%;font-size:10px;line-height:1.16;color:var(--sac-muted);font-weight:800;white-space:normal;word-break:normal;overflow-wrap:break-word;text-align:left}
       .sac-support-panel{width:356px;max-width:calc(100vw - 16px)}.sac-support-form{display:grid;gap:5px}.sac-support-field{display:grid;gap:3px;color:var(--sac-muted);font-size:10px;font-weight:900}.sac-support-field input,.sac-support-field select{width:100%;height:32px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);padding:5px 7px;font-size:11px;font-weight:850}.sac-support-field input:hover,.sac-support-field select:hover,.sac-support-field input:focus,.sac-support-field select:focus{border-color:#38bdf8;outline:none;box-shadow:0 0 0 2px rgba(56,189,248,.16)}.sac-support-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px}.sac-support-actions.three{grid-template-columns:repeat(3,minmax(0,1fr))}.sac-support-actions.three button{font-size:9.5px;padding:7px 3px}.sac-support-summary{border-left:4px solid var(--sac-primary)}.sac-support-summary.success{border-left-color:#16a34a}.sac-support-summary.warning{border-left-color:#d97706}.sac-support-summary.danger{border-left-color:#dc2626}.sac-support-summary.neutral{border-left-color:#64748b}.sac-support-points,.sac-investigation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.sac-support-points .sac-side-card strong{display:block;font-size:15px}.sac-support-points .sac-side-card small{display:block;color:var(--sac-muted);font-size:9px;font-weight:900}.sac-support-empty{color:var(--sac-muted);font-size:10px;font-weight:850}.sac-investigation-grid .sac-side-card{min-height:48px;display:flex;flex-direction:column;justify-content:center}.sac-investigation-grid .sac-side-card strong{display:block;font-size:10px;line-height:1.1;color:var(--sac-text);overflow-wrap:break-word}.sac-investigation-alert{border-color:#ef4444!important;background:#3a0d0d!important;animation:sacPulseRed 1s ease-in-out infinite}.sac-light .sac-investigation-alert{background:#fef2f2!important}
       .sac-investigation-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.sac-investigation-controls button{min-width:0;height:42px;display:flex;align-items:center;justify-content:center;gap:5px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:5px;text-align:center;font-size:9px;font-weight:950;line-height:1.08;cursor:pointer}.sac-investigation-controls button:hover,.sac-investigation-controls button:focus{border-color:#38bdf8;background:#10263a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.14);outline:none}.sac-light .sac-investigation-controls button:hover,.sac-light .sac-investigation-controls button:focus{background:#eef7ff;color:#172033}.sac-investigation-controls button span{display:grid;place-items:center;width:19px;height:19px;border-radius:5px;background:var(--sac-primary);color:#fff;font-size:11px}
+      .sac-investigation-controls.single{grid-template-columns:minmax(0,1fr)}
       @media (max-width:460px){.sac-grid.three,.sac-grid,.sac-field-grid{grid-template-columns:1fr}.sac-history-body{grid-template-columns:1fr}.sac-pid-grid{grid-template-columns:1fr}}
     `;
     document.head.appendChild(style);
@@ -1546,6 +1547,8 @@
     date: ["TRANSACTION_DTTM_VALUE", "TRANSACTION_DATE_VALUE"],
     value: ["TRANSACTION_AMT_VALUE", "TRANSACTION_AMOUNT_VALUE"],
     history: ["USER_DATA_20_STRG_VALUE", "USER_DATA_20_VALUE", "USER_DATA_20"],
+    debitCustomerId: ["DEBIT_CUSTOMER_XID_VALUE"],
+    creditCustomerId: ["CREDIT_CUSTOMER_XID_VALUE"],
     merchant: ["MERCHANT_NAME_VALUE", "MERCHANT_DBA_NAME_VALUE", "CARD_ACCEPTOR_NAME_VALUE"],
     decision: ["FALCON_DECISION_CODE_VALUE", "FALCON_DECISION_VALUE"],
     payment: ["TRANSACTION_POSTING_ENTRY_XFLG_VALUE", "TRANSACTION_ENTRY_MODE_VALUE", "POS_ENTRY_MODE_VALUE"]
@@ -1676,6 +1679,8 @@
       date: falconMappedText(context, "date") || falconDateFallback(context),
       history: extractHistoryCode(history),
       historyFound: Boolean(history),
+      debitCustomerId: falconMappedText(context, "debitCustomerId"),
+      creditCustomerId: falconMappedText(context, "creditCustomerId"),
       merchant: falconMappedText(context, "merchant"),
       decision: falconMappedText(context, "decision"),
       payment: falconMappedText(context, "payment")
@@ -1718,6 +1723,11 @@
     const merchant = orangeData.merchant;
     const value = orangeData.value;
     const transactionDate = orangeData.date;
+    const counterparty = counterpartyEngine.selectFalconCounterparty({
+      transactionType: transactionTypeText,
+      debitCustomerId: orangeData.debitCustomerId,
+      creditCustomerId: orangeData.creditCustomerId
+    });
     const data = {
       type: EXPORT_FALCON,
       flow,
@@ -1729,6 +1739,14 @@
       caseNumber,
       accountId: clean(accountId),
       rowIndex: context.rowIndex,
+      originCustomerId: clean(orangeData.debitCustomerId),
+      creditCustomerId: clean(orangeData.creditCustomerId),
+      counterpartyDocument: counterparty.document,
+      counterpartyCnpj: counterparty.cnpj,
+      counterpartyCpf: counterparty.cpf,
+      counterpartyDirection: counterparty.direction,
+      counterpartySourceField: counterparty.sourceField,
+      counterpartySourceLabel: counterparty.sourceLabel,
       cardNumber: flow === "card" ? clean(cardNumber) : "N/A",
       cardLast4,
       transactionType: flow === "card"
@@ -1758,6 +1776,14 @@
       orangeFound: false,
       caseNumber: "N/A",
       accountId: "N/A",
+      originCustomerId: "",
+      creditCustomerId: "",
+      counterpartyDocument: "",
+      counterpartyCnpj: "",
+      counterpartyCpf: "",
+      counterpartyDirection: "BOTH",
+      counterpartySourceField: "",
+      counterpartySourceLabel: "",
       cardNumber: "N/A",
       cardLast4: "",
       transactionType: "N/A",
@@ -1777,6 +1803,7 @@
     const flow = before.flow === "card" || after.flow === "card" ? "card" : "banking";
     const visualFlow = flow === "banking" && (before.visualFlow === "hold" || after.visualFlow === "hold") ? "hold" : flow;
     const valid = (...values) => values.find((value) => !isMissing(value)) || "N/A";
+    const optional = (...values) => values.find((value) => !isMissing(value)) || "";
     const cardFirst = (name) => valid(before[name], after[name]);
     const caseFirst = (name) => valid(after[name], before[name]);
     return {
@@ -1790,6 +1817,14 @@
       cardByTransactionType: Boolean(before.cardByTransactionType || after.cardByTransactionType),
       caseNumber: caseFirst("caseNumber"),
       accountId: caseFirst("accountId"),
+      originCustomerId: optional(after.originCustomerId, before.originCustomerId),
+      creditCustomerId: optional(after.creditCustomerId, before.creditCustomerId),
+      counterpartyDocument: optional(after.counterpartyDocument, before.counterpartyDocument),
+      counterpartyCnpj: optional(after.counterpartyCnpj, before.counterpartyCnpj),
+      counterpartyCpf: optional(after.counterpartyCpf, before.counterpartyCpf),
+      counterpartyDirection: [after.counterpartyDirection, before.counterpartyDirection].find((value) => ["ORIGIN", "DESTINATION"].includes(value)) || "BOTH",
+      counterpartySourceField: optional(after.counterpartySourceField, before.counterpartySourceField),
+      counterpartySourceLabel: optional(after.counterpartySourceLabel, before.counterpartySourceLabel),
       sourceTransactionType: flow === "card" ? cardFirst("sourceTransactionType") : caseFirst("sourceTransactionType"),
       cardNumber: flow === "card" ? cardFirst("cardNumber") : "N/A",
       cardLast4: flow === "card" ? valid(before.cardLast4, after.cardLast4, last4(before.cardNumber), last4(after.cardNumber)) : "",
@@ -2120,6 +2155,10 @@
       data.holdActionFound = holdAction.found;
       data.holdActionSelected = holdAction.selected;
     }
+    const falconTransactions = transactionEngine.collectFalconTransactions({
+      root: document,
+      transactionType: data.sourceTransactionType || data.transactionType
+    });
     const missing = requiredFalcon(data);
     if (!data.orangeFound) {
       showNotice("Ainda não encontrei a linha laranja do Falcon. Selecione a transação para eu coletar tudo certinho.", "error");
@@ -2143,7 +2182,10 @@
       closeSidePanels("sac-panel-falcon");
       byId("sac-panel-falcon")?.remove();
     };
-    const body = section("Dados do Falcon", falconGrid(data), FLOW[data.visualFlow]?.label || "BANKING");
+    const body = section("Dados do Falcon", falconGrid(data), FLOW[data.visualFlow]?.label || "BANKING")
+      + (getInvestigationMode() && falconTransactions.length
+        ? section("Modo investigação", falconInvestigationControls(), `${falconTransactions.length} transações`)
+        : "");
     const panel = renderPanel({
       id: "sac-panel-falcon",
       stage: "FALCON",
@@ -2154,6 +2196,7 @@
       onEnter: save
     });
     byId("sac-save-falcon")?.addEventListener("click", save);
+    panel.querySelector("[data-investigation='falcon-transaction']")?.addEventListener("click", () => openFalconTransactionAnalysis(data, falconTransactions, panel));
     enableManualGridEditing(panel, data);
   }
 
@@ -2174,7 +2217,10 @@
       const cardIdentity = data.cardByTransactionType ? kv("Tipo transação", data.sourceTransactionType) : kv("Cartão", data.cardNumber);
       return `<div class="sac-grid three">${cardIdentity}${kv("Estabelecimento", data.merchant)}${kvOptional("Tipo compra cartão", data.transactionType)}${kv("Decisão transação", data.transactionDecision)}${common}</div>`;
     }
-    return `<div class="sac-grid three">${kv("Tipo transação", data.transactionType)}${common}${historyGrid}</div>`;
+    const counterpartyGrid = data.counterpartyDocument
+      ? kv(data.counterpartySourceLabel || "ID da contraparte", data.counterpartyDocument)
+      : "";
+    return `<div class="sac-grid three">${kv("Tipo transação", data.transactionType)}${common}${historyGrid}${counterpartyGrid}</div>`;
   }
 
   function collectConsoleData(falcon) {
@@ -2238,8 +2284,8 @@
     const falcon = data?.falcon || {};
     return {
       holderDocument: data?.cpfCnpj,
-      originDocument: falcon.originDocument,
-      destinationDocument: falcon.destinationDocument,
+      originDocument: falcon.originCustomerId || falcon.originDocument,
+      destinationDocument: falcon.creditCustomerId || falcon.destinationDocument,
       counterpartyDocument: falcon.counterpartyDocument || falcon.counterpartyCpf
     };
   }
@@ -2251,6 +2297,13 @@
         <button data-investigation="cnpj"><span aria-hidden="true">✓</span>Verificar CNPJ</button>
         <button data-investigation="transaction"><span aria-hidden="true">⌁</span>Análise transacional</button>
         ${mediaEligible ? `<button data-investigation="media"><span aria-hidden="true">!</span>Mídia desabonadora</button>` : ""}
+      </div>`;
+  }
+
+  function falconInvestigationControls() {
+    return `
+      <div class="sac-investigation-controls single">
+        <button data-investigation="falcon-transaction"><span aria-hidden="true">⌁</span>Análise transacional</button>
       </div>`;
   }
 
@@ -2288,15 +2341,22 @@
 
   function openSupportPanel(ownerPanel, title, content) {
     if (!ownerPanel) return null;
+    const supportKey = normalize(title);
+    const existing = all(".sac-side-panel").find((item) => item.dataset.owner === ownerPanel.id && item.dataset.supportKey === supportKey);
+    if (existing) {
+      existing.remove();
+      return null;
+    }
     closeSidePanels(ownerPanel.id);
     const panel = document.createElement("aside");
     panel.className = `sac-side-panel sac-support-panel sac-${getTheme()}`;
     panel.dataset.owner = ownerPanel.id;
+    panel.dataset.supportKey = supportKey;
     panel.style.setProperty("--sac-primary", ownerPanel.style.getPropertyValue("--sac-primary") || getFlowTone("banking"));
-    panel.innerHTML = `<div class="sac-side-head"><span>${escapeHtml(title)}</span></div><div class="sac-side-body">${content}</div>`;
+    panel.innerHTML = `<div class="sac-side-head"><span>${escapeHtml(title)}</span><button class="sac-icon close" data-close-support aria-label="Fechar" title="Fechar">×</button></div><div class="sac-side-body">${content}</div>`;
     document.body.appendChild(panel);
     placeSidePanel(ownerPanel, panel);
-    panel.querySelector("[data-close-support]")?.addEventListener("click", () => panel.remove());
+    panel.querySelectorAll("[data-close-support]").forEach((button) => button.addEventListener("click", () => panel.remove()));
     return panel;
   }
 
@@ -2305,6 +2365,72 @@
     if (kind === "alert") return "danger";
     if (kind === "attention") return "warning";
     return "neutral";
+  }
+
+  function investigationCurrency(value) {
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
+  }
+
+  function investigationDocument(item) {
+    const documentValue = String(item?.document || "");
+    if (item?.cnpj && /^\d{14}$/.test(documentValue)) {
+      return documentValue.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+    }
+    if (item?.cnpj) return documentValue;
+    if (item?.cpf) return `CPF final ${documentValue.slice(-4)}`;
+    return documentValue || "Documento não identificado";
+  }
+
+  async function openFalconTransactionAnalysis(data, rows, ownerPanel) {
+    const supportKey = normalize("Análise transacional Falcon");
+    const existing = all(".sac-side-panel").find((item) => item.dataset.owner === ownerPanel?.id && item.dataset.supportKey === supportKey);
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    const summary = transactionEngine.summarizeFalconTransactions(rows);
+    const counterparties = await Promise.all(summary.counterparties.map(async (item) => {
+      if (!item.cnpj) return { item, classification: null };
+      try {
+        const classification = await counterpartyEngine.classify({
+          cnpj: item.cnpj,
+          issuer: "GLOBAL",
+          direction: item.direction
+        });
+        return { item, classification };
+      } catch (_error) {
+        return { item, classification: null };
+      }
+    }));
+    const counterpartCards = counterparties.length
+      ? counterparties.map(({ item, classification }) => {
+          const payer = item.payerNames.length ? item.payerNames.join(" · ") : "Nome não disponível na linha";
+          const classificationLabel = item.cnpj
+            ? (classification?.label || "CNPJ sem classificação disponível")
+            : "Pessoa física";
+          const severity = item.cnpj ? resultSeverityClass(classification) : "neutral";
+          return `
+            <div class="sac-side-group">
+              <div class="sac-side-group-title">${escapeHtml(item.sourceLabel || "Contraparte")}</div>
+              <div class="sac-side-card sac-support-summary ${severity}"><strong>${escapeHtml(investigationDocument(item))}</strong><span>${escapeHtml(classificationLabel)}</span></div>
+              <div class="sac-investigation-grid">
+                <div class="sac-side-card"><strong>Nome do pagador do crédito</strong><span>${escapeHtml(payer)}</span></div>
+                <div class="sac-side-card"><strong>Movimentações</strong><span>${item.transactionCount} · ${escapeHtml(investigationCurrency(item.totalAmount))}</span></div>
+              </div>
+            </div>`;
+        }).join("")
+      : `<div class="sac-side-card sac-support-summary warning"><strong>Contraparte não identificada</strong><span>As linhas foram lidas, mas não há ID compatível com a direção desta transação.</span></div>`;
+    openSupportPanel(ownerPanel, "Análise transacional Falcon", `
+      <div class="sac-investigation-grid">
+        <div class="sac-side-card"><strong>Transações analisadas</strong><span>${summary.transactionCount}</span></div>
+        <div class="sac-side-card"><strong>Contrapartes únicas</strong><span>${summary.uniqueCounterpartyCount}</span></div>
+        <div class="sac-side-card"><strong>Valor somado</strong><span>${escapeHtml(investigationCurrency(summary.totalAmount))}</span></div>
+        <div class="sac-side-card ${summary.p2pDetected ? "sac-support-summary success" : ""}"><strong>P2P</strong><span>${summary.p2pDetected ? "Identificado · sinal favorável" : "Não identificado"}</span></div>
+      </div>
+      <div class="sac-side-card"><span>Todas as linhas visíveis do grid Falcon foram consideradas. O resultado apoia a análise e não escolhe uma decisão.</span></div>
+      ${counterpartCards}
+      <button class="sac-secondary" data-close-support>Fechar</button>
+    `);
   }
 
   async function openTransactionAnalysis(data, ownerPanel) {
@@ -2489,9 +2615,11 @@
 
   function openCounterpartyVerification(data, ownerPanel) {
     const mappedCnpj = counterpartyEngine.normalizeCnpj(data?.falcon?.counterpartyCnpj || "");
+    const mappedDirection = counterpartyEngine.normalizeDirection(data?.falcon?.counterpartyDirection || "BOTH");
+    const mappedSource = clean(data?.falcon?.counterpartySourceLabel, "ID da contraparte");
     const originMessage = mappedCnpj
-      ? "CNPJ da contraparte coletado do Falcon. Confirme antes da consulta."
-      : "O HTML mapeado do Falcon não contém o CNPJ da contraparte. Informe o CNPJ para consultar sem usar o documento do titular.";
+      ? `CNPJ coletado de ${mappedSource} na linha laranja do Falcon.`
+      : "A linha laranja não trouxe um CNPJ válido para esta direção. Informe o CNPJ sem usar o documento do titular.";
     const panel = openSupportPanel(ownerPanel, "Verificação de CNPJ", `
       <div class="sac-side-card"><span>${escapeHtml(originMessage)}</span></div>
       <div class="sac-support-form">
@@ -2500,9 +2628,9 @@
         </label>
         <label class="sac-support-field">Direção da contraparte
           <select id="sac-counterparty-direction">
-            <option value="ORIGIN">Origem / crédito recebido</option>
-            <option value="DESTINATION">Destino / débito enviado</option>
-            <option value="BOTH">Origem ou destino</option>
+            <option value="ORIGIN" ${mappedDirection === "ORIGIN" ? "selected" : ""}>Origem / crédito recebido</option>
+            <option value="DESTINATION" ${mappedDirection === "DESTINATION" ? "selected" : ""}>Destino / débito enviado</option>
+            <option value="BOTH" ${mappedDirection === "BOTH" ? "selected" : ""}>Origem ou destino</option>
           </select>
         </label>
       </div>

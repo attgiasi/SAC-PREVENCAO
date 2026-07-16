@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 16/07/2026. Build interno `11.3`.
+Versão de testes revisada em 16/07/2026. Build interno `11.4`.
 
 ## Estrutura
 
@@ -18,7 +18,7 @@ A V11 fica organizada em blocos claros:
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.3 prepara o motor de CNPJs como infraestrutura inativa. Ele não lê a página transacional, não altera decisões e não interfere nos fluxos atuais. As regras transacionais serão ativadas somente depois do envio da página e dos books atualizados. Consulte `README-CNPJ.md`.
+A V11.4 prepara o motor de CNPJs como infraestrutura inativa. Ele não lê a página transacional, não altera decisões e não interfere nos fluxos atuais. A base contém nove origens confiáveis, oito contrapartes de BET com atenção elevada e um registro em revisão por divergência entre a lista operacional e a SPA. As regras transacionais serão ativadas somente depois do envio da página e dos books atualizados. Consulte `README-CNPJ.md`.
 
 ## Blocos revisados
 

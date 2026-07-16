@@ -2,6 +2,8 @@
 
 Esta arquitetura prepara a consulta de CNPJs confiáveis e não confiáveis sem ativar decisões automáticas. A conclusão continua pertencendo ao analista.
 
+A base operacional inicial contém 18 CNPJs confirmados pelo usuário em 16/07/2026: nove origens classificadas como confiáveis, oito contrapartes de BET classificadas como atenção elevada e GAMEWIZ BRASIL LTDA em revisão. GAMEWIZ aparece na lista nacional da SPA pelas Portarias 464 e 465, de 10/03/2025, portanto não é marcada automaticamente como não confiável.
+
 ## Arquivos
 
 - `sac-counterparty-v11.js`: motor de validação, atualização, cache e classificação.
@@ -18,6 +20,8 @@ O motor aceita apenas CNPJ válido. CPF retorna `NOT_APPLICABLE`.
 - `UNKNOWN`: informa que o CNPJ ainda não foi mapeado.
 
 Esses resultados são sinais de apoio. Nenhum deles seleciona decisão ou Motivo Status automaticamente.
+
+Porte, idade da empresa ou vínculo com um emissor são evidências favoráveis, mas não criam confiança automática. O CNPJ precisa estar cadastrado na base e regras específicas do emissor podem sobrepor a classificação global.
 
 ## Prioridade das regras
 

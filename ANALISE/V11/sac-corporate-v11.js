@@ -3,12 +3,15 @@
 
   if (window.SACCorporateV11) return;
 
-  const ENGINE_VERSION = "1.1.0";
+  const ENGINE_VERSION = "1.2.0";
   const CACHE_KEY = "sac_prevencao_V11:rfb_registry";
+  const LOOKUP_CACHE_KEY = "sac_prevencao_V11:rfb_lookup_cache";
   const CONFIG_KEY = "sac_prevencao_V11:rfb_config";
   const DEFAULT_ENDPOINT = "https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/ANALISE/V11/rfb-cnpj-registry-v11.json";
   const OFFICIAL_QUERY_URL = "https://solucoes.receita.fazenda.gov.br/Servicos/cnpjreva/Cnpjreva_Solicitacao.asp";
   const DEFAULT_TTL_MS = 15 * 60 * 1000;
+  const LOOKUP_TTL_MS = 24 * 60 * 60 * 1000;
+  const BRASIL_API_ENDPOINT = "https://brasilapi.com.br/api/cnpj/v1/";
   const STATUS_BY_CODE = Object.freeze({ "01": "NULA", "1": "NULA", "02": "ATIVA", "2": "ATIVA", "03": "SUSPENSA", "3": "SUSPENSA", "04": "INAPTA", "4": "INAPTA", "08": "BAIXADA", "8": "BAIXADA" });
   const VALID_STATUS = new Set(["ATIVA", "SUSPENSA", "INAPTA", "BAIXADA", "NULA"]);
 
@@ -123,6 +126,25 @@
     };
   }
 
+  function normalizeBrasilApiRecord(record) {
+    return normalizeRecord({
+      cnpj: record?.cnpj,
+      legalName: record?.razao_social,
+      tradeName: record?.nome_fantasia,
+      registrationStatus: record?.descricao_situacao_cadastral,
+      statusDate: record?.data_situacao_cadastral,
+      statusReason: record?.descricao_motivo_situacao_cadastral,
+      openedAt: record?.data_inicio_atividade,
+      primaryCnae: record?.cnae_fiscal_descricao,
+      primaryCnaeCode: record?.cnae_fiscal,
+      source: {
+        type: "BRASIL_API_RFB_PUBLIC_DATA",
+        label: "BrasilAPI / dados públicos da Receita Federal",
+        referenceDate: new Date().toISOString().slice(0, 10)
+      }
+    });
+  }
+
   function emptyRegistry() {
     return { schemaVersion: 1, version: "empty", updatedAt: "", records: [] };
   }
@@ -219,7 +241,70 @@
 
   async function lookup(cnpj, options = {}) {
     if (options.refresh !== false) await refresh({ force: Boolean(options.forceRefresh) });
-    return lookupFromRegistry(cnpj);
+    const synchronized = lookupFromRegistry(cnpj);
+    if (synchronized.found || options.publicFallback === false) return synchronized;
+    return lookupFromPublicData(cnpj, options);
+  }
+
+  function cachedLookup(cnpj) {
+    const cache = readJson(LOOKUP_CACHE_KEY, {});
+    const entry = cache?.[cnpj];
+    return entry && Date.now() - Number(entry.savedAt || 0) < LOOKUP_TTL_MS ? entry.result : null;
+  }
+
+  function storeLookup(cnpj, result) {
+    const cache = readJson(LOOKUP_CACHE_KEY, {});
+    cache[cnpj] = { savedAt: Date.now(), result };
+    const retained = Object.fromEntries(Object.entries(cache)
+      .filter(([, entry]) => Date.now() - Number(entry?.savedAt || 0) < LOOKUP_TTL_MS)
+      .slice(-100));
+    writeJson(LOOKUP_CACHE_KEY, retained);
+  }
+
+  async function lookupFromPublicData(cnpj, options = {}) {
+    const normalized = normalizeCnpj(cnpj);
+    if (!validCnpj(normalized)) return lookupFromRegistry(normalized);
+    if (!/^\d{14}$/.test(normalized)) {
+      return { ...lookupFromRegistry(normalized), label: "CNPJ ALFANUMÉRICO NÃO CONSULTADO", severity: "warning" };
+    }
+    if (!options.forceRefresh) {
+      const cached = cachedLookup(normalized);
+      if (cached) return { ...cached, cacheHit: true };
+    }
+    const controller = typeof AbortController === "function" ? new AbortController() : null;
+    const timeout = setTimeout(() => controller?.abort(), 7000);
+    try {
+      const response = await fetch(`${BRASIL_API_ENDPOINT}${normalized}`, {
+        cache: "no-store",
+        credentials: "omit",
+        signal: controller?.signal
+      });
+      if (!response.ok) throw new Error(`BRASIL_API_HTTP_${response.status}`);
+      const record = normalizeBrasilApiRecord(await response.json());
+      const presentation = statusPresentation(record.registrationStatus);
+      const result = {
+        found: true,
+        ...record,
+        activityAge: activityAge(record.openedAt),
+        label: presentation.label,
+        severity: presentation.severity,
+        registryVersion: "consulta-publica",
+        registryUpdatedAt: record.source.referenceDate,
+        registryStale: false,
+        lookupSource: "BRASIL_API"
+      };
+      storeLookup(normalized, result);
+      return result;
+    } catch (error) {
+      return {
+        ...lookupFromRegistry(normalized),
+        label: "CONSULTA CADASTRAL INDISPONÍVEL",
+        severity: "warning",
+        lookupError: String(error?.message || error || "PUBLIC_LOOKUP_FAILED")
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   function loadSnapshot(value, options = {}) {
@@ -278,6 +363,7 @@
     activityAge,
     statusPresentation,
     lookup,
+    lookupFromPublicData,
     lookupFromRegistry,
     cross,
     refresh,

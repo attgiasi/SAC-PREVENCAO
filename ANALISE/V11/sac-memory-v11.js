@@ -25,11 +25,14 @@
   const validAge = (item) => item && now() - Number(item.savedAt || 0) < TTL_MS;
   const itemStamp = (item) => Math.max(Number(item?.updatedAt || 0), Number(item?.appliedAt || 0), Number(item?.savedAt || 0));
   const normalizeText = (value) => String(value ?? "").trim();
-  const identityPart = (value) => normalizeText(value)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^0-9a-z]/gi, "")
-    .toUpperCase();
+  const identityPart = (value) => {
+    const normalized = normalizeText(value)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^0-9a-z]/gi, "")
+      .toUpperCase();
+    return ["", "NA", "NULO", "NULL", "UNDEFINED", "AUSENCIADEDADOS"].includes(normalized) ? "" : normalized;
+  };
   const identity = (item) => {
     const caseNumber = identityPart(item?.caseNumber);
     const account = identityPart(item?.account);
@@ -37,15 +40,25 @@
     const issuer = identityPart(item?.issuer);
     return caseNumber || account || documentValue || issuer ? `${caseNumber}:${account}:${documentValue}:${issuer}` : "";
   };
-  const listBaseIdentity = (item) => {
+  const normalizedListType = (listType) => normalizeText(listType).toLowerCase() === "contencao" ? "contencao" : "allowlist";
+  const listBaseIdentity = (item, listType = "allowlist") => {
+    const type = normalizedListType(listType);
     const caseNumber = identityPart(item?.caseNumber);
-    if (caseNumber) return `CASE:${caseNumber}`;
+    const subject = type === "contencao"
+      ? identityPart(item?.documentValue || item?.document || item?.cpfCnpj)
+      : identityPart(item?.account);
+    if (caseNumber || subject) return `${type.toUpperCase()}:${caseNumber}:${subject}`;
     return identity(item) || normalizeText(item?.id);
   };
-  const listIdentity = (item, listType = "") => `${listBaseIdentity(item)}:${normalizeText(listType)}`;
+  const listIdentity = (item, listType = "allowlist") => listBaseIdentity(item, listType);
   const legacyListIdentity = (item, listType = "") => `${identity(item) || item?.id || ""}:${normalizeText(listType)}`;
+  const caseOnlyListIdentity = (item, listType = "") => {
+    const caseNumber = identityPart(item?.caseNumber);
+    return caseNumber ? `CASE:${caseNumber}:${normalizeText(listType)}` : "";
+  };
   const listIdentityAliases = (item, listType = "") => Array.from(new Set([
     listIdentity(item, listType),
+    caseOnlyListIdentity(item, listType),
     legacyListIdentity(item, listType)
   ].filter(Boolean)));
   const redactDocuments = (value) => String(value || "")
@@ -227,18 +240,30 @@
     return Boolean((item?.lists?.allowlist && !item?.applied?.allowlist) || (item?.lists?.contencao && !item?.applied?.contencao));
   }
 
+  function splitPendingListEntries(item) {
+    return ["allowlist", "contencao"].flatMap((listType) => {
+      if (!item?.lists?.[listType] || item?.applied?.[listType]) return [];
+      return [{
+        ...item,
+        id: `${normalizeText(item?.id) || listBaseIdentity(item, listType)}:${listType}`,
+        lists: { allowlist: listType === "allowlist", contencao: listType === "contencao" },
+        applied: { allowlist: listType !== "allowlist", contencao: listType !== "contencao" }
+      }];
+    });
+  }
+
   function mergeLists(...groups) {
     const tombstones = memory?.listTombstones || [];
     const byIdentity = new Map();
     groups.flat().filter(validAge).forEach((item) => {
       const normalizedItem = applyListTombstones(item, tombstones);
       if (!hasPendingList(normalizedItem)) return;
-      const baseIdentity = listBaseIdentity(normalizedItem) || normalizedItem?.id;
-      const key = `${baseIdentity}:${Boolean(normalizedItem?.lists?.allowlist)}:${Boolean(normalizedItem?.lists?.contencao)}`;
-      const previous = byIdentity.get(key);
-      if (!previous || itemStamp(normalizedItem) >= itemStamp(previous)) {
-        byIdentity.set(key, normalizedItem);
-      }
+      splitPendingListEntries(normalizedItem).forEach((entry) => {
+        const listType = entry.lists?.contencao ? "contencao" : "allowlist";
+        const key = listBaseIdentity(entry, listType) || entry.id;
+        const previous = byIdentity.get(key);
+        if (!previous || itemStamp(entry) >= itemStamp(previous)) byIdentity.set(key, entry);
+      });
     });
     return Array.from(byIdentity.values())
       .sort((a, b) => itemStamp(b) - itemStamp(a))
@@ -270,7 +295,7 @@
   window[BOOT_KEY] = memory;
 
   function persistMirrors() {
-    const stableLists = mergeLists(memory.lists, memory.listsVault);
+    const stableLists = mergeLists(memory.lists);
     memory.lists = stableLists;
     memory.listsVault = stableLists;
     if (localStore) writeJson(localStore, HISTORY_KEY, memory.history.map(sanitizeHistory));
@@ -327,6 +352,25 @@
     return `<div>${escapeHtml(String(text ?? "")).replace(/\n/g, "<br>")}</div><!--${HTML_MARKER}:${encodeMemoryPayload()}-->`;
   }
 
+  function copyEnvelopeSynchronously(plain, html) {
+    if (typeof document === "undefined" || typeof document.execCommand !== "function") return false;
+    const onCopy = (event) => {
+      if (!event.clipboardData) return;
+      event.clipboardData.setData("text/plain", plain);
+      event.clipboardData.setData(HTML_TYPE, html);
+      event.preventDefault();
+    };
+    document.addEventListener("copy", onCopy, { once: true });
+    try {
+      const copied = document.execCommand("copy");
+      if (!copied) document.removeEventListener("copy", onCopy);
+      return copied;
+    } catch (_error) {
+      document.removeEventListener("copy", onCopy);
+      return false;
+    }
+  }
+
   function memoryFromHtml(html) {
     try {
       const match = String(html || "").match(new RegExp(`<!--${HTML_MARKER}:([^]+?)-->`));
@@ -379,31 +423,25 @@
   async function commit(text = "") {
     memory.savedAt = now();
     persistMirrors();
+    const plain = String(text ?? "");
+    const html = htmlClipboardPayload(plain);
+    if (copyEnvelopeSynchronously(plain, html)) {
+      return { textCopied: true, memoryCopied: true, method: "copy-event" };
+    }
     if (navigator.clipboard?.write && window.ClipboardItem) {
-      const plain = String(text ?? "");
-      const html = htmlClipboardPayload(plain);
-      try {
-        const payload = JSON.stringify(memory);
-        await navigator.clipboard.write([new ClipboardItem({
-          "text/plain": new Blob([plain], { type: "text/plain" }),
-          [HTML_TYPE]: new Blob([html], { type: HTML_TYPE }),
-          [TYPE]: new Blob([payload], { type: TYPE })
-        })]);
-        return { textCopied: true, memoryCopied: true };
-      } catch (_error) {}
       try {
         await navigator.clipboard.write([new ClipboardItem({
           "text/plain": new Blob([plain], { type: "text/plain" }),
           [HTML_TYPE]: new Blob([html], { type: HTML_TYPE })
         })]);
-        return { textCopied: true, memoryCopied: true };
+        return { textCopied: true, memoryCopied: true, method: "clipboard-html" };
       } catch (_error) {}
     }
     try {
-      await navigator.clipboard.writeText(String(text ?? ""));
-      return { textCopied: true, memoryCopied: false };
+      await navigator.clipboard.writeText(plain);
+      return { textCopied: true, memoryCopied: false, method: "clipboard-text" };
     } catch (_error) {
-      return { textCopied: false, memoryCopied: false };
+      return { textCopied: false, memoryCopied: false, method: "unavailable" };
     }
   }
 
@@ -434,7 +472,8 @@
 
   const lists = {
     all() {
-      memory.lists = mergeLists(memory.lists, memory.listsVault);
+      mergeCurrentMirrors();
+      memory.lists = mergeLists(memory.lists);
       memory.listsVault = memory.lists;
       persistMirrors();
       return memory.lists.map((item) => ({ ...item }));
@@ -455,25 +494,27 @@
       return this.all();
     },
     replace(items) {
-      memory.lists = mergeLists(Array.isArray(items) ? items : [], memory.listsVault);
+      mergeCurrentMirrors();
+      memory.lists = mergeLists(Array.isArray(items) ? items : []);
       memory.listsVault = memory.lists;
       memory.savedAt = now();
       persistMirrors();
       return this.all();
     },
     markDone(item, listType) {
-      const baseIdentity = listBaseIdentity(item) || item?.id || "";
+      mergeCurrentMirrors();
+      const baseIdentity = listBaseIdentity(item, listType) || item?.id || "";
       const keys = listIdentityAliases(item, listType);
       if (baseIdentity && listType) {
-        const removedAt = now();
+        const removedAt = Math.max(now(), itemStamp(item) + 1);
         memory.listTombstones = mergeTombstones(
           keys.map((key) => ({ key, itemId: normalizeText(item?.id), removedAt })),
           memory.listTombstones
         );
       }
-      const changedAt = now();
+      const changedAt = Math.max(now(), itemStamp(item) + 1);
       const marked = memory.lists.map((entry) => {
-        if ((listBaseIdentity(entry) || entry.id) !== baseIdentity) return entry;
+        if ((listBaseIdentity(entry, listType) || entry.id) !== baseIdentity) return entry;
         return {
           ...entry,
           applied: { ...(entry.applied || {}), [listType]: true },

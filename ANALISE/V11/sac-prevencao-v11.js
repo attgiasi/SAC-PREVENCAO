@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V11_20260715";
   const BUILD = "ANALISE/V11";
   const BUILD_FAMILY = "11";
-  const BUILD_VERSION = "11.8";
+  const BUILD_VERSION = "11.11-local";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -12,9 +12,6 @@
   const EXPORT_CONSOLE = "SAC_CONSOLE";
   const DEFAULT_SIGNATURE_SECTOR = "SAC Prevenção";
   const SIGNATURE_SECTORS = ["SAC Prevenção", "Dock Teck Prevenção", "Backoffice Prevenção"];
-  const LIST_ENGINE_KEY = `${APP}:lists_immediate`;
-  const LIST_ENGINE_WINDOW_KEY = "__SAC_PREVENCAO_V11_LIST_ENGINE__=";
-  const LIST_ENGINE_GLOBAL = "__SAC_PREVENCAO_V11_LIST_ENGINE__";
 
   const FLOW = {
     banking: { label: "BANKING", tone: "#22c55e" },
@@ -112,7 +109,8 @@
   const corporateEngine = window.SACCorporateV11;
   const transactionEngine = window.SACTransactionV11;
   const mediaEngine = window.SACMediaV11;
-  if (!memory || !tabulatorEngine || !counterpartyEngine || !corporateEngine || !transactionEngine || !mediaEngine) {
+  const dddEngine = window.SACDddV11;
+  if (!memory || !tabulatorEngine || !counterpartyEngine || !corporateEngine || !transactionEngine || !mediaEngine || !dddEngine) {
     throw new Error("Motores da V11 não foram carregados.");
   }
   await memory.hydrateFromClipboard();
@@ -141,7 +139,7 @@
 
   const SETTINGS_WINDOW_NAME_KEY = "__SAC_PREVENCAO_V11_SETTINGS__=";
   const SHARED_SETTING_NAMES = new Set([
-    "activeBuild", "activeBuildFamily", "theme", "safeMode", "helpMode", "investigationMode", "fontScale", "signatureName", "signatureSector",
+    "activeBuild", "activeBuildFamily", "theme", "safeMode", "helpMode", "investigationMode", "fontScale", "signatureName", "signatureSector", "counterpartyLocalRecords",
     "flowTone:banking", "flowTone:card", "flowTone:hold"
   ]);
   const key = (name) => `${APP}:${name}`;
@@ -214,41 +212,22 @@
     try { return JSON.parse(storageGet(name) || "null"); } catch (_err) { return null; }
   };
   const writeJson = (name, value) => storageSet(name, JSON.stringify(value));
-  function readRawJson(storage, name, fallback = null) {
-    try { return JSON.parse(storage?.getItem?.(name) || "null") ?? fallback; } catch (_err) { return fallback; }
-  }
-  function writeRawJson(storage, name, value) {
+  function hydrateCounterpartyLocalRecords() {
     try {
-      storage?.setItem?.(name, JSON.stringify(value));
-      return true;
+      const records = JSON.parse(storageGet("counterpartyLocalRecords") || "[]");
+      if (Array.isArray(records) && records.length) counterpartyEngine.importLocalRecords?.(records);
+    } catch (_err) {}
+  }
+  function persistCounterpartyLocalRecords() {
+    try {
+      const records = counterpartyEngine.exportLocalRecords?.() || [];
+      storageSet("counterpartyLocalRecords", JSON.stringify(records));
+      return records;
     } catch (_err) {
-      return false;
+      return [];
     }
   }
-  function readWindowNameBlock(marker) {
-    try {
-      const name = String(window.name || "");
-      const index = name.indexOf(marker);
-      if (index < 0) return null;
-      return JSON.parse(decodeURIComponent(name.slice(index + marker.length).split("\n")[0]));
-    } catch (_err) {
-      return null;
-    }
-  }
-  function writeWindowNameBlock(marker, value) {
-    try {
-      const cleanName = String(window.name || "")
-        .split("\n")
-        .filter((line) => !line.startsWith(marker))
-        .join("\n")
-        .replace(/\n+$/, "");
-      const encoded = encodeURIComponent(JSON.stringify(value || []));
-      window.name = `${cleanName}${cleanName ? "\n" : ""}${marker}${encoded}`;
-      return true;
-    } catch (_err) {
-      return false;
-    }
-  }
+  hydrateCounterpartyLocalRecords();
   function packageMemorySnapshot() {
     const snap = memory.state?.get?.() || memory.mergeCurrentMirrors?.() || memory.snapshot?.() || {};
     return {
@@ -698,7 +677,22 @@
     panel.className = `sac-choice-popover sac-pid-panel sac-${getTheme()}`;
     panel.dataset.owner = "sac-panel-console";
     panel.style.setProperty("--sac-primary", getFlowTone("card"));
-    const cards = (items) => items.map((item, index) => `<div class="sac-pid-card"><b>${index + 1}</b><span>${escapeHtml(item)}</span></div>`).join("");
+    const pid = data?.pidData || {};
+    const knownPidValue = (label) => {
+      const keyValue = normalize(label);
+      if (keyValue.includes("NOME DA MAE")) return pid.motherName;
+      if (keyValue.includes("CPF")) return String(data?.cpfCnpj || pid.document || "").replace(/\D/g, "").slice(-2);
+      if (keyValue.includes("NASCIMENTO")) return pid.birthDate;
+      if (keyValue.includes("CARTAO")) return data?.cardLast4 || data?.falcon?.cardLast4;
+      if (keyValue.includes("ULTIMA COMPRA")) return [data?.falcon?.merchant, trimTimeToMinute(data?.falcon?.transactionDate)].filter((value) => !isMissing(value)).join(" · ");
+      if (keyValue.includes("ENDERECO")) return pid.address;
+      if (keyValue.includes("TELEFONE")) return pid.phone || data?.phone;
+      return "";
+    };
+    const cards = (items) => items.map((item, index) => {
+      const value = clean(knownPidValue(item), "");
+      return `<div class="sac-pid-card"><b>${index + 1}</b><span><strong>${escapeHtml(item)}</strong>${value ? `<small>${escapeHtml(value)}</small>` : ""}</span></div>`;
+    }).join("");
     panel.innerHTML = `
       <div class="sac-choice-head">
         <strong>${escapeHtml(profile.title)}</strong>
@@ -730,17 +724,17 @@
       .sac-body{padding:5px;display:grid;gap:5px}.sac-section{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-panel);padding:5px}.sac-section-title{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--sac-muted);font-size:calc(9px * var(--sac-font-scale));font-weight:950;text-transform:uppercase;margin-bottom:4px}.sac-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}.sac-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.sac-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.sac-single-alert{grid-column:1/-1;min-height:50px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:calc(13px * var(--sac-font-scale));font-weight:950;letter-spacing:.02em}
       .sac-kv{position:relative;min-width:0;min-height:34px;margin-top:7px;border:1px solid var(--sac-border);border-radius:5px;background:var(--sac-card);padding:7px 4px 4px;transition:border-color .15s,background .15s,box-shadow .15s,color .15s;cursor:pointer}.sac-kv:hover,.sac-field:hover{border-color:#38bdf8;background:#10263a;box-shadow:0 0 0 2px rgba(56,189,248,.12)}.sac-kv.sac-copied{border-color:#22c55e!important;box-shadow:0 0 0 2px rgba(34,197,94,.28)!important}.sac-light .sac-kv:hover,.sac-light .sac-field:hover{background:#eef7ff;color:#172033}.sac-kv-label{position:absolute;top:-8px;left:4px;max-width:calc(100% - 8px);padding:1px 3px;border-radius:3px;background:var(--sac-panel);font-size:calc(8px * var(--sac-font-scale));font-weight:900;color:var(--sac-muted);line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sac-kv-value{display:flex;align-items:center;min-height:23px;font-size:calc(11px * var(--sac-font-scale));font-weight:800;color:var(--sac-text);line-height:1.08;overflow-wrap:anywhere}.sac-light .sac-kv:hover .sac-kv-label,.sac-light .sac-kv:hover .sac-kv-value{color:#172033}.sac-missing{border-color:#f59e0b!important;background:#3a230b!important;animation:sacPulseOrange 1s ease-in-out infinite}.sac-light .sac-missing{background:#fff7ed!important}.sac-history-ok{background:#052e1a;border-color:#15803d}.sac-history-warn,.sac-alert-warn{background:#3a230b;border-color:#c2410c}.sac-history-danger,.sac-alert-danger{background:#3a0d0d;border-color:#ef4444;animation:sacPulseRed 1s ease-in-out infinite}.sac-light .sac-history-ok{background:#ecfdf5;border-color:#86efac}.sac-light .sac-history-warn,.sac-light .sac-alert-warn{background:#fff7ed;border-color:#fdba74}.sac-light .sac-history-danger,.sac-light .sac-alert-danger{background:#fef2f2}@keyframes sacPulseRed{0%,100%{box-shadow:0 0 0 rgba(239,68,68,0);filter:saturate(1)}50%{box-shadow:0 0 12px rgba(239,68,68,.65);filter:saturate(1.35)}}@keyframes sacPulseOrange{0%,100%{box-shadow:0 0 0 rgba(245,158,11,0)}50%{box-shadow:0 0 12px rgba(245,158,11,.70)}}
       .sac-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}.sac-console-flags{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.sac-console-flags .sac-toggle{min-height:34px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:6px 5px;cursor:pointer;grid-template-columns:28px minmax(0,1fr)!important}.sac-console-flags .sac-toggle b{display:none}.sac-console-flags .sac-toggle span:not(.sac-switch){font-size:calc(9.4px * var(--sac-font-scale));font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sac-console-flags .sac-toggle[aria-disabled="true"]{opacity:.52;cursor:not-allowed}.sac-console-flags .sac-toggle:hover{border-color:#38bdf8;background:#10263a;box-shadow:0 0 0 2px rgba(56,189,248,.12)}.sac-light .sac-console-flags .sac-toggle:hover{background:#eef7ff;color:#172033}.sac-field{display:grid;gap:2px;min-width:0;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:4px;transition:border-color .15s,box-shadow .15s,background .15s}.sac-field span{display:block;font-size:calc(8.4px * var(--sac-font-scale));font-weight:900;color:var(--sac-muted);line-height:1.05}.sac-field select,.sac-field input{width:100%;height:28px;border:1px solid var(--sac-border);border-radius:5px;background:var(--sac-input);color:var(--sac-text);font-size:calc(10.6px * var(--sac-font-scale));font-weight:800;padding:3px}.sac-field select:hover,.sac-field select:focus,.sac-field input:hover,.sac-field input:focus{border-color:#38bdf8;background:#10263a;color:#edf3fb;outline:none;box-shadow:0 0 0 2px rgba(56,189,248,.16)}.sac-light .sac-field select:hover,.sac-light .sac-field select:focus,.sac-light .sac-field input:hover,.sac-light .sac-field input:focus{background:#eef7ff;color:#172033}.sac-other-input[hidden]{display:none!important}
-      .sac-main{width:100%;border:0;border-radius:6px;background:var(--sac-primary);color:#fff;font-size:calc(11.5px * var(--sac-font-scale));font-weight:950;padding:9px 7px;line-height:1.12;cursor:pointer;white-space:normal;overflow-wrap:anywhere;text-shadow:0 1px 1px rgba(0,0,0,.55),0 0 1px rgba(0,0,0,.72)}.sac-main:hover,.sac-secondary:hover,.sac-decision:hover,.sac-icon:hover{filter:brightness(1.12);box-shadow:0 0 0 2px rgba(255,255,255,.14)}.sac-secondary{width:100%;border:1px solid var(--sac-border);border-radius:6px;background:transparent;color:var(--sac-text);font-size:calc(11px * var(--sac-font-scale));font-weight:950;padding:8px 7px;line-height:1.12;cursor:pointer;white-space:normal}.sac-decision-grid,.sac-final-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px}.sac-decision{min-height:52px;border:0;border-radius:6px;color:#fff;font-size:calc(10.2px * var(--sac-font-scale));font-weight:950;line-height:1.08;white-space:pre-line;cursor:pointer;padding:7px 5px;overflow-wrap:anywhere;text-shadow:0 1px 1px rgba(0,0,0,.55),0 0 1px rgba(0,0,0,.72)}.sac-decision.danger{background:#dc2626}.sac-decision.success{background:#16a34a}.sac-decision.warning{background:#d97706}.sac-decision.info{background:#2563eb}
+      .sac-main{width:100%;border:0;border-radius:6px;background:var(--sac-primary);color:#fff;font-size:calc(11.5px * var(--sac-font-scale));font-weight:950;padding:9px 7px;line-height:1.12;cursor:pointer;white-space:normal;overflow-wrap:anywhere;text-shadow:0 1px 1px rgba(0,0,0,.55),0 0 1px rgba(0,0,0,.72)}.sac-main:hover,.sac-secondary:hover,.sac-decision:hover,.sac-icon:hover{filter:brightness(1.12);box-shadow:0 0 0 2px rgba(255,255,255,.14)}.sac-secondary{width:100%;border:1px solid var(--sac-border);border-radius:6px;background:transparent;color:var(--sac-text);font-size:calc(11px * var(--sac-font-scale));font-weight:950;padding:8px 7px;line-height:1.12;cursor:pointer;white-space:normal}.sac-decision-grid,.sac-final-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px}.sac-decision{min-height:54px;border:0;border-radius:6px;color:#fff;font-size:calc(11.5px * var(--sac-font-scale));font-weight:950;line-height:1.08;white-space:pre-line;cursor:pointer;padding:7px 5px;overflow-wrap:anywhere;text-shadow:0 1px 1px rgba(0,0,0,.55),0 0 1px rgba(0,0,0,.72)}.sac-decision.danger{background:#dc2626}.sac-decision.success{background:#16a34a}.sac-decision.warning{background:#d97706}.sac-decision.info{background:#2563eb}
       .sac-textarea{width:100%;height:232px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);font:700 calc(10.5px * var(--sac-font-scale))/1.08 Consolas,Menlo,monospace;padding:6px;resize:none;overflow:hidden;white-space:pre-wrap}.sac-motive{height:62px;font:800 calc(11px * var(--sac-font-scale))/1.2 Inter,Segoe UI,Arial,sans-serif}.sac-final-textarea{height:286px;font-size:calc(10.8px * var(--sac-font-scale));line-height:1.12}.sac-final-textarea.sac-final-card{height:214px}
       #sac-notices{position:fixed;left:50%;right:auto;bottom:16px;transform:translateX(-50%);z-index:2147483647;display:grid;gap:6px;justify-items:center;pointer-events:none}.sac-notice{width:min(360px,calc(100vw - 36px));border:1px solid #38506c;border-left:4px solid #2563eb;border-radius:8px;background:#101722;color:#f8fbff;padding:8px 10px;font:800 11.5px/1.22 Inter,Segoe UI,Arial,sans-serif;box-shadow:0 10px 26px rgba(0,0,0,.24);opacity:.96;text-align:left;pointer-events:auto}.sac-notice.success{border-left-color:#16a34a;background:#062e1b;color:#ecfdf5}.sac-notice.warn{border-left-color:#d97706;background:#351f05;color:#fff7ed}.sac-notice.warn-pulse{animation:sacPulseOrange 1.15s ease-in-out infinite}.sac-notice.error{border-left-color:#dc2626;background:#3a0d0d;color:#fef2f2}.sac-notice.info{border-left-color:#2563eb;background:#0b2442;color:#eff6ff}.sac-notice.sac-light{background:#fff;color:#172033;border-color:#cbd5e1}.sac-notice.sac-light.success{background:#ecfdf5;color:#064e3b}.sac-notice.sac-light.warn{background:#fff7ed;color:#7c2d12}.sac-notice.sac-light.error{background:#fef2f2;color:#7f1d1d}.sac-notice.sac-light.info{background:#eff6ff;color:#1e3a8a}
-      .sac-choice-popover{position:fixed;right:14px;top:72px;z-index:2147483647;width:min(354px,calc(100vw - 28px));display:grid;gap:6px;padding:0 8px 8px;border:1px solid var(--sac-border);border-top:3px solid var(--sac-primary);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);box-shadow:0 18px 44px rgba(0,0,0,.32);font-family:Inter,Segoe UI,Arial,sans-serif;box-sizing:border-box!important}.sac-choice-popover.sac-minimized{display:none!important}.sac-choice-popover *{box-sizing:border-box!important}.sac-choice-head{margin:0 -8px;padding:7px 8px;background:var(--sac-primary);color:#fff;display:flex;justify-content:space-between;align-items:center;border-radius:6px 6px 0 0}.sac-choice-head strong{font-size:12px}.sac-choice-head button{width:24px;height:24px;padding:0;border-color:#fecaca;background:#dc2626;color:#fff}.sac-choice-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px}.sac-choice-popover label{display:flex;gap:5px;align-items:flex-start;min-width:0;min-height:34px;border:1px solid var(--sac-border);border-radius:5px;background:var(--sac-card);padding:5px;font-size:9.5px;font-weight:850;line-height:1.15;cursor:pointer;word-break:normal;overflow-wrap:normal;hyphens:none;white-space:normal}.sac-choice-popover label>span{display:block;min-width:0;white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none}.sac-choice-popover label:hover{border-color:#38bdf8;background:#10263a;color:#edf3fb}.sac-light.sac-choice-popover label:hover{background:#eef7ff;color:#172033}.sac-choice-popover input[type="checkbox"]{flex:0 0 auto;margin:1px 0 0}.sac-choice-extra{display:grid!important;gap:4px;min-height:0!important;font-size:10.5px!important}.sac-choice-extra input{width:100%;height:30px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);padding:5px;font-weight:850}.sac-choice-popover .sac-choice-actions{display:grid;grid-template-columns:1fr;gap:6px}.sac-choice-popover button{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-primary);color:#fff;padding:8px;font-weight:950;cursor:pointer}.sac-choice-popover button.secondary{background:transparent;color:var(--sac-text)}.sac-pid-panel{width:360px!important;min-width:360px!important;max-width:360px!important;padding:0 10px 10px!important}.sac-pid-panel .sac-choice-head{margin:0 -10px}.sac-pid-groups{display:grid;gap:7px}.sac-pid-group{display:grid;gap:4px}.sac-pid-group strong{font-size:10px;color:var(--sac-muted);text-transform:uppercase}.sac-pid-grid{display:grid;grid-template-columns:1fr;gap:4px}.sac-pid-card{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 7px;min-height:31px;font-size:10.5px;font-weight:850;line-height:1.12;display:grid;grid-template-columns:22px 1fr;align-items:center;gap:5px}.sac-pid-card b{display:grid;place-items:center;width:20px;height:20px;border-radius:4px;background:var(--sac-primary);color:#fff;font-size:9px}.sac-pid-note{border:1px solid #f59e0b;border-radius:6px;background:#3a230b;color:#fff7ed;padding:6px;font-size:10.5px;font-weight:900;line-height:1.18}.sac-light .sac-pid-note{background:#fff7ed;color:#7c2d12}
+      .sac-choice-popover{position:fixed;right:14px;top:72px;z-index:2147483647;width:min(354px,calc(100vw - 28px));display:grid;gap:6px;padding:0 8px 8px;border:1px solid var(--sac-border);border-top:3px solid var(--sac-primary);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);box-shadow:0 18px 44px rgba(0,0,0,.32);font-family:Inter,Segoe UI,Arial,sans-serif;box-sizing:border-box!important}.sac-choice-popover.sac-minimized{display:none!important}.sac-choice-popover *{box-sizing:border-box!important}.sac-choice-head{margin:0 -8px;padding:7px 8px;background:var(--sac-primary);color:#fff;display:flex;justify-content:space-between;align-items:center;border-radius:6px 6px 0 0}.sac-choice-head strong{font-size:12px}.sac-choice-head button{width:24px;height:24px;padding:0;border-color:#fecaca;background:#dc2626;color:#fff}.sac-choice-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px}.sac-choice-popover label{display:flex;gap:5px;align-items:flex-start;min-width:0;min-height:34px;border:1px solid var(--sac-border);border-radius:5px;background:var(--sac-card);padding:5px;font-size:9.5px;font-weight:850;line-height:1.15;cursor:pointer;word-break:normal;overflow-wrap:normal;hyphens:none;white-space:normal}.sac-choice-popover label>span{display:block;min-width:0;white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none}.sac-choice-popover label:hover{border-color:#38bdf8;background:#10263a;color:#edf3fb}.sac-light.sac-choice-popover label:hover{background:#eef7ff;color:#172033}.sac-choice-popover input[type="checkbox"]{flex:0 0 auto;margin:1px 0 0}.sac-choice-extra{display:grid!important;gap:4px;min-height:0!important;font-size:10.5px!important}.sac-choice-extra input{width:100%;height:30px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);padding:5px;font-weight:850}.sac-choice-popover .sac-choice-actions{display:grid;grid-template-columns:1fr;gap:6px}.sac-choice-popover button{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-primary);color:#fff;padding:8px;font-weight:950;cursor:pointer}.sac-choice-popover button.secondary{background:transparent;color:var(--sac-text)}.sac-pid-panel{width:360px!important;min-width:360px!important;max-width:360px!important;padding:0 10px 10px!important}.sac-pid-panel .sac-choice-head{margin:0 -10px}.sac-pid-groups{display:grid;gap:7px}.sac-pid-group{display:grid;gap:4px}.sac-pid-group strong{font-size:10px;color:var(--sac-muted);text-transform:uppercase}.sac-pid-grid{display:grid;grid-template-columns:1fr;gap:4px}.sac-pid-card{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 7px;min-height:31px;font-size:10.5px;font-weight:850;line-height:1.12;display:grid;grid-template-columns:22px 1fr;align-items:center;gap:5px}.sac-pid-card b{display:grid;place-items:center;width:20px;height:20px;border-radius:4px;background:var(--sac-primary);color:#fff;font-size:9px}.sac-pid-card span strong{display:block;color:var(--sac-text);font-size:10px;text-transform:none}.sac-pid-card span small{display:block;margin-top:2px;color:var(--sac-muted);font-size:9.5px;overflow-wrap:break-word}.sac-pid-note{border:1px solid #f59e0b;border-radius:6px;background:#3a230b;color:#fff7ed;padding:6px;font-size:10.5px;font-weight:900;line-height:1.18}.sac-light .sac-pid-note{background:#fff7ed;color:#7c2d12}
       .sac-apply-status{border:1px solid var(--sac-border);border-left:4px solid #2563eb;border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:7px;font-size:calc(10.5px * var(--sac-font-scale));font-weight:900;line-height:1.15}.sac-apply-status.ok{border-left-color:#16a34a}.sac-apply-status.warn{border-left-color:#d97706}.sac-apply-status.error{border-left-color:#dc2626}.sac-issue-list{display:grid;gap:4px;margin-top:6px}.sac-issue-list span{display:block;border:1px solid #f59e0b;border-radius:5px;background:rgba(245,158,11,.12);padding:5px 6px;color:var(--sac-text);font-size:calc(10px * var(--sac-font-scale));font-weight:900;text-align:left}
-      .sac-history-panel{--sac-history-tone:#64748b;position:fixed;left:10px;top:10px;z-index:2147483647;width:min(780px,calc(100vw - 20px));max-height:min(720px,calc(100vh - 20px));border:1px solid var(--sac-border);border-top:3px solid var(--sac-history-tone);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);font-family:Inter,Segoe UI,Arial,sans-serif;box-shadow:0 18px 44px rgba(0,0,0,.30);overflow:hidden}.sac-history-head{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--sac-history-tone);color:#fff;padding:8px;font-weight:950;cursor:grab;user-select:none;touch-action:none}.sac-history-tools{display:grid;grid-template-columns:1fr 126px;gap:6px;padding:7px;border-bottom:1px solid var(--sac-border);background:var(--sac-panel)}.sac-history-tools input,.sac-history-tools select{min-width:0;height:34px;border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-input);color:var(--sac-text);padding:7px 9px;font-weight:900;outline:none}.sac-history-tools input:hover,.sac-history-tools select:hover,.sac-history-tools input:focus,.sac-history-tools select:focus{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.18)}.sac-light .sac-history-tools input:hover,.sac-light .sac-history-tools select:hover,.sac-light .sac-history-tools input:focus,.sac-light .sac-history-tools select:focus{background:#eef7ff;color:#172033}.sac-history-body{display:grid;grid-template-columns:236px 1fr;gap:6px;padding:6px}.sac-history-list{display:grid;gap:4px;align-content:start;max-height:560px;overflow:auto;padding-right:3px}.sac-history-list button{text-align:left;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:7px;font-weight:900;line-height:1.1;cursor:pointer}.sac-history-list button:hover,.sac-history-list button.active{border-color:#38bdf8;background:#10263a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.12);transform:translateY(-1px)}.sac-light .sac-history-list button:hover,.sac-light .sac-history-list button.active{background:#eef7ff;color:#172033}.sac-history-list small{display:block;color:var(--sac-muted);font-size:10px;margin-top:2px}.sac-history-empty{color:var(--sac-muted);font-weight:850;padding:8px}.sac-history-identifiers{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:6px}.sac-history-detail textarea{height:472px;overflow:auto;resize:none}.sac-list-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px}.sac-list-tabs button{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:8px 6px;font-size:11px;font-weight:950;cursor:pointer}.sac-list-tabs button:hover,.sac-list-tabs button.active{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-light .sac-list-tabs button:hover,.sac-light .sac-list-tabs button.active{background:#eef7ff;color:#172033}.sac-allowlist-list{display:grid;gap:5px;max-height:min(560px,calc(100vh - 210px));overflow:auto;padding-right:3px}.sac-allowlist-item{border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-card);padding:6px;display:grid;grid-template-columns:1fr 72px;gap:6px;align-items:stretch}.sac-allowlist-item:hover{border-color:#38bdf8;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-allowlist-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px}.sac-allowlist-actions{display:grid;grid-template-rows:1fr 1fr;gap:4px}.sac-allowlist-actions button{border:0;border-radius:6px;color:#fff;font-size:10px;font-weight:950;cursor:pointer}.sac-allowlist-actions [data-list-apply]{background:#16a34a}.sac-allowlist-actions [data-list-remove]{background:#dc2626}
+      .sac-history-panel{--sac-history-tone:#64748b;position:fixed;left:10px;top:10px;z-index:2147483647;width:min(780px,calc(100vw - 20px));max-height:min(720px,calc(100vh - 20px));border:1px solid var(--sac-border);border-top:3px solid var(--sac-history-tone);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);font-family:Inter,Segoe UI,Arial,sans-serif;box-shadow:0 18px 44px rgba(0,0,0,.30);overflow:hidden}.sac-history-head{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--sac-history-tone);color:#fff;padding:8px;font-weight:950;cursor:grab;user-select:none;touch-action:none}.sac-history-tools{display:grid;grid-template-columns:1fr 126px;gap:6px;padding:7px;border-bottom:1px solid var(--sac-border);background:var(--sac-panel)}.sac-history-tools input,.sac-history-tools select{min-width:0;height:34px;border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-input);color:var(--sac-text);padding:7px 9px;font-weight:900;outline:none}.sac-history-tools input:hover,.sac-history-tools select:hover,.sac-history-tools input:focus,.sac-history-tools select:focus{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.18)}.sac-light .sac-history-tools input:hover,.sac-light .sac-history-tools select:hover,.sac-light .sac-history-tools input:focus,.sac-light .sac-history-tools select:focus{background:#eef7ff;color:#172033}.sac-history-body{display:grid;grid-template-columns:236px 1fr;gap:6px;padding:6px}.sac-history-list{display:grid;gap:4px;align-content:start;max-height:560px;overflow:auto;padding-right:3px}.sac-history-list button{text-align:left;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:7px;font-weight:900;line-height:1.1;cursor:pointer}.sac-history-list button:hover,.sac-history-list button.active{border-color:#38bdf8;background:#10263a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.12);transform:translateY(-1px)}.sac-light .sac-history-list button:hover,.sac-light .sac-history-list button.active{background:#eef7ff;color:#172033}.sac-history-list small{display:block;color:var(--sac-muted);font-size:10px;margin-top:2px}.sac-history-empty{color:var(--sac-muted);font-weight:850;padding:8px}.sac-history-identifiers{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:6px}.sac-history-detail textarea{height:472px;overflow:auto;resize:none}.sac-list-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px}.sac-list-tabs button{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:8px 6px;font-size:11px;font-weight:950;cursor:pointer}.sac-list-tabs button:hover,.sac-list-tabs button.active{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-light .sac-list-tabs button:hover,.sac-light .sac-list-tabs button.active{background:#eef7ff;color:#172033}.sac-allowlist-list{display:grid;gap:7px;max-height:min(560px,calc(100vh - 210px));overflow:auto;padding-right:3px}.sac-list-issuer-group{display:grid;gap:5px}.sac-list-issuer-head{display:flex;align-items:center;justify-content:space-between;gap:8px;border-left:4px solid var(--sac-primary);border-radius:5px;background:var(--sac-panel);padding:6px 7px}.sac-list-issuer-head strong{min-width:0;overflow-wrap:break-word;font-size:11px}.sac-list-issuer-head button{flex:0 0 auto;border:1px solid #86efac;border-radius:5px;background:#166534;color:#fff;padding:5px 7px;font-size:9px;font-weight:950;cursor:pointer}.sac-allowlist-item{border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-card);padding:6px;display:grid;grid-template-columns:1fr 72px;gap:6px;align-items:stretch}.sac-allowlist-item:hover{border-color:#38bdf8;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-allowlist-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px}.sac-allowlist-actions{display:grid;grid-template-rows:1fr 1fr;gap:4px}.sac-allowlist-actions button{border:0;border-radius:6px;color:#fff;font-size:10px;font-weight:950;cursor:pointer}.sac-allowlist-actions [data-list-apply]{background:#16a34a}.sac-allowlist-actions [data-list-remove]{background:#dc2626}
       .sac-help-btn{position:absolute;top:3px;right:3px;width:18px;height:18px;border:1px solid #fde68a;border-radius:999px;background:#d4af37;color:#1f1600;font-size:11px;font-weight:950;line-height:1;display:grid;place-items:center;padding:0;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.16)}.sac-help-btn:hover{filter:brightness(1.12);box-shadow:0 0 0 2px rgba(250,204,21,.32)}
-      .sac-side-panel{position:fixed;z-index:2147483647;width:320px;max-height:min(560px,calc(100vh - 16px));overflow:hidden;border:1px solid var(--sac-border);border-top:3px solid var(--sac-primary);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);box-shadow:0 18px 44px rgba(0,0,0,.32);font-family:Inter,Segoe UI,Arial,sans-serif;text-align:left}.sac-side-panel.sac-minimized{display:none!important}.sac-side-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 8px;background:var(--sac-primary);color:#fff;font-size:12px;font-weight:950;text-align:left}.sac-side-body{display:grid;gap:5px;padding:7px;overflow:hidden;text-align:left}.sac-side-group{display:grid;gap:4px;min-width:0;text-align:left}.sac-side-group-title{border-left:3px solid var(--sac-primary);padding-left:6px;color:var(--sac-text);font-size:10px;font-weight:950;text-transform:uppercase;line-height:1.1;text-align:left}.sac-side-card{display:block;min-width:0;max-width:100%;min-height:32px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 6px;text-align:left;overflow:hidden}.sac-side-card span{display:block;max-width:100%;font-size:10px;line-height:1.16;color:var(--sac-muted);font-weight:800;white-space:normal;word-break:normal;overflow-wrap:break-word;text-align:left}
-      .sac-support-panel{width:356px;max-width:calc(100vw - 16px)}.sac-support-form{display:grid;gap:5px}.sac-support-field{display:grid;gap:3px;color:var(--sac-muted);font-size:10px;font-weight:900}.sac-support-field input,.sac-support-field select{width:100%;height:32px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);padding:5px 7px;font-size:11px;font-weight:850}.sac-support-field input:hover,.sac-support-field select:hover,.sac-support-field input:focus,.sac-support-field select:focus{border-color:#38bdf8;outline:none;box-shadow:0 0 0 2px rgba(56,189,248,.16)}.sac-support-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px}.sac-support-actions.three{grid-template-columns:repeat(3,minmax(0,1fr))}.sac-support-actions.three button{font-size:9.5px;padding:7px 3px}.sac-support-summary{border-left:4px solid var(--sac-primary)}.sac-support-summary.success{border-left-color:#16a34a}.sac-support-summary.warning{border-left-color:#d97706}.sac-support-summary.danger{border-left-color:#dc2626}.sac-support-summary.neutral{border-left-color:#64748b}.sac-support-points,.sac-investigation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.sac-support-points .sac-side-card strong{display:block;font-size:15px}.sac-support-points .sac-side-card small{display:block;color:var(--sac-muted);font-size:9px;font-weight:900}.sac-support-empty{color:var(--sac-muted);font-size:10px;font-weight:850}.sac-investigation-grid .sac-side-card{min-height:48px;display:flex;flex-direction:column;justify-content:center}.sac-investigation-grid .sac-side-card strong{display:block;font-size:10px;line-height:1.1;color:var(--sac-text);overflow-wrap:break-word}.sac-investigation-alert{border-color:#ef4444!important;background:#3a0d0d!important;animation:sacPulseRed 1s ease-in-out infinite}.sac-light .sac-investigation-alert{background:#fef2f2!important}
-      .sac-investigation-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.sac-investigation-controls button{min-width:0;height:42px;display:flex;align-items:center;justify-content:center;gap:5px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:5px;text-align:center;font-size:9px;font-weight:950;line-height:1.08;cursor:pointer}.sac-investigation-controls button:hover,.sac-investigation-controls button:focus{border-color:#38bdf8;background:#10263a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.14);outline:none}.sac-light .sac-investigation-controls button:hover,.sac-light .sac-investigation-controls button:focus{background:#eef7ff;color:#172033}.sac-investigation-controls button span{display:grid;place-items:center;width:19px;height:19px;border-radius:5px;background:var(--sac-primary);color:#fff;font-size:11px}
-      .sac-investigation-controls.single{grid-template-columns:minmax(0,1fr)}
+      .sac-side-panel{position:fixed;z-index:2147483647;width:320px;max-height:calc(100vh - 16px);overflow:hidden;border:1px solid var(--sac-border);border-top:3px solid var(--sac-primary);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);box-shadow:0 18px 44px rgba(0,0,0,.32);font-family:Inter,Segoe UI,Arial,sans-serif;text-align:left}.sac-side-panel.sac-minimized{display:none!important}.sac-side-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 8px;background:var(--sac-primary);color:#fff;font-size:12px;font-weight:950;text-align:left}.sac-side-body{display:grid;gap:5px;padding:7px;max-height:calc(100vh - 55px);overflow-y:auto;overflow-x:hidden;text-align:left;scrollbar-width:thin}.sac-side-group{display:grid;gap:4px;min-width:0;text-align:left}.sac-side-group-title{border-left:3px solid var(--sac-primary);padding-left:6px;color:var(--sac-text);font-size:10px;font-weight:950;text-transform:uppercase;line-height:1.1;text-align:left}.sac-side-card{display:block;min-width:0;max-width:100%;min-height:32px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 6px;text-align:left;overflow:hidden}.sac-side-card span{display:block;max-width:100%;font-size:10px;line-height:1.16;color:var(--sac-muted);font-weight:800;white-space:normal;word-break:normal;overflow-wrap:break-word;text-align:left}
+      .sac-support-panel{width:312px;max-width:calc(100vw - 16px)}.sac-support-form{display:grid;gap:5px}.sac-support-field{display:grid;gap:3px;color:var(--sac-muted);font-size:10px;font-weight:900}.sac-support-field input,.sac-support-field select{width:100%;height:32px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);padding:5px 7px;font-size:11px;font-weight:850}.sac-support-field input:hover,.sac-support-field select:hover,.sac-support-field input:focus,.sac-support-field select:focus{border-color:#38bdf8;outline:none;box-shadow:0 0 0 2px rgba(56,189,248,.16)}.sac-support-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px}.sac-support-actions[hidden]{display:none!important}.sac-support-actions.three{grid-template-columns:repeat(3,minmax(0,1fr))}.sac-support-actions.three button{font-size:9.5px;padding:7px 3px}.sac-support-summary{border-left:3px solid var(--sac-primary)}.sac-support-summary.success{border-color:#16a34a;background:#052e1a}.sac-support-summary.warning{border-color:#d97706;background:#3a230b}.sac-support-summary.danger{border-color:#dc2626;background:#3a0d0d}.sac-support-summary.neutral{border-color:#64748b}.sac-light .sac-support-summary.success{background:#ecfdf5}.sac-light .sac-support-summary.warning{background:#fff7ed}.sac-light .sac-support-summary.danger{background:#fef2f2}.sac-support-points,.sac-investigation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.sac-investigation-grid>.sac-grid-full{grid-column:1/-1}.sac-support-points .sac-side-card strong{display:block;font-size:14px}.sac-support-points .sac-side-card small{display:block;color:var(--sac-muted);font-size:8.5px;font-weight:900}.sac-support-empty{color:var(--sac-muted);font-size:10px;font-weight:850}.sac-investigation-grid .sac-side-card{min-height:35px;display:flex;flex-direction:column;justify-content:center;text-align:left;padding:4px 5px}.sac-investigation-grid .sac-side-card strong{display:block;font-size:9.5px;line-height:1.08;color:var(--sac-text);overflow-wrap:break-word;text-align:left}.sac-investigation-alert{border:1px solid #ef4444!important;background:#3a0d0d!important;animation:sacPulseInvestigationRed 1.05s ease-in-out infinite}.sac-support-summary.sac-investigation-alert{border-left-width:1px!important}.sac-light .sac-investigation-alert{background:#fef2f2!important}@keyframes sacPulseInvestigationRed{0%,100%{box-shadow:inset 0 0 0 0 rgba(239,68,68,.15),0 0 0 rgba(239,68,68,0)}50%{box-shadow:inset 0 0 0 1px rgba(239,68,68,.82),0 0 8px rgba(239,68,68,.46)}}
+      .sac-cnpj-card{position:relative;padding-right:30px!important}.sac-cnpj-indicator{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:grid;width:19px;height:19px;place-items:center;border:1px solid var(--sac-border);border-radius:999px;background:transparent;color:var(--sac-muted);font-size:11px;font-weight:950}.sac-cnpj-card.is-success{border-color:#16a34a;background:#052e1a}.sac-cnpj-card.is-warning{border-color:#d97706;background:#3a230b}.sac-cnpj-card.is-danger{border-color:#dc2626;background:#3a0d0d}.sac-cnpj-indicator.is-success{border-color:#22c55e;background:#16a34a;color:#fff}.sac-cnpj-indicator.is-warning{border-color:#f59e0b;background:#d97706;color:#fff}.sac-cnpj-indicator.is-danger{border-color:#ef4444;background:#dc2626;color:#fff}.sac-light .sac-cnpj-card.is-success{background:#ecfdf5}.sac-light .sac-cnpj-card.is-warning{background:#fff7ed}.sac-light .sac-cnpj-card.is-danger{background:#fef2f2}
+      .sac-investigation-launcher{position:absolute;left:-30px;top:50px;width:30px;height:44px;border:1px solid var(--sac-border);border-right:0;border-radius:8px 0 0 8px;background:var(--sac-primary);color:#fff;display:grid;place-items:center;cursor:pointer;padding:0;box-shadow:-5px 5px 14px rgba(0,0,0,.22),inset -1px 0 rgba(255,255,255,.18);transition:filter .15s,transform .15s,box-shadow .15s}.sac-investigation-launcher:hover,.sac-investigation-launcher:focus-visible{filter:brightness(1.12);transform:translateX(-1px);box-shadow:-7px 6px 17px rgba(0,0,0,.28),inset -1px 0 rgba(255,255,255,.28);outline:2px solid rgba(255,255,255,.72);outline-offset:-4px}.sac-panel.sac-minimized .sac-investigation-launcher{display:none}.sac-chevron{position:relative;display:block;width:14px;height:14px}.sac-chevron:before{content:"";position:absolute;top:3px;width:7px;height:7px;border-top:2px solid currentColor;border-right:2px solid currentColor}.sac-chevron:after{content:"";position:absolute;top:2px;width:1.5px;height:10px;border-radius:999px;background:currentColor;opacity:.72}.sac-chevron.left:before{left:2px;transform:rotate(-135deg)}.sac-chevron.left:after{right:1px}.sac-chevron.right:before{right:2px;transform:rotate(45deg)}.sac-chevron.right:after{left:1px}.sac-drawer-toggle{width:30px;height:28px;border:1px solid rgba(255,255,255,.44);border-radius:7px;background:rgba(255,255,255,.14);color:#fff;display:grid;place-items:center;padding:0;cursor:pointer;transition:background .15s,transform .15s,box-shadow .15s}.sac-drawer-toggle:hover,.sac-drawer-toggle:focus-visible{background:rgba(255,255,255,.25);transform:translateX(1px);box-shadow:0 0 0 2px rgba(255,255,255,.18);outline:none}.sac-investigation-drawer{width:312px}.sac-investigation-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.sac-investigation-controls button{min-width:0;min-height:32px;display:flex;align-items:center;justify-content:center;gap:5px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:4px 5px;text-align:center;font-size:9.3px;font-weight:950;line-height:1.08;cursor:pointer}.sac-investigation-controls button:hover,.sac-investigation-controls button:focus,.sac-investigation-controls button.active{border-color:#38bdf8;background:#10263a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.14);outline:none}.sac-light .sac-investigation-controls button:hover,.sac-light .sac-investigation-controls button:focus,.sac-light .sac-investigation-controls button.active{background:#eef7ff;color:#172033}.sac-investigation-controls button span{display:grid;place-items:center;width:17px;height:17px;border-radius:5px;background:var(--sac-primary);color:#fff;font-size:9px}.sac-investigation-controls .sac-investigation-cnpj{font-size:8.9px;background:transparent}.sac-investigation-controls.single{grid-template-columns:minmax(0,1fr)}.sac-investigation-result{display:grid;gap:5px;margin-top:5px}
       @media (max-width:460px){.sac-grid.three,.sac-grid,.sac-field-grid{grid-template-columns:1fr}.sac-history-body{grid-template-columns:1fr}.sac-pid-grid{grid-template-columns:1fr}}
     `;
     document.head.appendChild(style);
@@ -1315,6 +1309,9 @@
     const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
     const freezePanelPosition = () => {
       if (positionFrozen) return;
+      if (panel.classList.contains("sac-panel")) panel.style.setProperty("--sac-panel-width", `${startWidth}px`, "important");
+      ["inline-size", "width", "min-inline-size", "min-width", "max-inline-size", "max-width"]
+        .forEach((property) => panel.style.setProperty(property, `${startWidth}px`, "important"));
       panel.style.position = "fixed";
       panel.style.left = `${startLeft}px`;
       panel.style.top = `${startTop}px`;
@@ -1336,9 +1333,6 @@
       startLeft = rect.left;
       startTop = rect.top;
       startWidth = rect.width;
-      if (panel.classList.contains("sac-panel")) panel.style.setProperty("--sac-panel-width", `${startWidth}px`, "important");
-      ["inline-size", "width", "min-inline-size", "min-width", "max-inline-size", "max-width"]
-        .forEach((property) => panel.style.setProperty(property, `${startWidth}px`, "important"));
       positionFrozen = false;
       previousUserSelect = document.body.style.userSelect || "";
       document.body.style.userSelect = "none";
@@ -1549,6 +1543,9 @@
     history: ["USER_DATA_20_STRG_VALUE", "USER_DATA_20_VALUE", "USER_DATA_20"],
     debitCustomerId: ["DEBIT_CUSTOMER_XID_VALUE"],
     creditCustomerId: ["CREDIT_CUSTOMER_XID_VALUE"],
+    customerId: ["CUSTOMER_XID_VALUE"],
+    debitAccount: ["DEBIT_ACCOUNT_NUM_VALUE"],
+    creditAccount: ["CREDIT_ACCOUNT_NUM_VALUE"],
     merchant: ["MERCHANT_NAME_VALUE", "MERCHANT_DBA_NAME_VALUE", "CARD_ACCEPTOR_NAME_VALUE"],
     decision: ["FALCON_DECISION_CODE_VALUE", "FALCON_DECISION_VALUE"],
     payment: ["TRANSACTION_POSTING_ENTRY_XFLG_VALUE", "TRANSACTION_ENTRY_MODE_VALUE", "POS_ENTRY_MODE_VALUE"]
@@ -1681,6 +1678,9 @@
       historyFound: Boolean(history),
       debitCustomerId: falconMappedText(context, "debitCustomerId"),
       creditCustomerId: falconMappedText(context, "creditCustomerId"),
+      customerId: falconMappedText(context, "customerId"),
+      debitAccount: falconMappedText(context, "debitAccount"),
+      creditAccount: falconMappedText(context, "creditAccount"),
       merchant: falconMappedText(context, "merchant"),
       decision: falconMappedText(context, "decision"),
       payment: falconMappedText(context, "payment")
@@ -1701,6 +1701,35 @@
   }
   function isHoldRule(rule) { return normalize(rule).includes("HOLD"); }
 
+  function falconHolderDocument(accountId, orangeData, transactionType = "") {
+    const accountKey = alnumOnly(accountId);
+    const debitAccountKey = alnumOnly(orangeData?.debitAccount);
+    const creditAccountKey = alnumOnly(orangeData?.creditAccount);
+    const debitDocument = documentFieldValue(orangeData?.debitCustomerId);
+    const creditDocument = documentFieldValue(orangeData?.creditCustomerId);
+    const customerDocument = documentFieldValue(orangeData?.customerId);
+    const transaction = normalize(transactionType);
+    if (transaction.includes("DEPOSITO") && documentKind(creditDocument)) {
+      return { document: creditDocument, source: "CREDIT_CUSTOMER_XID" };
+    }
+    if (transaction.includes("PAGAMENTO") && documentKind(debitDocument)) {
+      return { document: debitDocument, source: "DEBIT_CUSTOMER_XID" };
+    }
+    if (accountKey && debitAccountKey && accountKey === debitAccountKey && documentKind(debitDocument)) {
+      return { document: debitDocument, source: "DEBIT_CUSTOMER_XID" };
+    }
+    if (accountKey && creditAccountKey && accountKey === creditAccountKey && documentKind(creditDocument)) {
+      return { document: creditDocument, source: "CREDIT_CUSTOMER_XID" };
+    }
+    const maskedSuffix = digitsOnly(orangeData?.customerId).slice(-4);
+    if (maskedSuffix.length === 4) {
+      if (documentKind(debitDocument) && debitDocument.endsWith(maskedSuffix)) return { document: debitDocument, source: "DEBIT_CUSTOMER_XID" };
+      if (documentKind(creditDocument) && creditDocument.endsWith(maskedSuffix)) return { document: creditDocument, source: "CREDIT_CUSTOMER_XID" };
+    }
+    if (documentKind(customerDocument)) return { document: customerDocument, source: "CUSTOMER_XID" };
+    return { document: "", source: "" };
+  }
+
   // ========================= FALCON: LEITURA ========================
   function collectFalconData() {
     const context = falconRowContext();
@@ -1712,6 +1741,7 @@
     const cardNumber = idText(FALCON_SELECTORS.cardNumber);
     const cardLast4 = last4(cardNumber);
     const transactionTypeText = overviewType || panelTransactionType;
+    const holder = falconHolderDocument(accountId, orangeData, transactionTypeText);
     const cardByTransactionType = isCardTransactionType(transactionTypeText);
     const rule = clean(orangeData.rule);
     const holdByRule = isHoldRule(rule);
@@ -1738,6 +1768,8 @@
       sourceTransactionType: clean(transactionTypeText),
       caseNumber,
       accountId: clean(accountId),
+      holderDocument: flow === "card" ? "" : holder.document,
+      holderDocumentSource: flow === "card" ? "" : holder.source,
       rowIndex: context.rowIndex,
       originCustomerId: clean(orangeData.debitCustomerId),
       creditCustomerId: clean(orangeData.creditCustomerId),
@@ -1776,6 +1808,8 @@
       orangeFound: false,
       caseNumber: "N/A",
       accountId: "N/A",
+      holderDocument: "",
+      holderDocumentSource: "",
       originCustomerId: "",
       creditCustomerId: "",
       counterpartyDocument: "",
@@ -1817,6 +1851,8 @@
       cardByTransactionType: Boolean(before.cardByTransactionType || after.cardByTransactionType),
       caseNumber: caseFirst("caseNumber"),
       accountId: caseFirst("accountId"),
+      holderDocument: optional(after.holderDocument, before.holderDocument),
+      holderDocumentSource: optional(after.holderDocumentSource, before.holderDocumentSource),
       originCustomerId: optional(after.originCustomerId, before.originCustomerId),
       creditCustomerId: optional(after.creditCustomerId, before.creditCustomerId),
       counterpartyDocument: optional(after.counterpartyDocument, before.counterpartyDocument),
@@ -1892,8 +1928,10 @@
     return normalize(value).includes("GLOBAL") ? "global" : "brasil";
   }
   function findConsoleCpfCnpj() {
-    const labeled = ["CPF/CNPJ", "CPF", "CNPJ", "Documento"].map(findValueAfterLabel).find(Boolean);
-    return clean(findDocumentInText(labeled) || findDocumentInText(bodyText()));
+    const labeled = ["CPF/CNPJ", "CPF", "CNPJ", "Documento", "Número do documento"]
+      .map(findValueAfterLabel)
+      .find((value) => documentKind(findDocumentInText(value)));
+    return clean(findDocumentInText(labeled));
   }
   function findValueAfterLabel(label) {
     const wanted = normalize(label);
@@ -1947,15 +1985,46 @@
     if (croppedIds.length === 1) return clean(croppedIds[0]);
     const account = consoleText(document.querySelector(CONSOLE_SELECTORS.accountData));
     if (account) return clean(account);
-    return clean(["Conta", "Número da conta", "ID conta"].map(findValueAfterLabel).find(Boolean));
+    return clean(["Conta", "Número da conta", "ID conta", "ID da conta"].map(findValueAfterLabel).find(Boolean));
   }
 
-  function compareFalconConsoleAccount(falcon, consoleAccount) {
+  function findConsolePhone() {
+    const direct = ["Telefone", "Celular", "Número de telefone", "Telefone celular"]
+      .map(findValueAfterLabel)
+      .find((value) => /\d{2}\D*\d{4,5}\D*\d{4}/.test(String(value || "")));
+    return clean(direct, "");
+  }
+
+  function compareFalconConsoleAccount(falcon, consoleAccount, consoleDocument = "", consoleCardNumber = "") {
+    if (falcon?.flow === "card") {
+      const falconCardLast4 = last4(falcon?.cardNumber || falcon?.cardLast4);
+      const consoleCardLast4 = last4(consoleCardNumber);
+      return {
+        comparable: Boolean(falconCardLast4 && consoleCardLast4),
+        matches: Boolean(falconCardLast4 && consoleCardLast4 && falconCardLast4 === consoleCardLast4),
+        cardComparable: Boolean(falconCardLast4 && consoleCardLast4),
+        cardMatches: Boolean(falconCardLast4 && consoleCardLast4 && falconCardLast4 === consoleCardLast4),
+        accountComparable: false,
+        accountMatches: true,
+        documentComparable: false,
+        documentMatches: true
+      };
+    }
     const falconKey = alnumOnly(falcon?.accountId);
     const consoleKey = alnumOnly(consoleAccount);
+    const falconDocument = documentFieldValue(falcon?.holderDocument);
+    const consoleDocumentValue = documentFieldValue(consoleDocument);
+    const accountComparable = Boolean(falconKey && consoleKey);
+    const documentComparable = Boolean(falconDocument && consoleDocumentValue);
+    const accountMatches = !accountComparable || falconKey === consoleKey;
+    const documentMatches = !documentComparable || falconDocument === consoleDocumentValue;
     return {
-      comparable: Boolean(falconKey && consoleKey),
-      matches: Boolean(falconKey && consoleKey && falconKey === consoleKey)
+      comparable: accountComparable || documentComparable,
+      matches: (accountComparable || documentComparable) && accountMatches && documentMatches,
+      accountComparable,
+      accountMatches,
+      documentComparable,
+      documentMatches
     };
   }
   function looksLikeAccountStatus(value) {
@@ -2171,6 +2240,7 @@
         }
         showNotice(`Atenção: faltam dados (${missing.join(", ")}), mas o modo seguro está desligado.`, "warn");
       }
+      if (getInvestigationMode()) await storeMediaRequest({ falcon: data, visualFlow: data.visualFlow, flow: data.flow });
       const packageData = { ...data, buildFamily: BUILD_FAMILY, buildVersion: BUILD_VERSION, savedAt: Date.now(), sharedMemory: packageMemorySnapshot() };
       writeJson("lastFalcon", packageData);
       storageRemove("lastConsole");
@@ -2182,10 +2252,7 @@
       closeSidePanels("sac-panel-falcon");
       byId("sac-panel-falcon")?.remove();
     };
-    const body = section("Dados do Falcon", falconGrid(data), FLOW[data.visualFlow]?.label || "BANKING")
-      + (getInvestigationMode() && falconTransactions.length
-        ? section("Modo investigação", falconInvestigationControls(), `${falconTransactions.length} transações`)
-        : "");
+    const body = section("Dados do Falcon", falconGrid(data), FLOW[data.visualFlow]?.label || "BANKING");
     const panel = renderPanel({
       id: "sac-panel-falcon",
       stage: "FALCON",
@@ -2196,7 +2263,7 @@
       onEnter: save
     });
     byId("sac-save-falcon")?.addEventListener("click", save);
-    panel.querySelector("[data-investigation='falcon-transaction']")?.addEventListener("click", () => openFalconTransactionAnalysis(data, falconTransactions, panel));
+    attachInvestigationLauncher(panel, "FALCON", data, falconTransactions);
     enableManualGridEditing(panel, data);
   }
 
@@ -2213,14 +2280,15 @@
   function falconGrid(data) {
     const common = kv("Caso", data.caseNumber) + kv("Valor", `R$ ${data.value}`) + kv("Regra", data.rule) + kv("Data/Hora", trimTimeToMinute(data.transactionDate));
     const historyGrid = data.flow === "card" ? "" : kv("Histórico de infrações", formatHistoryValue(data.history), historyLevel(data.history, data.historyFound));
+    const holderDocumentGrid = data.holderDocument ? kv("CPF/CNPJ", data.holderDocument) : "";
     if (data.flow === "card") {
       const cardIdentity = data.cardByTransactionType ? kv("Tipo transação", data.sourceTransactionType) : kv("Cartão", data.cardNumber);
-      return `<div class="sac-grid three">${cardIdentity}${kv("Estabelecimento", data.merchant)}${kvOptional("Tipo compra cartão", data.transactionType)}${kv("Decisão transação", data.transactionDecision)}${common}</div>`;
+      return `<div class="sac-grid three">${cardIdentity}${kv("Estabelecimento", data.merchant)}${kvOptional("Tipo compra cartão", data.transactionType)}${kv("Decisão transação", data.transactionDecision)}${common}${holderDocumentGrid}</div>`;
     }
     const counterpartyGrid = data.counterpartyDocument
-      ? kv(data.counterpartySourceLabel || "ID da contraparte", data.counterpartyDocument)
+      ? kv(data.counterpartySourceLabel || "Quem enviou ou recebeu", data.counterpartyDocument)
       : "";
-    return `<div class="sac-grid three">${kv("Tipo transação", data.transactionType)}${common}${historyGrid}${counterpartyGrid}</div>`;
+    return `<div class="sac-grid three">${kv("Tipo transação", data.transactionType)}${common}${historyGrid}${holderDocumentGrid}${counterpartyGrid}</div>`;
   }
 
   function collectConsoleData(falcon) {
@@ -2248,6 +2316,7 @@
       accountStatus: normalizeStatusOption(findAccountStatus()),
       cpfCnpj: findConsoleCpfCnpj(),
       registrationDate: findRegistrationDate(),
+      phone: findConsolePhone(),
       issuer: findIssuer(),
       cardId: card.cardId || "N/A",
       cardNumber: card.cardNumber || "N/A",
@@ -2283,28 +2352,81 @@
   function investigationInput(data) {
     const falcon = data?.falcon || {};
     return {
-      holderDocument: data?.cpfCnpj,
+      holderDocument: data?.cpfCnpj || falcon.holderDocument,
       originDocument: falcon.originCustomerId || falcon.originDocument,
       destinationDocument: falcon.creditCustomerId || falcon.destinationDocument,
       counterpartyDocument: falcon.counterpartyDocument || falcon.counterpartyCpf
     };
   }
 
-  function investigationControls(data) {
-    const mediaEligible = mediaEngine.eligibleParties(investigationInput(data)).length > 0;
-    return `
-      <div class="sac-investigation-controls">
-        <button data-investigation="cnpj"><span aria-hidden="true">✓</span>Verificar CNPJ</button>
-        <button data-investigation="transaction"><span aria-hidden="true">⌁</span>Análise transacional</button>
-        ${mediaEligible ? `<button data-investigation="media"><span aria-hidden="true">!</span>Mídia desabonadora</button>` : ""}
-      </div>`;
+  function investigationControls(stage, data, rows = []) {
+    const controls = [];
+    if (stage === "FALCON" && counterpartyEngine.validateCnpj(data?.counterpartyCnpj || "")) {
+      controls.push(`<button class="sac-investigation-cnpj" data-investigation="cnpj"><span aria-hidden="true">✓</span>Verificar CNPJ</button>`);
+    }
+    if (stage === "FALCON" && rows.length) {
+      controls.push(`<button data-investigation="falcon-transaction"><span aria-hidden="true">⌁</span>Análise transacional</button>`);
+    }
+    if (stage === "CONSOLE") {
+      controls.push(`<button data-investigation="transaction"><span aria-hidden="true">⌁</span>Análise transacional</button>`);
+    }
+    return `<div class="sac-investigation-controls ${controls.length === 1 ? "single" : ""}">${controls.join("")}</div>`;
   }
 
-  function falconInvestigationControls() {
-    return `
-      <div class="sac-investigation-controls single">
-        <button data-investigation="falcon-transaction"><span aria-hidden="true">⌁</span>Análise transacional</button>
-      </div>`;
+  function attachInvestigationLauncher(ownerPanel, stage, data, rows = []) {
+    if (!ownerPanel || !getInvestigationMode() || !["FALCON", "CONSOLE"].includes(stage)) return;
+    const controls = investigationControls(stage, data, rows);
+    if (!controls.includes("data-investigation")) return;
+    ownerPanel.querySelector(".sac-investigation-launcher")?.remove();
+    const launcher = document.createElement("button");
+    launcher.className = "sac-investigation-launcher";
+    launcher.type = "button";
+    launcher.title = "Abrir modo investigação";
+    launcher.setAttribute("aria-label", "Abrir modo investigação");
+    launcher.innerHTML = `<span class="sac-chevron left" aria-hidden="true"></span>`;
+    ownerPanel.appendChild(launcher);
+    launcher.addEventListener("click", () => {
+      const existing = document.querySelector(`.sac-investigation-drawer[data-owner="${cssEscape(ownerPanel.id)}"]`);
+      if (existing) {
+        existing.remove();
+        return;
+      }
+      closeSidePanels(ownerPanel.id);
+      const drawer = document.createElement("aside");
+      drawer.className = `sac-side-panel sac-support-panel sac-investigation-drawer sac-${getTheme()}`;
+      drawer.dataset.owner = ownerPanel.id;
+      drawer.dataset.supportKey = "MODO INVESTIGACAO";
+      drawer.style.setProperty("--sac-primary", ownerPanel.style.getPropertyValue("--sac-primary") || getFlowTone("banking"));
+      drawer.innerHTML = `
+        <div class="sac-side-head"><span>Modo investigação</span><button class="sac-drawer-toggle" data-collapse-investigation aria-label="Recolher painel" title="Recolher painel"><span class="sac-chevron right" aria-hidden="true"></span></button></div>
+        <div class="sac-side-body">
+          ${controls}
+          <div class="sac-investigation-result"><div class="sac-side-card"><span>Selecione uma análise. Este modo é opcional e não altera o fluxo.</span></div></div>
+        </div>`;
+      document.body.appendChild(drawer);
+      placeSidePanel(ownerPanel, drawer);
+      drawer.querySelector("[data-collapse-investigation]")?.addEventListener("click", () => drawer.remove());
+      const activateInvestigationAction = (button) => {
+        if (button.classList.contains("active")) {
+          drawer.remove();
+          return false;
+        }
+        drawer.querySelectorAll("[data-investigation]").forEach((item) => item.classList.toggle("active", item === button));
+        return true;
+      };
+      drawer.querySelector("[data-investigation='cnpj']")?.addEventListener("click", (event) => {
+        if (!activateInvestigationAction(event.currentTarget)) return;
+        openCounterpartyVerification(data, ownerPanel);
+      });
+      drawer.querySelector("[data-investigation='falcon-transaction']")?.addEventListener("click", (event) => {
+        if (!activateInvestigationAction(event.currentTarget)) return;
+        openFalconTransactionAnalysis(data, rows, ownerPanel);
+      });
+      drawer.querySelector("[data-investigation='transaction']")?.addEventListener("click", (event) => {
+        if (!activateInvestigationAction(event.currentTarget)) return;
+        openTransactionAnalysis(data, ownerPanel);
+      });
+    });
   }
 
   function mediaRequestFor(data) {
@@ -2326,22 +2448,43 @@
   async function applyPendingMediaResult(data) {
     await memory.hydrateFromClipboard?.();
     const result = memory.transport.get("mediaResult");
-    if (!result) return false;
     const currentRequest = mediaRequestFor(data);
-    if (!mediaEngine.resultMatches(currentRequest, result)) return false;
-    data.fields = data.fields || {};
-    data.fields.badMedia = result.found ? "sim" : "não";
-    data.fields.badMediaDetails = result.found ? mediaEngine.normalizeTypes(result.mediaTypes) : [];
-    data.mediaInvestigation = result;
-    memory.transport.clear("mediaResult");
-    memory.transport.clear("mediaRequest");
-    await memory.commitCurrentText?.();
-    return true;
+    let applied = false;
+    if (result && mediaEngine.resultMatches(currentRequest, result)) {
+      data.fields = data.fields || {};
+      data.fields.badMedia = result.found ? "sim" : "não";
+      data.fields.badMediaDetails = result.found ? mediaEngine.normalizeTypes(result.mediaTypes) : [];
+      data.mediaInvestigation = result;
+      memory.transport.clear("mediaResult");
+      applied = true;
+    }
+    const pidResult = memory.transport.get("pidResult");
+    if (pidResult && String(pidResult.caseNumber || "") === String(data?.falcon?.caseNumber || "")) {
+      data.pidData = { ...(data.pidData || {}), ...(pidResult.pid || {}) };
+      if (!data.phone && data.pidData.phone) data.phone = data.pidData.phone;
+      memory.transport.clear("pidResult");
+      applied = true;
+    }
+    if (applied) {
+      memory.transport.clear("mediaRequest");
+      await memory.commitCurrentText?.();
+    }
+    return applied;
   }
 
   function openSupportPanel(ownerPanel, title, content) {
     if (!ownerPanel) return null;
     const supportKey = normalize(title);
+    const drawer = all(".sac-investigation-drawer").find((item) => item.dataset.owner === ownerPanel.id);
+    if (drawer) {
+      drawer.dataset.activeSupportKey = supportKey;
+      const resultHost = drawer.querySelector(".sac-investigation-result");
+      if (resultHost) {
+        resultHost.innerHTML = `<div class="sac-side-group"><div class="sac-side-group-title">${escapeHtml(title)}</div>${content}</div>`;
+        resultHost.querySelectorAll("[data-close-support]").forEach((button) => button.remove());
+      }
+      return drawer;
+    }
     const existing = all(".sac-side-panel").find((item) => item.dataset.owner === ownerPanel.id && item.dataset.supportKey === supportKey);
     if (existing) {
       existing.remove();
@@ -2353,7 +2496,7 @@
     panel.dataset.owner = ownerPanel.id;
     panel.dataset.supportKey = supportKey;
     panel.style.setProperty("--sac-primary", ownerPanel.style.getPropertyValue("--sac-primary") || getFlowTone("banking"));
-    panel.innerHTML = `<div class="sac-side-head"><span>${escapeHtml(title)}</span><button class="sac-icon close" data-close-support aria-label="Fechar" title="Fechar">×</button></div><div class="sac-side-body">${content}</div>`;
+    panel.innerHTML = `<div class="sac-side-head"><span>${escapeHtml(title)}</span><button class="sac-drawer-toggle" data-close-support aria-label="Recolher painel" title="Recolher painel"><span class="sac-chevron right" aria-hidden="true"></span></button></div><div class="sac-side-body">${content}</div>`;
     document.body.appendChild(panel);
     placeSidePanel(ownerPanel, panel);
     panel.querySelectorAll("[data-close-support]").forEach((button) => button.addEventListener("click", () => panel.remove()));
@@ -2367,8 +2510,29 @@
     return "neutral";
   }
 
+  function transactionResultClass(result) {
+    if (result?.signals?.some((item) => item.kind === "alert")) return "danger";
+    if (result?.classification === "FAVORABLE") return "success";
+    if (result?.classification === "REVIEW" || result?.signals?.some((item) => item.kind === "attention")) return "warning";
+    return "neutral";
+  }
+
   function investigationCurrency(value) {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
+  }
+
+  function investigationPeriod(start, end, validDateCount = 0) {
+    if (!validDateCount || !Number(start)) return "Período não identificado";
+    const formatter = new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+    const first = formatter.format(new Date(Number(start)));
+    const last = formatter.format(new Date(Number(end || start)));
+    return first === last ? first : `${first} até ${last}`;
   }
 
   function investigationDocument(item) {
@@ -2389,6 +2553,12 @@
       return;
     }
     const summary = transactionEngine.summarizeFalconTransactions(rows);
+    const analysis = transactionEngine.analyze({
+      issuer: data?.issuer,
+      transactionType: data?.sourceTransactionType || data?.transactionType,
+      rule: data?.rule,
+      rows
+    });
     const counterparties = await Promise.all(summary.counterparties.map(async (item) => {
       if (!item.cnpj) return { item, classification: null };
       try {
@@ -2411,7 +2581,7 @@
           const severity = item.cnpj ? resultSeverityClass(classification) : "neutral";
           return `
             <div class="sac-side-group">
-              <div class="sac-side-group-title">${escapeHtml(item.sourceLabel || "Contraparte")}</div>
+              <div class="sac-side-group-title">${escapeHtml(item.sourceLabel || "Quem enviou ou recebeu")}</div>
               <div class="sac-side-card sac-support-summary ${severity}"><strong>${escapeHtml(investigationDocument(item))}</strong><span>${escapeHtml(classificationLabel)}</span></div>
               <div class="sac-investigation-grid">
                 <div class="sac-side-card"><strong>Nome do pagador do crédito</strong><span>${escapeHtml(payer)}</span></div>
@@ -2419,31 +2589,38 @@
               </div>
             </div>`;
         }).join("")
-      : `<div class="sac-side-card sac-support-summary warning"><strong>Contraparte não identificada</strong><span>As linhas foram lidas, mas não há ID compatível com a direção desta transação.</span></div>`;
+      : `<div class="sac-side-card sac-support-summary warning"><strong>Não identifiquei quem enviou ou recebeu</strong><span>As linhas foram lidas, mas não há ID compatível com a direção desta transação.</span></div>`;
     openSupportPanel(ownerPanel, "Análise transacional Falcon", `
       <div class="sac-investigation-grid">
         <div class="sac-side-card"><strong>Transações analisadas</strong><span>${summary.transactionCount}</span></div>
-        <div class="sac-side-card"><strong>Contrapartes únicas</strong><span>${summary.uniqueCounterpartyCount}</span></div>
+        <div class="sac-side-card"><strong>Pessoas ou empresas diferentes</strong><span>${summary.uniqueCounterpartyCount}</span></div>
         <div class="sac-side-card"><strong>Valor somado</strong><span>${escapeHtml(investigationCurrency(summary.totalAmount))}</span></div>
-        <div class="sac-side-card ${summary.p2pDetected ? "sac-support-summary success" : ""}"><strong>P2P</strong><span>${summary.p2pDetected ? "Identificado · sinal favorável" : "Não identificado"}</span></div>
+        <div class="sac-side-card sac-support-summary ${summary.p2pDetected ? "success" : "warning"}"><strong>P2P detectado</strong><span>${summary.p2pDetected ? "Sim · sinal favorável a não fraude" : "Não identificado nas linhas analisadas"}</span></div>
+        <div class="sac-side-card sac-grid-full"><strong>Período analisado</strong><span>${escapeHtml(investigationPeriod(summary.periodStart, summary.periodEnd, summary.validDateCount))}</span></div>
       </div>
-      <div class="sac-side-card"><span>Todas as linhas visíveis do grid Falcon foram consideradas. O resultado apoia a análise e não escolhe uma decisão.</span></div>
+      <div class="sac-side-card"><span>“Quem enviou ou recebeu” é a pessoa ou empresa do outro lado da transação. Todas as linhas visíveis do grid Falcon foram consideradas. O resultado apoia a análise e não escolhe uma decisão.</span></div>
+      ${analysis.signals.length ? `<div class="sac-side-group"><div class="sac-side-group-title">Sinais observados</div>${analysis.signals.map((item) => `<div class="sac-side-card sac-support-summary ${transactionSignalClass(item.kind)}"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.detail)}</span></div>`).join("")}</div>` : ""}
       ${counterpartCards}
-      <button class="sac-secondary" data-close-support>Fechar</button>
     `);
   }
 
   async function openTransactionAnalysis(data, ownerPanel) {
     const falcon = data?.falcon || {};
-    const counterpart = counterpartySessionResults.get(counterpartySessionKey(data)) || null;
+    const counterpart = counterpartySessionResults.get(counterpartySessionKey(data)) || falcon.counterpartyResult || null;
+    const dddInfo = dddEngine.lookup(data?.phone || data?.pidData?.phone || "");
+    const dddAssessment = normalize(data?.issuer).includes("BEMOL")
+      ? dddEngine.bemolAssessment(data?.phone || data?.pidData?.phone || "")
+      : null;
     const result = await transactionEngine.analyzeConsole({
       root: document,
+      issuer: data?.issuer,
       transactionType: falcon.transactionType,
       rule: falcon.rule,
       description: falcon.sourceTransactionType,
-      counterpartyResult: counterpart
+      counterpartyResult: counterpart,
+      dddAssessment
     });
-    const summaryClass = result.classification === "FAVORABLE" ? "success" : result.classification === "REVIEW" ? "warning" : "neutral";
+    const summaryClass = transactionResultClass(result);
     const signals = result.signals.length
       ? result.signals.map((item) => `
           <div class="sac-side-card sac-support-summary ${transactionSignalClass(item.kind)}">
@@ -2451,6 +2628,13 @@
             <span>${escapeHtml(item.detail)}</span>
           </div>`).join("")
       : `<div class="sac-side-card"><span class="sac-support-empty">Nenhum sinal cadastrado foi identificado nos dados disponíveis.</span></div>`;
+    const profile = result.issuerProfile
+      ? `<div class="sac-side-group"><div class="sac-side-group-title">Perfil ${escapeHtml(result.issuerProfile.name)}</div>
+          ${result.issuerProfile.expected.map((item) => `<div class="sac-side-card sac-support-summary success"><span>${escapeHtml(item)}</span></div>`).join("")}
+          ${result.issuerProfile.cautions.map((item) => `<div class="sac-side-card sac-support-summary warning"><span>${escapeHtml(item)}</span></div>`).join("")}
+        </div>`
+      : "";
+    const metrics = result.metrics || {};
     openSupportPanel(ownerPanel, "Análise transacional", `
       <div class="sac-side-card sac-support-summary ${summaryClass}">
         <strong>${escapeHtml(result.label)}</strong>
@@ -2460,209 +2644,125 @@
         <div class="sac-side-card"><strong>+${result.favorablePoints}</strong><small>PONTOS FAVORÁVEIS</small></div>
         <div class="sac-side-card"><strong>${result.alertPoints}</strong><small>PONTOS DE ATENÇÃO</small></div>
       </div>
-      ${result.mappingPending ? `<div class="sac-side-card sac-support-summary warning"><strong>Estrutura transacional pronta</strong><span>O adaptador usará diretamente a página transacional do Console assim que o HTML e as regras do book forem mapeados.</span></div>` : ""}
-      <div class="sac-side-group">
-        <div class="sac-side-group-title">Dados avaliados</div>
-        <div class="sac-side-card"><strong>Tipo de transação</strong><span>${escapeHtml(clean(falcon.transactionType))}</span></div>
-        <div class="sac-side-card"><strong>Regra</strong><span>${escapeHtml(clean(falcon.rule))}</span></div>
+      <div class="sac-side-card sac-support-summary ${result.p2pDetected ? "success" : "warning"}">
+        <strong>P2P detectado</strong>
+        <span>${result.p2pDetected ? "Sim · sinal favorável a não fraude" : "Não identificado nas movimentações analisadas"}</span>
       </div>
+      ${result.mappingPending ? `<div class="sac-side-card sac-support-summary warning"><strong>Estrutura transacional pronta</strong><span>O adaptador usará diretamente a página transacional do Console assim que o HTML e as regras do book forem mapeados.</span></div>` : ""}
+      ${result.mappingPending ? "" : `<div class="sac-side-group"><div class="sac-side-group-title">Resumo do período</div><div class="sac-investigation-grid">
+        <div class="sac-side-card"><strong>Movimentações</strong><span>${Number(metrics.count || 0)}</span></div>
+        <div class="sac-side-card"><strong>Pessoas ou empresas diferentes</strong><span>${Number(metrics.uniqueCounterparties || 0)}</span></div>
+        <div class="sac-side-card"><strong>Créditos</strong><span>${escapeHtml(investigationCurrency(metrics.creditAmount))}</span></div>
+        <div class="sac-side-card"><strong>Débitos</strong><span>${escapeHtml(investigationCurrency(metrics.debitAmount))}</span></div>
+        <div class="sac-side-card sac-grid-full"><strong>Período analisado</strong><span>${escapeHtml(investigationPeriod(metrics.periodStart, metrics.periodEnd, metrics.validDateCount))}</span></div>
+      </div></div>`}
+      ${dddInfo.found ? `<div class="sac-side-group"><div class="sac-side-group-title">DDD</div><div class="sac-investigation-grid"><div class="sac-side-card"><strong>DDD</strong><span>${escapeHtml(dddInfo.ddd)}</span></div><div class="sac-side-card"><strong>UF / Região</strong><span>${escapeHtml(`${dddInfo.uf} · ${dddInfo.region}`)}</span></div></div></div>` : ""}
+      ${profile}
       <div class="sac-side-group">
         <div class="sac-side-group-title">Sinais</div>
         ${signals}
       </div>
-      <button class="sac-secondary" data-close-support>Fechar</button>
     `);
-  }
-
-  function applyMediaResultToConsole(data, result) {
-    data.fields = data.fields || {};
-    data.fields.badMedia = result.found ? "sim" : "não";
-    data.fields.badMediaDetails = result.found ? mediaEngine.normalizeTypes(result.mediaTypes) : [];
-    data.mediaInvestigation = result;
-    const select = byId("sac-bad-media");
-    if (select) select.value = data.fields.badMedia;
-  }
-
-  function mediaResultHtml(result) {
-    if (!result.supported) {
-      return `
-        <div class="sac-side-card sac-support-summary warning sac-investigation-note">
-          <strong>Estrutura pronta para o BigData</strong>
-          <span>O HTML e o book ainda precisam ser mapeados para localizar a pessoa como ré e reconhecer as categorias.</span>
-        </div>`;
-    }
-    if (!result.found) {
-      return `
-        <div class="sac-side-card sac-support-summary success sac-investigation-note">
-          <strong>SEM MÍDIA</strong>
-          <span>Nenhum processo criminal das categorias cadastradas foi localizado. O campo do Console foi definido como não.</span>
-        </div>`;
-    }
-    return `
-      <div class="sac-side-card sac-support-summary danger sac-investigation-alert sac-investigation-note">
-        <strong>COM MÍDIA</strong>
-        <span>A pessoa consta como ré em categoria desabonadora. O Console foi atualizado automaticamente.</span>
-      </div>
-      <div class="sac-investigation-grid">
-        ${result.mediaTypes.map((item) => `<div class="sac-side-card sac-investigation-alert"><strong>Categoria</strong><span>${escapeHtml(item)}</span></div>`).join("")}
-      </div>`;
-  }
-
-  async function openAdverseMediaInvestigation(data, ownerPanel) {
-    const parties = mediaEngine.eligibleParties(investigationInput(data));
-    if (!parties.length) return;
-    const request = await storeMediaRequest(data);
-    const partyCards = parties.map((party) => `<div class="sac-side-card"><strong>${escapeHtml(party.label)}</strong><span>CPF final ${escapeHtml(party.document.slice(-4))}</span></div>`).join("");
-    const panel = openSupportPanel(ownerPanel, "Mídia desabonadora", `
-      <div class="sac-investigation-grid">${partyCards}</div>
-      <div id="sac-media-investigation-result">
-        <div class="sac-side-card sac-support-summary warning sac-investigation-note">
-          <strong>Consulta em outra página</strong>
-          <span>O pedido do caso ${escapeHtml(request?.caseNumber || "N/A")} foi guardado para a etapa BigData.</span>
-        </div>
-      </div>
-      <button class="sac-secondary" data-close-support>Fechar</button>
-    `);
-    if (!panel) return;
-    const result = await mediaEngine.scanPage({ root: document, parties });
-    if (!result.supported) return;
-    const envelope = mediaEngine.createResult(request, result);
-    applyMediaResultToConsole(data, envelope);
-    panel.querySelector("#sac-media-investigation-result").innerHTML = mediaResultHtml({ ...result, ...envelope, supported: true });
   }
 
   async function renderBigDataMedia() {
     await memory.hydrateFromClipboard?.();
+    byId("sac-panel-bigdata")?.remove();
+    if (!getInvestigationMode()) {
+      showNotice("BigData opcional: ative o modo investigação para coletar PID e mídias.", "info");
+      return;
+    }
     const request = memory.transport.get("mediaRequest");
     if (!request) {
-      renderPanel({
-        id: "sac-panel-bigdata",
-        stage: "BIGDATA",
-        flow: "banking",
-        subtitle: "Investigação de mídia",
-        body: section("Pedido", `<div class="sac-grid">${kvNoHelp("Situação", "Nenhum pedido pendente", "sac-missing sac-single-alert")}</div>`, "volte ao Console")
-      });
+      showNotice("Não há coleta pendente do Falcon para o BigData.", "warn");
       return;
     }
     const scan = await mediaEngine.scanPage({ root: document, parties: request.parties });
+    if (scan.code === "BIGDATA_IDENTITY_MISMATCH") {
+      showNotice("CPF divergente no BigData. Confira o caso antes de continuar.", "error", 15000);
+      return;
+    }
     if (!scan.supported) {
-      renderPanel({
-        id: "sac-panel-bigdata",
-        stage: "BIGDATA",
-        flow: request.flow || "banking",
-        subtitle: "Mapeamento pendente",
-        body: section("Mídia desabonadora", mediaResultHtml(scan), `Caso ${request.caseNumber || "N/A"}`)
-      });
+      showNotice("Não encontrei os blocos mapeados do BigData nesta página.", "error");
       return;
     }
     const result = mediaEngine.createResult(request, scan);
     memory.transport.set("mediaResult", result);
-    await memory.commitCurrentText?.();
-    renderPanel({
-      id: "sac-panel-bigdata",
-      stage: "BIGDATA",
-      flow: request.flow || "banking",
-      subtitle: "Resultado guardado para o Console",
-      body: section("Mídia desabonadora", mediaResultHtml({ ...scan, ...result, supported: true }), `Caso ${request.caseNumber || "N/A"}`)
+    memory.transport.set("pidResult", {
+      type: "SAC_PID_RESULT",
+      caseNumber: request.caseNumber,
+      pid: scan.pid || {},
+      savedAt: Date.now()
     });
+    await memory.commitCurrentText?.();
+    showNotice("BigData coletado. Os dados de PID e mídia seguirão para o Console.", "success");
   }
 
   function resultSeverityClass(result) {
     return result?.severity === "success" ? "success" : result?.severity === "danger" ? "danger" : result?.severity === "warning" ? "warning" : "neutral";
   }
 
+  function counterpartyIndicatorState(counterparty, corporate, crossed) {
+    if (crossed?.severity === "danger" || corporate?.severity === "danger" || counterparty?.severity === "danger") return "danger";
+    if (crossed?.severity === "warning" || corporate?.severity === "warning" || counterparty?.severity === "warning") return "warning";
+    if (counterparty?.severity === "success") return "success";
+    return "neutral";
+  }
+
+  function counterpartyIndicatorTitle(counterparty, corporate, crossed) {
+    if (corporate?.activityAge?.underThreeMonths) return "Atenção: CNPJ aberto há menos de 3 meses.";
+    return clean(crossed?.reason || counterparty?.reason || "CNPJ ainda não classificado na base.");
+  }
+
   function counterpartyResultHtml(counterparty, corporate, crossed) {
     const corporateStatus = corporate?.found ? corporate.registrationStatus : corporate?.label || "NÃO SINCRONIZADA";
-    const corporateSource = corporate?.found
-      ? `${corporate.source?.label || "Receita Federal"}${corporate.source?.referenceDate ? ` · ${corporate.source.referenceDate}` : ""}`
-      : "Receita Federal · dado ainda não sincronizado";
-    const cnae = [corporate?.primaryCnaeCode, corporate?.primaryCnae].filter(Boolean).join(" - ") || "N/A";
     const statusAlert = corporate?.found && ["INAPTA", "BAIXADA", "SUSPENSA", "NULA"].includes(corporate.registrationStatus);
     const ageAlert = Boolean(corporate?.activityAge?.underThreeMonths);
-    const ageLabel = corporate?.activityAge?.known
-      ? (ageAlert ? "Menos de 3 meses" : `${corporate.activityAge.completedMonths} meses completos`)
-      : "Idade não calculada";
+    const displayName = corporate?.tradeName || corporate?.legalName || "N/A";
+    const nameLabel = corporate?.tradeName ? "Nome fantasia" : "Razão social";
+    const openingClass = ageAlert ? "sac-investigation-alert" : corporate?.activityAge?.known ? "sac-support-summary success" : "sac-support-summary warning";
+    const statusClass = statusAlert ? "danger sac-investigation-alert" : resultSeverityClass(corporate);
     return `
-      <div class="sac-side-card sac-support-summary ${resultSeverityClass(crossed)}">
-        <strong>${escapeHtml(crossed.label)}</strong>
-        <span>${escapeHtml(crossed.reason)}</span>
-      </div>
       <div class="sac-side-group">
-        <div class="sac-side-group-title">Receita Federal</div>
+        <div class="sac-side-group-title">Dados cadastrais</div>
         <div class="sac-investigation-grid">
-          <div class="sac-side-card sac-support-summary ${resultSeverityClass(corporate)} ${statusAlert ? "sac-investigation-alert" : ""}"><strong>Situação cadastral</strong><span>${escapeHtml(corporateStatus)}</span></div>
-          <div class="sac-side-card"><strong>Data da situação</strong><span>${escapeHtml(corporate?.statusDate || "N/A")}</span></div>
-          <div class="sac-side-card"><strong>Razão social</strong><span>${escapeHtml(corporate?.legalName || "N/A")}</span></div>
-          <div class="sac-side-card"><strong>Nome fantasia</strong><span>${escapeHtml(corporate?.tradeName || "N/A")}</span></div>
-          <div class="sac-side-card ${ageAlert ? "sac-investigation-alert" : ""}"><strong>Início das atividades</strong><span>${escapeHtml(corporate?.openedAt || "N/A")}</span></div>
-          <div class="sac-side-card ${ageAlert ? "sac-investigation-alert" : ""}"><strong>Tempo de atividade</strong><span>${escapeHtml(ageLabel)}</span></div>
-          <div class="sac-side-card"><strong>CNAE principal</strong><span>${escapeHtml(cnae)}</span></div>
-          ${corporate?.statusReason ? `<div class="sac-side-card"><strong>Motivo cadastral</strong><span>${escapeHtml(corporate.statusReason)}</span></div>` : ""}
-          <div class="sac-side-card sac-investigation-note"><strong>Fonte cadastral</strong><span>${escapeHtml(corporateSource)}</span></div>
-        </div>
-      </div>
-      <div class="sac-side-group">
-        <div class="sac-side-group-title">Nossa base e SPA</div>
-        <div class="sac-investigation-grid">
-          <div class="sac-side-card sac-support-summary ${resultSeverityClass(counterparty)}"><strong>Classificação</strong><span>${escapeHtml(counterparty.label)}</span></div>
-          <div class="sac-side-card"><strong>Motivo</strong><span>${escapeHtml(counterparty.reason || "Nenhuma justificativa adicional disponível.")}</span></div>
-          <div class="sac-side-card"><strong>Fonte</strong><span>${escapeHtml(counterparty.source?.label || "Sem correspondência na base")}</span></div>
-          <div class="sac-side-card"><strong>Versão da lista</strong><span>${escapeHtml(counterparty.registryVersion || "N/A")}${counterparty.registryStale ? " · cache local" : ""}</span></div>
+          <div class="sac-side-card sac-grid-full"><strong>${escapeHtml(nameLabel)}</strong><span>${escapeHtml(displayName)}</span></div>
+          <div class="sac-side-card ${openingClass}"><strong>Abertura</strong><span>${escapeHtml(corporate?.openedAt || "N/A")}</span></div>
+          <div class="sac-side-card sac-support-summary ${statusClass}"><strong>Situação</strong><span>${escapeHtml(corporateStatus)}</span></div>
         </div>
       </div>
       <div class="sac-side-card"><span>A classificação apoia a análise e não seleciona uma decisão automaticamente.</span></div>`;
   }
 
   function openCounterpartyVerification(data, ownerPanel) {
-    const mappedCnpj = counterpartyEngine.normalizeCnpj(data?.falcon?.counterpartyCnpj || "");
-    const mappedDirection = counterpartyEngine.normalizeDirection(data?.falcon?.counterpartyDirection || "BOTH");
-    const mappedSource = clean(data?.falcon?.counterpartySourceLabel, "ID da contraparte");
-    const originMessage = mappedCnpj
-      ? `CNPJ coletado de ${mappedSource} na linha laranja do Falcon.`
-      : "A linha laranja não trouxe um CNPJ válido para esta direção. Informe o CNPJ sem usar o documento do titular.";
+    const falcon = data?.falcon || data || {};
+    const mappedCnpj = counterpartyEngine.normalizeCnpj(falcon.counterpartyCnpj || "");
+    const mappedDirection = counterpartyEngine.normalizeDirection(falcon.counterpartyDirection || "BOTH");
+    const mappedSource = clean(falcon.counterpartySourceLabel, "Quem enviou ou recebeu");
+    if (!counterpartyEngine.validateCnpj(mappedCnpj)) return null;
+    const originMessage = `CNPJ coletado de ${mappedSource} na linha laranja do Falcon.`;
     const panel = openSupportPanel(ownerPanel, "Verificação de CNPJ", `
       <div class="sac-side-card"><span>${escapeHtml(originMessage)}</span></div>
-      <div class="sac-support-form">
-        <label class="sac-support-field">CNPJ da contraparte
-          <input id="sac-counterparty-cnpj" value="${escapeHtml(mappedCnpj)}" inputmode="text" autocomplete="off" placeholder="00.000.000/0000-00">
-        </label>
-        <label class="sac-support-field">Direção da contraparte
-          <select id="sac-counterparty-direction">
-            <option value="ORIGIN" ${mappedDirection === "ORIGIN" ? "selected" : ""}>Origem / crédito recebido</option>
-            <option value="DESTINATION" ${mappedDirection === "DESTINATION" ? "selected" : ""}>Destino / débito enviado</option>
-            <option value="BOTH" ${mappedDirection === "BOTH" ? "selected" : ""}>Origem ou destino</option>
-          </select>
-        </label>
+      <div class="sac-investigation-grid">
+        <div class="sac-side-card sac-cnpj-card" id="sac-counterparty-cnpj-card"><strong>CNPJ</strong><span>${escapeHtml(mappedCnpj)}</span><i class="sac-cnpj-indicator" id="sac-counterparty-indicator" title="CNPJ ainda não classificado" aria-label="CNPJ ainda não classificado">✓</i></div>
+        <div class="sac-side-card"><strong>Direção</strong><span>${escapeHtml(mappedDirection === "ORIGIN" ? "Origem" : mappedDirection === "DESTINATION" ? "Destino" : "Origem ou destino")}</span></div>
       </div>
-      <div id="sac-counterparty-result"></div>
-      <div class="sac-support-actions three">
-        <button class="sac-main" id="sac-run-counterparty-check">Cruzar dados</button>
-        <button class="sac-secondary" id="sac-open-rfb-query">Abrir Receita</button>
-        <button class="sac-secondary" data-close-support>Fechar</button>
+      <div id="sac-counterparty-result"><div class="sac-side-card"><span>Consultando dados cadastrais automaticamente...</span></div></div>
+      <div class="sac-support-actions" id="sac-counterparty-local-actions" hidden>
+        <button class="sac-main" data-classify-counterparty="TRUSTED">Adicionar confiável</button>
+        <button class="sac-secondary" data-classify-counterparty="REVIEW">Adicionar atenção</button>
       </div>
     `);
     if (!panel) return;
-    const input = panel.querySelector("#sac-counterparty-cnpj");
     const resultHost = panel.querySelector("#sac-counterparty-result");
     const verify = async () => {
-      const cnpj = counterpartyEngine.normalizeCnpj(input?.value || "");
-      if (!counterpartyEngine.validateCnpj(cnpj)) {
-        resultHost.innerHTML = `<div class="sac-side-card sac-support-summary danger"><strong>CNPJ inválido</strong><span>Confira os 14 caracteres e tente novamente.</span></div>`;
-        showNotice("CNPJ da contraparte inválido. Confira o dado informado.", "error");
-        input?.focus();
-        return;
-      }
-      const button = panel.querySelector("#sac-run-counterparty-check");
-      if (button) {
-        button.disabled = true;
-        button.textContent = "Consultando...";
-      }
+      const cnpj = mappedCnpj;
       try {
         const [counterparty, corporate] = await Promise.all([
           counterpartyEngine.classify({
             cnpj,
-            issuer: data?.issuer,
-            direction: panel.querySelector("#sac-counterparty-direction")?.value || "ORIGIN"
+            issuer: data?.issuer || falcon?.issuer || "GLOBAL",
+            direction: mappedDirection
           }),
           corporateEngine.lookup(cnpj)
         ]);
@@ -2670,27 +2770,45 @@
         counterpartySessionResults.set(counterpartySessionKey(data), counterparty);
         data.counterpartyResult = counterparty;
         data.corporateResult = corporate;
+        falcon.counterpartyResult = counterparty;
+        falcon.corporateResult = corporate;
         resultHost.innerHTML = counterpartyResultHtml(counterparty, corporate, crossed);
+        const indicatorState = counterpartyIndicatorState(counterparty, corporate, crossed);
+        const indicatorTitle = counterpartyIndicatorTitle(counterparty, corporate, crossed);
+        const cnpjCard = panel.querySelector("#sac-counterparty-cnpj-card");
+        const indicator = panel.querySelector("#sac-counterparty-indicator");
+        cnpjCard?.classList.remove("is-success", "is-warning", "is-danger");
+        indicator?.classList.remove("is-success", "is-warning", "is-danger");
+        if (indicatorState !== "neutral") {
+          cnpjCard?.classList.add(`is-${indicatorState}`);
+          indicator?.classList.add(`is-${indicatorState}`);
+        }
+        if (indicator) {
+          indicator.title = indicatorTitle;
+          indicator.setAttribute("aria-label", indicatorTitle);
+        }
+        panel.querySelector("#sac-counterparty-local-actions")?.removeAttribute("hidden");
       } catch (_error) {
         resultHost.innerHTML = `<div class="sac-side-card sac-support-summary danger"><strong>Consulta indisponível</strong><span>Não foi possível consultar a base agora.</span></div>`;
         showNotice("Não foi possível consultar a base de CNPJs.", "error");
-      } finally {
-        if (button) {
-          button.disabled = false;
-          button.textContent = "Verificar";
-        }
       }
     };
-    panel.querySelector("#sac-run-counterparty-check")?.addEventListener("click", verify);
-    panel.querySelector("#sac-open-rfb-query")?.addEventListener("click", () => {
-      if (!corporateEngine.openOfficialQuery()) showNotice("O navegador bloqueou a abertura da consulta da Receita Federal.", "warn");
+    panel.querySelector("#sac-counterparty-local-actions")?.addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-classify-counterparty]");
+      if (!button) return;
+      counterpartyEngine.upsertLocalClassification({
+        cnpj: mappedCnpj,
+        issuer: data?.issuer || falcon?.issuer || "GLOBAL",
+        direction: mappedDirection,
+        classification: button.dataset.classifyCounterparty,
+        legalName: data?.corporateResult?.legalName || ""
+      });
+      persistCounterpartyLocalRecords();
+      await verify();
+      showNotice(button.dataset.classifyCounterparty === "TRUSTED" ? "CNPJ adicionado à base confiável local." : "CNPJ adicionado à base de atenção local.", "success");
     });
-    input?.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        verify();
-      }
-    });
+    verify();
+    return panel;
   }
 
   // ========================= CONSOLE: JANELA ========================
@@ -2699,7 +2817,7 @@
     if (falcon?.flow === "card") await ensureCardGridOpen();
     const data = collectConsoleData(falcon || emptyFalconData());
     await applyPendingMediaResult(data);
-    data.accountValidation = compareFalconConsoleAccount(data.falcon, data.account);
+    data.accountValidation = compareFalconConsoleAccount(data.falcon, data.account, data.cpfCnpj, data.cardNumber || data.cardLast4);
     const isCard = data.flow === "card";
     const fields = isCard ? cardFields(data) : bankingFields(data);
     const divergentCase = data.accountValidation.comparable && !data.accountValidation.matches;
@@ -2770,8 +2888,7 @@
     const body = section("Dados do Falcon", falconGrid(data.falcon), "recebidos")
       + section("Dados do Console", consoleGrid(data), "coletados")
       + section("Chamada", consoleFlagControls(data), "opcional")
-      + section("Dropdowns de análise", `<div class="sac-field-grid">${fields}</div>`, "seleções padrão")
-      + (getInvestigationMode() ? section("Modo investigação", investigationControls(data), "apoio à decisão") : "");
+      + section("Dropdowns de análise", `<div class="sac-field-grid">${fields}</div>`, "seleções padrão");
     const panel = renderPanel({
       id: "sac-panel-console",
       stage: "CONSOLE",
@@ -2782,9 +2899,7 @@
       onEnter: save
     });
     byId("sac-save-console")?.addEventListener("click", save);
-    panel.querySelector("[data-investigation='cnpj']")?.addEventListener("click", () => openCounterpartyVerification(data, panel));
-    panel.querySelector("[data-investigation='transaction']")?.addEventListener("click", () => openTransactionAnalysis(data, panel));
-    panel.querySelector("[data-investigation='media']")?.addEventListener("click", () => openAdverseMediaInvestigation(data, panel));
+    attachInvestigationLauncher(panel, "CONSOLE", data);
     byId("sac-jira-flag")?.addEventListener("change", (event) => {
       data.jiraActive = Boolean(event.currentTarget.checked);
       const label = event.currentTarget.closest(".sac-jira-toggle");
@@ -3137,7 +3252,6 @@
   }
   function showFinalTabulation(data, decision, text, panel, status = "") {
     panel.dataset.finalLocked = "true";
-    panel.__sacListQueuePromise = updateListsForFinalDecision(data, decision);
     panel.querySelector(".sac-body").innerHTML =
       section("Tabulação pronta", `<textarea class="sac-textarea sac-final-textarea ${data.flow === "card" ? "sac-final-card" : ""}" id="sac-final-text" readonly>${escapeHtml(text)}</textarea>`, "final")
       + `<div class="sac-apply-status" id="sac-apply-status">${escapeHtml(status || "Tabulação pronta.")}</div>`
@@ -3151,9 +3265,8 @@
       event.currentTarget.disabled = true;
       let queue = [];
       try {
-        queue = await (panel.__sacListQueuePromise || updateListsForFinalDecision(data, decision));
+        queue = await updateListsForFinalDecision(data, decision);
       } catch (_err) {
-        panel.__sacListQueuePromise = null;
         event.currentTarget.disabled = false;
         showNotice("Não confirmei a gravação deste caso em LISTAS. A janela foi mantida aberta para tentar novamente.", "error", 16000);
         return;
@@ -3354,6 +3467,7 @@
     const aliases = new Map([
       ["CARTOES APROVADAS", ["CARTOES APROVADOS", "CARTAO APROVADO", "APROVADAS", "APPROVE", "APROVADA", "AUTHORIZED", "AUTORIZADA"]],
       ["CARTOES RECUSADAS", ["CARTOES REPROVADAS", "CARTOES RECUSADOS", "CARTOES REPROVADOS", "CARTAO RECUSADO", "DECLINE", "DECLINADA", "RECUSADA", "REPROVADA", "DENIED", "NEGADA"]],
+      ["CARTOES REPROVADAS", ["CARTOES RECUSADAS", "CARTOES RECUSADOS", "CARTOES REPROVADOS", "CARTAO RECUSADO", "DECLINE", "DECLINADA", "RECUSADA", "REPROVADA", "DENIED", "NEGADA"]],
       ["APPROVE", ["CARTOES APROVADAS", "CARTOES APROVADOS", "APROVADA", "AUTHORIZED", "AUTORIZADA"]],
       ["AUTHORIZED", ["CARTOES APROVADAS", "CARTOES APROVADOS", "APPROVE", "APROVADA", "AUTORIZADA"]],
       ["DECLINE", ["CARTOES RECUSADAS", "CARTOES REPROVADAS", "RECUSADA", "REPROVADA", "DENIED", "NEGADA"]],
@@ -3968,10 +4082,8 @@
   }
   function listExpiryDays(item, listType) {
     const issuer = normalize(item?.issuer);
-    const sourceFlow = item?.sourceFlow || item?.flow || "banking";
     if (issuer.includes("ONLYPAY")) return 5;
     if (issuer.includes("SOFISA") && listType === "contencao") return 3;
-    if (sourceFlow === "card") return issuer.includes("SOFISA") ? 3 : 7;
     return 2;
   }
 
@@ -3992,17 +4104,28 @@
   async function waitForListMutations() {
     if (listMutationDepth === 0) await listMutationChain.catch(() => undefined);
   }
-  function listItemKey(item) {
+  function listItemKey(item, listType = "") {
+    const type = listType || (item?.lists?.contencao ? "contencao" : "allowlist");
     const caseKey = alnumOnly(item?.caseNumber);
-    if (caseKey) return `CASE:${caseKey}`;
-    const accountKey = alnumOnly(item?.account);
-    const documentKey = alnumOnly(item?.documentValue || item?.document || "");
-    const issuerKey = alnumOnly(item?.issuer || "");
-    return accountKey || documentKey || issuerKey ? `${accountKey}:${documentKey}:${issuerKey}` : String(item?.id || "");
+    const subjectKey = type === "contencao"
+      ? alnumOnly(item?.documentValue || item?.document || "")
+      : alnumOnly(item?.account);
+    return `${type.toUpperCase()}:${caseKey}:${subjectKey}`;
+  }
+  function splitPendingQueueEntries(item) {
+    return ["allowlist", "contencao"].flatMap((listType) => {
+      if (!item?.lists?.[listType] || item?.applied?.[listType]) return [];
+      return [{
+        ...item,
+        id: `${String(item?.id || listItemKey(item, listType)).replace(/:(allowlist|contencao)$/i, "")}:${listType}`,
+        lists: { allowlist: listType === "allowlist", contencao: listType === "contencao" },
+        applied: { allowlist: listType !== "allowlist", contencao: listType !== "contencao" }
+      }];
+    });
   }
   function validPendingListItems(items) {
     const byKey = new Map();
-    (Array.isArray(items) ? items : []).forEach((item) => {
+    (Array.isArray(items) ? items : []).flatMap(splitPendingQueueEntries).forEach((item) => {
       if (!item || Date.now() - Number(item.savedAt || 0) >= EXECUTION_TTL_MS) return;
       const pendingAllowlist = item.lists?.allowlist && !item.applied?.allowlist;
       const pendingContencao = item.lists?.contencao && !item.applied?.contencao;
@@ -4017,22 +4140,6 @@
       .sort((a, b) => Number(b.updatedAt || b.savedAt || 0) - Number(a.updatedAt || a.savedAt || 0))
       .slice(0, 300);
   }
-  function readImmediateListMirror() {
-    return validPendingListItems([
-      ...(readRawJson(localStorage, LIST_ENGINE_KEY, []) || []),
-      ...(readRawJson(sessionStorage, LIST_ENGINE_KEY, []) || []),
-      ...(readWindowNameBlock(LIST_ENGINE_WINDOW_KEY) || []),
-      ...(Array.isArray(window[LIST_ENGINE_GLOBAL]) ? window[LIST_ENGINE_GLOBAL] : [])
-    ]);
-  }
-  function writeImmediateListMirror(list) {
-    const next = validPendingListItems(list);
-    window[LIST_ENGINE_GLOBAL] = next;
-    writeRawJson(localStorage, LIST_ENGINE_KEY, next);
-    writeRawJson(sessionStorage, LIST_ENGINE_KEY, next);
-    writeWindowNameBlock(LIST_ENGINE_WINDOW_KEY, next);
-    return next;
-  }
   async function hydrateListClipboardFast(hasLocalItems, mode = "fast") {
     if (!memory.hydrateFromClipboard) return;
     const timeout = mode === "full" ? 3200 : hasLocalItems ? 260 : 1200;
@@ -4044,16 +4151,14 @@
   async function readListQueue(options = {}) {
     if (options.waitForPending !== false) await waitForListMutations();
     memory.state?.get?.() || memory.mergeCurrentMirrors?.();
-    let merged = validPendingListItems([...readImmediateListMirror(), ...memory.lists.all()]);
+    let merged = validPendingListItems(memory.lists.all());
     if (options.hydrateClipboard !== false) {
       await hydrateListClipboardFast(Boolean(merged.length), options.hydrateClipboard === "full" ? "full" : "fast");
       memory.state?.get?.() || memory.mergeCurrentMirrors?.();
-      merged = validPendingListItems([...merged, ...readImmediateListMirror(), ...memory.lists.all()]);
+      merged = validPendingListItems([...merged, ...memory.lists.all()]);
     }
     memory.lists.replace(validPendingListItems(merged));
-    const authoritative = validPendingListItems(memory.lists.all());
-    writeImmediateListMirror(authoritative);
-    return authoritative;
+    return validPendingListItems(memory.lists.all());
   }
   function hasPendingListApplication(item) {
     const pendingAllowlist = item?.lists?.allowlist && !item?.applied?.allowlist;
@@ -4063,35 +4168,40 @@
   async function writeListQueue(list) {
     memory.state?.get?.() || memory.mergeCurrentMirrors?.();
     memory.lists.replace(validPendingListItems(list));
-    const authoritative = validPendingListItems(memory.lists.all());
-    writeImmediateListMirror(authoritative);
-    try {
-      const result = await memory.commitCurrentText?.();
-      if (result) clipboardEnvelopeReady = Boolean(result.memoryCopied);
-    } catch (_err) {}
-    return authoritative;
+    return validPendingListItems(memory.lists.all());
   }
-  function sameListIdentity(item, data) {
-    const itemCase = alnumOnly(item?.caseNumber);
-    const dataCase = alnumOnly(data?.falcon?.caseNumber);
+  function listIdentityToken(value) {
+    const token = alnumOnly(value);
+    return ["", "NA", "NULL", "UNDEFINED", "AUSENCIADEDADOS"].includes(token) ? "" : token;
+  }
+  function sameCaseIdentity(item, data) {
+    const itemCase = listIdentityToken(item?.caseNumber);
+    const dataCase = listIdentityToken(data?.falcon?.caseNumber);
     if (itemCase && dataCase) return itemCase === dataCase;
-    const itemAccount = alnumOnly(item?.account);
-    const dataAccount = alnumOnly(data?.account);
+    const itemAccount = listIdentityToken(item?.account);
+    const dataAccount = listIdentityToken(data?.account);
     return Boolean(itemAccount && dataAccount && itemAccount === dataAccount);
   }
+  function sameCompositeListIdentity(item, data, listType) {
+    const caseKey = alnumOnly(data?.falcon?.caseNumber);
+    const subjectKey = listType === "contencao"
+      ? alnumOnly(documentFieldValue(data?.cpfCnpj))
+      : alnumOnly(data?.account);
+    return listItemKey(item, listType) === `${listType.toUpperCase()}:${caseKey}:${subjectKey}`;
+  }
   async function retireCurrentCaseFromLists(queue, data) {
-    const currentItems = queue.filter((item) => sameListIdentity(item, data));
+    const currentItems = queue.filter((item) => sameCaseIdentity(item, data));
     currentItems.forEach((item) => {
       if (item.lists?.allowlist) memory.lists.markDone?.(item, "allowlist");
       if (item.lists?.contencao) memory.lists.markDone?.(item, "contencao");
     });
-    const withoutCurrentCase = queue.filter((item) => !sameListIdentity(item, data));
+    const withoutCurrentCase = queue.filter((item) => !sameCaseIdentity(item, data));
     return writeListQueue(withoutCurrentCase);
   }
   async function updateListsForFinalDecision(data, decision) {
     return enqueueListMutation(async () => {
       const queue = await readListQueue({ waitForPending: false, hydrateClipboard: false });
-      const withoutCurrentCase = queue.filter((item) => !sameListIdentity(item, data));
+      const withoutCurrentCase = queue.filter((item) => !sameCaseIdentity(item, data));
       if (!isNoFraudDecision(decision)) {
         if (withoutCurrentCase.length !== queue.length) {
           showNotice("O caso foi retirado de LISTAS porque a decisão final não é NÃO FRAUDE.", "info");
@@ -4111,15 +4221,12 @@
       const documentValue = documentFieldValue(data.cpfCnpj);
       if (!account) showNotice("Caso guardado em LISTAS, mas falta o ID da conta para concluir a inclusão.", "warn", 12000);
       if (lists.contencao && !documentValue) showNotice("Caso guardado nas duas abas, mas falta CPF/CNPJ para concluir a Contenção.", "warn", 12000);
-      queue.filter((entry) => sameListIdentity(entry, data)).forEach((entry) => {
+      queue.filter((entry) => sameCaseIdentity(entry, data)).forEach((entry) => {
         if (entry.lists?.allowlist) memory.lists.markDone?.(entry, "allowlist");
         if (entry.lists?.contencao) memory.lists.markDone?.(entry, "contencao");
       });
       const savedAt = Date.now() + 1;
-      const item = {
-        id: `${data.falcon?.caseNumber || savedAt}-${savedAt}`,
-        lists,
-        applied: { allowlist: false, contencao: !lists.contencao },
+      const baseItem = {
         caseNumber: data.falcon?.caseNumber || "N/A",
         issuer: clean(data.issuer, "N/A"),
         account,
@@ -4131,19 +4238,37 @@
         savedAt,
         updatedAt: savedAt
       };
+      const listItems = [
+        {
+          ...baseItem,
+          id: `allowlist:${alnumOnly(baseItem.caseNumber)}:${alnumOnly(account)}`,
+          lists: { allowlist: true, contencao: false },
+          applied: { allowlist: false, contencao: true }
+        },
+        ...(lists.contencao ? [{
+          ...baseItem,
+          id: `contencao:${alnumOnly(baseItem.caseNumber)}:${alnumOnly(documentValue)}`,
+          lists: { allowlist: false, contencao: true },
+          applied: { allowlist: true, contencao: false }
+        }] : [])
+      ];
       showNotice(lists.contencao ? "Caso finalizado e guardado em LISTAS com CPF/CNPJ." : "Caso finalizado e guardado em LISTAS com ID da conta.", "info");
-      const next = [item, ...withoutCurrentCase];
-      memory.lists.upsert?.(item);
+      const next = [...listItems, ...withoutCurrentCase];
+      listItems.forEach((item) => memory.lists.upsert?.(item));
       let persisted = await writeListQueue(next);
-      const saved = persisted.find((entry) => sameListIdentity(entry, data));
-      const fullyPending = Boolean(saved?.lists?.allowlist && !saved?.applied?.allowlist)
-        && (!lists.contencao || Boolean(saved?.lists?.contencao && !saved?.applied?.contencao));
+      const fullyPending = listItems.every((item) => {
+        const listType = item.lists.contencao ? "contencao" : "allowlist";
+        return persisted.some((entry) => sameCompositeListIdentity(entry, data, listType) && entry.lists?.[listType] && !entry.applied?.[listType]);
+      });
       if (!fullyPending) {
-        memory.lists.upsert?.(item);
-        persisted = await writeListQueue([item, ...persisted]);
+        listItems.forEach((item) => memory.lists.upsert?.(item));
+        persisted = await writeListQueue([...listItems, ...persisted]);
       }
-      const confirmed = persisted.find((entry) => sameListIdentity(entry, data));
-      if (!confirmed?.lists?.allowlist || confirmed.applied?.allowlist || (lists.contencao && (!confirmed.lists?.contencao || confirmed.applied?.contencao))) {
+      const confirmed = listItems.every((item) => {
+        const listType = item.lists.contencao ? "contencao" : "allowlist";
+        return persisted.some((entry) => sameCompositeListIdentity(entry, data, listType) && entry.lists?.[listType] && !entry.applied?.[listType]);
+      });
+      if (!confirmed) {
         throw new Error("LISTAS_PERSISTENCE_NOT_CONFIRMED");
       }
       return persisted;
@@ -4355,6 +4480,17 @@
       return !stillPending;
     });
   }
+  async function markListBatchDone(ids, listType) {
+    const idSet = new Set(ids);
+    return enqueueListMutation(async () => {
+      const original = await readListQueue({ waitForPending: false });
+      original.filter((item) => idSet.has(item.id)).forEach((item) => memory.lists.markDone?.(item, listType));
+      const remaining = memory.lists.all().filter(hasPendingListApplication);
+      await writeListQueue(remaining);
+      const pending = await readListQueue({ waitForPending: false });
+      return !pending.some((item) => idSet.has(item.id) && item.lists?.[listType] && !item.applied?.[listType]);
+    });
+  }
   async function removeListItem(id, listType) {
     return markListDone(id, listType);
   }
@@ -4365,6 +4501,71 @@
     if (selectedText.includes("ALLOWLIST")) return "allowlist";
     return "";
   }
+  function listEditableField(label, listType) {
+    const normalized = normalize(label);
+    if (normalized === "EMISSOR") return "issuer";
+    if (normalized === "ID CONTA" && listType === "allowlist") return "account";
+    if (normalized === "CPF/CNPJ" && listType === "contencao") return "documentValue";
+    if (normalized === "NUMERO DO CASO") return "caseNumber";
+    if (normalized === "ID EMISSOR") return "issuerId";
+    return "";
+  }
+  function editedListItem(item, listType, field, value) {
+    const updatedAt = Date.now() + 1;
+    const next = {
+      ...item,
+      [field]: field === "documentValue" ? alnumOnly(value) : clean(value, ""),
+      updatedAt
+    };
+    if (field === "issuer") next.issuerId = "";
+    const caseKey = listIdentityToken(next.caseNumber);
+    const subjectKey = listType === "contencao" ? listIdentityToken(next.documentValue) : listIdentityToken(next.account);
+    next.id = `${listType}:${caseKey}:${subjectKey}:${listType}`;
+    return next;
+  }
+  function enableListGridEditing(panel) {
+    enableGridCopy(panel);
+    panel.addEventListener("dblclick", (event) => {
+      const cell = event.target.closest(".sac-kv");
+      const itemElement = event.target.closest("[data-list-id]");
+      if (!cell || !itemElement || cell.querySelector("input")) return;
+      if (getSafeMode()) {
+        showNotice("Desligue o modo seguro para editar este item de LISTAS.", "warn");
+        return;
+      }
+      const listType = itemElement.dataset.listType;
+      const field = listEditableField(textOf(cell.querySelector(".sac-kv-label")), listType);
+      if (!field) return;
+      const valueNode = cell.querySelector(".sac-kv-value");
+      const input = document.createElement("input");
+      input.value = isMissing(valueNode?.textContent) ? "" : textOf(valueNode);
+      input.style.cssText = "width:100%;height:25px;border:1px solid var(--sac-border);border-radius:4px;background:var(--sac-input);color:var(--sac-text);font-weight:850";
+      valueNode.replaceChildren(input);
+      input.focus();
+      let committed = false;
+      const save = async () => {
+        if (committed) return;
+        committed = true;
+        const queue = await readListQueue({ hydrateClipboard: false });
+        const target = queue.find((entry) => entry.id === itemElement.dataset.listId);
+        if (!target) return renderLists(listType);
+        memory.lists.markDone?.(target, listType);
+        const edited = editedListItem(target, listType, field, input.value.trim());
+        const remaining = queue.filter((entry) => entry.id !== target.id);
+        await writeListQueue([edited, ...remaining]);
+        showNotice("Item de LISTAS atualizado.", "success");
+        return renderLists(listType);
+      };
+      input.addEventListener("keydown", (keyEvent) => {
+        if (keyEvent.key === "Enter") save();
+        if (keyEvent.key === "Escape") {
+          committed = true;
+          valueNode.textContent = input.defaultValue || "N/A";
+        }
+      });
+      input.addEventListener("blur", save, { once: true });
+    });
+  }
   async function renderLists(activeTab = "") {
     closePidPanel();
     closeSidePanels();
@@ -4373,27 +4574,41 @@
     storageSet("activeListTab", activeTab);
     const queue = await readListQueue({ hydrateClipboard: "full" });
     const items = await Promise.all(queue.map(async (item) => ({ ...item, issuerId: item.issuerId || await issuerIdForName(item.issuer) })));
-    const visible = items.filter((item) => item.lists?.[activeTab] && !item.applied?.[activeTab]);
+    const visible = items
+      .filter((item) => item.lists?.[activeTab] && !item.applied?.[activeTab])
+      .sort((left, right) => clean(left.issuer, "").localeCompare(clean(right.issuer, ""), "pt-BR", { sensitivity: "base" })
+        || Number(left.savedAt || 0) - Number(right.savedAt || 0));
+    const groups = new Map();
+    visible.forEach((item) => {
+      const keyValue = normalize(item.issuer) || "SEM EMISSOR";
+      if (!groups.has(keyValue)) groups.set(keyValue, { issuer: clean(item.issuer, "Sem emissor"), items: [] });
+      groups.get(keyValue).items.push(item);
+    });
+    const listItemHtml = (item) => `
+      <div class="sac-allowlist-item" data-list-id="${escapeHtml(item.id)}" data-list-type="${escapeHtml(activeTab)}">
+        <div class="sac-allowlist-row">
+          ${kvNoHelp("Emissor", item.issuer)}
+          ${kvNoHelp(activeTab === "contencao" ? "CPF/CNPJ" : "Id Conta", listIdentifier(item, activeTab))}
+          ${kvNoHelp("Número do caso", item.caseNumber)}
+          ${kvNoHelp("ID emissor", item.issuerId || "N/A")}
+        </div>
+        <div class="sac-allowlist-actions">
+          <button data-list-apply>INSERIR</button>
+          <button data-list-remove>REMOVER</button>
+        </div>
+      </div>`;
+    const groupedHtml = Array.from(groups.entries()).map(([issuerKey, group]) => `
+      <div class="sac-list-issuer-group">
+        <div class="sac-list-issuer-head"><strong>${escapeHtml(group.issuer)} · ${group.items.length} caso${group.items.length === 1 ? "" : "s"}</strong><button data-list-apply-issuer="${escapeHtml(issuerKey)}">INSERIR GRUPO</button></div>
+        ${group.items.map(listItemHtml).join("")}
+      </div>`).join("");
     const body = section("Listas", `
       <div class="sac-list-tabs">
         <button class="${activeTab === "allowlist" ? "active" : ""}" data-list-tab="allowlist">ALLOWLIST (${items.filter((item) => item.lists?.allowlist && !item.applied?.allowlist).length})</button>
         <button class="${activeTab === "contencao" ? "active" : ""}" data-list-tab="contencao">CONTENÇÃO (${items.filter((item) => item.lists?.contencao && !item.applied?.contencao).length})</button>
       </div>
       <div class="sac-allowlist-list">
-        ${visible.length ? visible.map((item) => `
-          <div class="sac-allowlist-item" data-list-id="${escapeHtml(item.id)}" data-list-type="${escapeHtml(activeTab)}">
-            <div class="sac-allowlist-row">
-              ${kvNoHelp("Emissor", item.issuer)}
-              ${kvNoHelp(activeTab === "contencao" ? "CPF/CNPJ" : "Id Conta", listIdentifier(item, activeTab))}
-              ${kvNoHelp("Número do caso", item.caseNumber)}
-              ${kvNoHelp("ID emissor", item.issuerId || "N/A")}
-            </div>
-            <div class="sac-allowlist-actions">
-              <button data-list-apply>INSERIR</button>
-              <button data-list-remove>REMOVER</button>
-            </div>
-          </div>
-        `).join("") : `<div class="sac-history-empty">Nenhum caso pendente nesta aba.</div>`}
+        ${visible.length ? groupedHtml : `<div class="sac-history-empty">Nenhum caso pendente nesta aba.</div>`}
       </div>
     `, "pendentes");
     const panel = renderPanel({
@@ -4403,10 +4618,33 @@
       subtitle: "Allowlist e Contenção",
       body
     });
-    enableGridCopy(panel);
+    enableListGridEditing(panel);
     panel.addEventListener("click", async (event) => {
       const tab = event.target.closest("[data-list-tab]");
       if (tab) return renderLists(tab.dataset.listTab);
+      const issuerBatch = event.target.closest("[data-list-apply-issuer]");
+      if (issuerBatch) {
+        issuerBatch.disabled = true;
+        const queueNow = await readListQueue({ hydrateClipboard: "full" });
+        const targets = queueNow.filter((item) => normalize(item.issuer) === issuerBatch.dataset.listApplyIssuer && item.lists?.[activeTab] && !item.applied?.[activeTab]);
+        const completed = [];
+        for (const target of targets) {
+          const result = await applyListItem(target, activeTab);
+          if (!result.ok) {
+            issuerBatch.disabled = false;
+            showNotice(`O lote parou no caso ${target.caseNumber}: ${result.missing.join(", ")}.`, "error", 15000);
+            return;
+          }
+          completed.push(target.id);
+        }
+        if (!completed.length || !await markListBatchDone(completed, activeTab)) {
+          issuerBatch.disabled = false;
+          showNotice("Os campos foram aplicados, mas a memória não confirmou todo o lote.", "error", 15000);
+          return renderLists(activeTab);
+        }
+        showNotice(`${completed.length} caso${completed.length === 1 ? "" : "s"} do emissor foram inseridos.`, "success");
+        return renderLists(activeTab);
+      }
       const itemEl = event.target.closest("[data-list-id]");
       if (!itemEl) return;
       const id = itemEl.dataset.listId;

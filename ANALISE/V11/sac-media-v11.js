@@ -3,7 +3,7 @@
 
   if (window.SACMediaV11) return;
 
-  const ENGINE_VERSION = "1.0.0";
+  const ENGINE_VERSION = "2.1.0";
   const MEDIA_TYPES = Object.freeze([
     "Crimes contra a fé pública",
     "Tráfico de drogas",
@@ -20,6 +20,23 @@
     "Furto (majorado ou qualificado)",
     "Estupro",
     "Homicídio"
+  ]);
+  const MEDIA_PATTERNS = Object.freeze([
+    ["Tráfico de drogas", /TRAFIC\w*.*(?:DROG|ENTORPEC)|DROG\w*|ENTORPEC\w*/],
+    ["Terrorismo", /TERRORIS\w*/],
+    ["Falsidade ideológica", /FALS\w*\s+IDEOLOG\w*|IDENTIDADE FALSA/],
+    ["Crimes contra a fé pública", /FE\s+PUBLIC\w*|MOED\w*\s+FALS\w*|DOCUMENT\w*\s+FALS\w*|FALSIFIC\w*|USO\s+DE\s+DOCUMENT\w*\s+FALS\w*/],
+    ["Crimes contra o sistema financeiro", /SISTEMA\s+FINANCEIR\w*|CRIM\w*\s+FINANCEIR\w*|GESTAO\s+FRAUDULENT\w*|EVASAO\s+DE\s+DIVISAS/],
+    ["Crimes contra a ordem tributária", /ORDEM\s+TRIBUTARI\w*|SONEG\w*|CRIM\w*\s+TRIBUTARI\w*|FRAUDE\s+FISCAL/],
+    ["Crimes contra a administração da justiça", /ADMINISTRACAO\s+DA\s+JUSTICA|FRAUDE\s+PROCESSUAL|FALS\w*\s+TESTEMUNH\w*|COACAO\s+NO\s+CURSO/],
+    ["Crimes contra a administração pública", /ADMINISTRACAO\s+PUBLIC\w*|PECULAT\w*|CORRUP\w*|CONCUSSAO|IMPROBIDADE/],
+    ["Receptação", /RECEPTA\w*/],
+    ["Estelionato", /ESTELIONAT\w*|FRAUDE\s+ELETRONIC\w*/],
+    ["Roubo (majorado ou qualificado)", /ROUB\w*/],
+    ["Furto (majorado ou qualificado)", /FURT\w*/],
+    ["Estupro", /ESTUPR\w*|VIOLACAO\s+SEXUAL/],
+    ["Homicídio", /HOMICID\w*|LATROCIN\w*/],
+    ["Crimes contra o patrimônio", /CRIM\w*\s+CONTRA\s+O\s+PATRIMON\w*|DANO\s+(?:SIMPLES|QUALIFICADO)|APROPRIACAO\s+INDEBIT\w*/]
   ]);
 
   let provider = null;
@@ -64,6 +81,136 @@
       .map((item) => allowed.get(normalizeText(item)))
       .filter(Boolean)));
   }
+
+  function textOf(node) {
+    return String(node?.innerText ?? node?.textContent ?? "").replace(/\s+/g, " ").trim();
+  }
+
+  function fieldMap(root) {
+    const values = new Map();
+    Array.from(root?.querySelectorAll?.(".cd-block") || []).forEach((block) => {
+      const label = normalizeText(textOf(block.querySelector?.(".cd-title"))).replace(/:$/, "");
+      const value = textOf(block.querySelector?.(".cd-value"));
+      if (label && value && !values.has(label)) values.set(label, value);
+    });
+    return values;
+  }
+
+  function fieldValue(fields, ...labels) {
+    for (const label of labels) {
+      const value = fields.get(normalizeText(label).replace(/:$/, ""));
+      if (value) return value;
+    }
+    return "";
+  }
+
+  function collectPidData(root = document) {
+    const personCards = Array.from(root?.querySelectorAll?.("#queryResult_personData .content-card") || []);
+    const person = personCards.map(fieldMap).find((fields) => fieldValue(fields, "Nome", "Documento")) || new Map();
+    const addressCards = Array.from(root?.querySelectorAll?.("#queryResult_addressData .content-card") || []).map(fieldMap);
+    const address = addressCards.find((fields) => normalizeText(fieldValue(fields, "Endereço é principal")) === "SIM")
+      || addressCards.find((fields) => fieldValue(fields, "Endereço"))
+      || new Map();
+    const phoneCards = Array.from(root?.querySelectorAll?.("#queryResult_phoneData .content-card,#queryResult_extendedPhonesData .content-card") || []).map(fieldMap);
+    const phoneFields = phoneCards.find((fields) => fieldValue(fields, "Telefone", "Número", "Phone")) || new Map();
+    const emailCards = Array.from(root?.querySelectorAll?.("#queryResult_emailData .content-card,#queryResult_extendedEmailsData .content-card") || []).map(fieldMap);
+    const emailFields = emailCards.find((fields) => fieldValue(fields, "E-mail", "Email")) || new Map();
+    const addressText = [fieldValue(address, "Endereço"), fieldValue(address, "Complemento"), fieldValue(address, "Cidade"), fieldValue(address, "UF")]
+      .filter(Boolean)
+      .join(" - ");
+    const phone = fieldValue(phoneFields, "Telefone", "Número", "Phone");
+    return Object.freeze({
+      supported: Boolean(person.size),
+      name: fieldValue(person, "Nome"),
+      motherName: fieldValue(person, "Nome da mãe", "Nome da mae"),
+      birthDate: fieldValue(person, "Data de nascimento"),
+      document: digits(fieldValue(person, "Documento")),
+      documentStatus: fieldValue(person, "Status"),
+      address: addressText,
+      city: fieldValue(address, "Cidade"),
+      uf: fieldValue(address, "UF"),
+      phone,
+      email: fieldValue(emailFields, "E-mail", "Email"),
+      source: "BigData"
+    });
+  }
+
+  function processMediaTypes(record) {
+    const text = normalizeText([record?.subject, record?.type, record?.courtType].filter(Boolean).join(" | "));
+    return MEDIA_PATTERNS.filter(([, pattern]) => pattern.test(text)).map(([type]) => type);
+  }
+
+  function classifyProcessRecords(records = [], parties = []) {
+    const targetDocuments = new Set((Array.isArray(parties) ? parties : []).map((party) => digits(party?.document)).filter(isCpf));
+    const defendants = [];
+    const mediaTypes = new Set();
+    (Array.isArray(records) ? records : []).forEach((record) => {
+      const matchedParties = (Array.isArray(record?.parties) ? record.parties : []).filter((party) => {
+        const role = normalizeText(`${party?.role || ""} ${party?.participation || ""} ${party?.polarity || ""}`);
+        return targetDocuments.has(digits(party?.document))
+          && /\b(?:REU|RE|DEFENDANT|PASSIVE|POLO PASSIVO|ACUSAD\w*|DENUNCIAD\w*|REQUERID\w*|RECORRID\w*)\b/.test(role);
+      });
+      if (!matchedParties.length) return;
+      const matchedTypes = processMediaTypes(record);
+      if (!matchedTypes.length) return;
+      matchedTypes.forEach((type) => mediaTypes.add(type));
+      defendants.push({
+        processNumber: String(record?.processNumber || "").trim(),
+        subject: String(record?.subject || "").trim(),
+        mediaTypes: matchedTypes,
+        documents: matchedParties.map((party) => digits(party.document))
+      });
+    });
+    return Object.freeze({
+      found: mediaTypes.size > 0,
+      mediaTypes: Object.freeze(Array.from(mediaTypes)),
+      defendants: Object.freeze(defendants)
+    });
+  }
+
+  function parseBigDataProcesses(root = document) {
+    const cards = Array.from(root?.querySelectorAll?.("#queryResult_judicialCasesHolderData .content-card") || []);
+    return cards.flatMap((card) => {
+      const fields = fieldMap(card);
+      const processNumber = fieldValue(fields, "Número do processo");
+      if (!processNumber) return [];
+      const partyNodes = Array.from(card.querySelectorAll?.("ul.process-list > li") || []);
+      const parties = partyNodes.map((party) => {
+        const partyFields = fieldMap(party);
+        return {
+          document: fieldValue(partyFields, "Documento"),
+          participation: fieldValue(partyFields, "Participação"),
+          polarity: fieldValue(partyFields, "Polaridade"),
+          role: fieldValue(partyFields, "Tipo Especifico da Parte", "Tipo Específico da Parte")
+        };
+      });
+      return [{
+        processNumber,
+        subject: fieldValue(fields, "Assunto Principal"),
+        type: fieldValue(fields, "Tipo do processo"),
+        courtType: fieldValue(fields, "Tipo da corte"),
+        parties
+      }];
+    });
+  }
+
+  const builtInProvider = Object.freeze({
+    canScan(root) {
+      return Boolean(root?.querySelector?.("#queryResult_personData,#queryResult_judicialCasesHolderData"));
+    },
+    async scan(input = {}) {
+      const root = input.root || document;
+      const pid = collectPidData(root);
+      const pageDocument = digits(pid.document);
+      const requestedDocuments = new Set((input.parties || []).map((party) => digits(party?.document)).filter(isCpf));
+      if (!isCpf(pageDocument) || !requestedDocuments.has(pageDocument)) {
+        return { found: false, mediaTypes: [], defendants: [], pid, pageDocument, identityMismatch: true, source: "BigData" };
+      }
+      const selectedParty = (input.parties || []).filter((party) => digits(party?.document) === pageDocument);
+      const result = classifyProcessRecords(parseBigDataProcesses(root), selectedParty);
+      return { ...result, pid, pageDocument, identityMismatch: false, source: "BigData" };
+    }
+  });
 
   function requestIdentity(value = {}) {
     const caseNumber = String(value.caseNumber || "").replace(/\D/g, "");
@@ -111,7 +258,7 @@
   }
 
   function activeProvider() {
-    return provider || window.SACBigDataMediaAdapter || null;
+    return provider || window.SACBigDataMediaAdapter || builtInProvider;
   }
 
   function canScanPage(root = document) {
@@ -134,6 +281,19 @@
     }
     const raw = await adapter.scan({ ...input, parties });
     const mediaTypes = normalizeTypes(raw?.mediaTypes);
+    if (raw?.identityMismatch) {
+      return {
+        supported: true,
+        eligible: false,
+        found: false,
+        code: "BIGDATA_IDENTITY_MISMATCH",
+        parties,
+        defendants: [],
+        mediaTypes: [],
+        source: String(raw?.source || "BigData").trim(),
+        pid: raw?.pid || collectPidData(input.root || document)
+      };
+    }
     return {
       supported: true,
       eligible: true,
@@ -142,7 +302,8 @@
       parties,
       defendants: Array.isArray(raw?.defendants) ? raw.defendants : [],
       mediaTypes,
-      source: String(raw?.source || "BigData").trim()
+      source: String(raw?.source || "BigData").trim(),
+      pid: raw?.pid || collectPidData(input.root || document)
     };
   }
 
@@ -157,6 +318,9 @@
     isCpf,
     eligibleParties,
     normalizeTypes,
+    collectPidData,
+    classifyProcessRecords,
+    parseBigDataProcesses,
     requestIdentity,
     createRequest,
     createResult,

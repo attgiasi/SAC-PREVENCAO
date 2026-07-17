@@ -18,7 +18,7 @@ A base combina 18 registros confirmados pelo usuário com 82 CNPJs autorizados n
 O motor aceita apenas CNPJ válido. CPF retorna `NOT_APPLICABLE`.
 
 - `TRUSTED`: exibe `SINAL FAVORÁVEL A NÃO FRAUDE`.
-- `UNTRUSTED`: exibe `CONTRAPARTE NÃO CONFIÁVEL`.
+- `UNTRUSTED`: exibe `ORIGEM OU DESTINO NÃO CONFIÁVEL`.
 - `REVIEW`: informa conflito, validade expirada ou necessidade de revisão.
 - `UNKNOWN`: informa que o CNPJ ainda não foi mapeado.
 
@@ -104,15 +104,15 @@ O sincronizador remove somente registros gerados anteriormente com os prefixos `
 
 ## Integração no Console
 
-O `Modo investigação` fica desligado por padrão. Quando ativado nas Configurações, o rodapé do Console exibe os botões compactos `Verificar CNPJ` e `Análise transacional`. O comando de `Mídia desabonadora` aparece somente quando houver CPF elegível. No Falcon, `Análise transacional` aparece quando o grid possuir transações.
+O `Modo investigação` fica desligado por padrão. Quando ativado, uma aba discreta abre o painel lateral. `Verificar CNPJ` aparece no Falcon quando o documento de quem enviou ou recebeu na linha laranja for um CNPJ válido; `Análise transacional` aparece quando houver transações mapeadas. O BigData não mostra painel: somente coleta PID/mídia e transporta o resultado ao Console.
 
 - `Análise transacional`: avalia somente sinais explicitamente cadastrados. P2P adiciona um ponto favorável a não fraude.
-- `Verificar CNPJ`: consulta a base versionada e mostra classificação, justificativa, fonte e versão em um painel lateral de grids.
-- a mesma consulta mostra situação cadastral, data da situação, razão social, nome fantasia, abertura e CNAE quando o snapshot oficial estiver sincronizado.
+- `Verificar CNPJ`: consulta a base versionada e apresenta a classificação em um indicador dentro do próprio grid do CNPJ.
+- a mesma consulta mostra nome fantasia ou razão social, abertura e situação cadastral em grids compactos.
 - situação `INAPTA`, `BAIXADA`, `SUSPENSA` ou `NULA` e empresa com menos de três meses recebem alerta pulsante vermelho.
 - nenhum resultado seleciona decisão ou Motivo Status automaticamente.
 
-O Falcon não possui uma coluna chamada CNPJ, mas a contraparte pode estar nos IDs da linha laranja. Em `Depósito bancário de varejo`, o motor lê `DEBIT_CUSTOMER_XID_VALUE`; em `Pagamento bancário de varejo`, lê `CREDIT_CUSTOMER_XID_VALUE`. A seleção é feita no mesmo índice da linha de regra, data e valor. Quando o ID passa na validação de CNPJ, o painel é preenchido automaticamente. Caso seja CPF ou valor inválido, a consulta empresarial permanece vazia. O documento do titular do Console nunca é reutilizado como contraparte.
+O Falcon não possui uma coluna chamada CNPJ, mas o documento de quem enviou ou recebeu pode estar nos IDs da linha laranja. Em `Depósito bancário de varejo`, o motor lê a coluna de crédito (`CREDIT_CUSTOMER_XID_VALUE`); em `Pagamento bancário de varejo`, lê a coluna de origem/débito (`DEBIT_CUSTOMER_XID_VALUE`). A seleção é feita no mesmo índice da linha de regra, data e valor. Quando o ID passa na validação de CNPJ, o painel é preenchido automaticamente. Caso seja CPF ou valor inválido, a consulta empresarial permanece vazia. O documento do titular do Console nunca é reutilizado como documento da outra parte.
 
 ## Situação cadastral da Receita Federal
 
@@ -123,13 +123,13 @@ O cruzamento mantém duas conclusões separadas:
 
 Situação `ATIVA` não transforma automaticamente uma contraparte em confiável. Situação diferente de `ATIVA` gera revisão cadastral, mesmo que exista um cadastro favorável na lista interna.
 
-O arquivo público no GitHub não recebe credenciais. Consulta oficial em tempo real exige API contratada do SERPRO e um serviço intermediário autorizado, pois o segredo OAuth nunca pode ficar no bookmarklet. Sem esse serviço, `rfb-cnpj-registry-v11.json` deve ser atualizado a partir dos dados abertos oficiais da Receita. Enquanto não houver sincronização, a tela informa `DADO DA RECEITA NÃO SINCRONIZADO` sem inventar situação cadastral.
+O arquivo público no GitHub não recebe credenciais. O motor consulta primeiro o snapshot sincronizado e, na ausência, tenta automaticamente a BrasilAPI, baseada nos dados públicos da Receita, sem abrir outra página. Integração oficial em tempo real com SERPRO continua exigindo um serviço intermediário autorizado, pois segredo OAuth nunca deve ficar no bookmarklet.
 
 ## Mídia e análise transacional
 
-O motor transacional lê somente sinais explícitos. P2P soma um ponto favorável a não fraude; limites de tempo, valor e velocidade serão adicionados apenas após o HTML da página transacional e os books atualizados serem mapeados.
+O motor transacional lê os campos mapeados dos HTMLs do Console e Falcon, calcula volume, direção, intervalos, concentração, passagem de saldo e horários, informa o período efetivamente analisado e cruza as particularidades explícitas do book por emissor. P2P é ponto favorável a não fraude, mas nenhum sinal decide o caso sozinho.
 
-A investigação de mídia usa transporte entre páginas. O Console cria um pedido com número do caso e CPF, e o BigData devolve um resultado vinculado à mesma identidade. Resultado sem processo criminal compatível é `SEM MÍDIA` e atualiza o campo do Console para `não`. A coleta automática permanece bloqueada enquanto o adaptador `SACBigDataMediaAdapter` não tiver seletores confirmados.
+A investigação de mídia segue `FALCON > BigData (opcional) > CONSOLE`. O Falcon cria um pedido identificado por caso e CPF; o BigData coleta silenciosamente e devolve o resultado para a mesma identidade. O CPF do bloco de dados pessoais precisa coincidir com o pedido. Só conta processo em que esse mesmo CPF seja parte ré/polo passivo. Variações de assunto são classificadas por palavras-chave tolerantes. Resultado sem categoria criminal compatível é `SEM MÍDIA` e atualiza o campo do Console para `não`; com ocorrência, o Console recebe `sim` e as categorias marcadas automaticamente.
 
 ## Próxima integração automática
 

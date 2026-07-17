@@ -8,11 +8,11 @@ const context = {
     SACCounterpartyV11: {
       selectFalconCounterparty(input) {
         const deposit = String(input.transactionType).includes("Depósito");
-        const document = deposit ? input.debitCustomerId : input.creditCustomerId;
+        const document = deposit ? input.creditCustomerId : input.debitCustomerId;
         return {
           direction: deposit ? "ORIGIN" : "DESTINATION",
-          sourceField: deposit ? "DEBIT_CUSTOMER_XID_VALUE" : "CREDIT_CUSTOMER_XID_VALUE",
-          sourceLabel: deposit ? "ID do cliente de origem" : "ID do cliente de crédito",
+          sourceField: deposit ? "CREDIT_CUSTOMER_XID_VALUE" : "DEBIT_CUSTOMER_XID_VALUE",
+          sourceLabel: deposit ? "ID do cliente de crédito" : "ID do cliente de origem",
           document,
           cnpj: String(document).length === 14 ? document : "",
           cpf: String(document).length === 11 ? document : ""
@@ -50,16 +50,16 @@ const falconRoot = {
       RULESTEXT_VALUE1: "Nega_P2P_Out_Dif_Conta",
       TRANSACTION_DTTM_VALUE: "16/07/2026 10:12:00",
       TRANSACTION_AMT_VALUE: "1.400,00",
-      DEBIT_CUSTOMER_XID_VALUE: "42054886000104",
-      CREDIT_CUSTOMER_XID_VALUE: "11111111111",
+      DEBIT_CUSTOMER_XID_VALUE: "11111111111",
+      CREDIT_CUSTOMER_XID_VALUE: "42054886000104",
       CREDIT_PAYER_NAME_VALUE: "GETNET"
     }),
     falconRow(1, {
       RULESTEXT_VALUE1: "Nega_P2P_Out_Dif_Conta",
       TRANSACTION_DTTM_VALUE: "16/07/2026 10:20:00",
       TRANSACTION_AMT_VALUE: "600,00",
-      DEBIT_CUSTOMER_XID_VALUE: "42054886000104",
-      CREDIT_CUSTOMER_XID_VALUE: "11111111111",
+      DEBIT_CUSTOMER_XID_VALUE: "11111111111",
+      CREDIT_CUSTOMER_XID_VALUE: "42054886000104",
       CREDIT_PAYER_NAME_VALUE: "GETNET"
     })
   ]
@@ -74,6 +74,8 @@ assert.equal(falconSummary.totalAmount, 2000);
 assert.equal(falconSummary.uniqueCounterpartyCount, 1);
 assert.equal(falconSummary.p2pDetected, true);
 assert.equal(falconSummary.counterparties[0].transactionCount, 2);
+assert.equal(falconSummary.validDateCount, 2);
+assert.equal(falconSummary.periodEnd - falconSummary.periodStart, 8 * 60 * 1000);
 
 const p2p = engine.analyze({ transactionType: "P2P" });
 assert.equal(p2p.classification, "FAVORABLE");
@@ -98,6 +100,27 @@ assert.equal(untrusted.alertPoints, 1);
 const empty = engine.analyze({ transactionType: "Depósito bancário" });
 assert.equal(empty.classification, "NO_SIGNAL");
 assert.equal(empty.signals.length, 0);
+
+const profile = engine.issuerProfileFor("Rede Frota Solutions");
+assert.equal(profile.name, "REDEFROTA");
+assert.ok(profile.expected.some((item) => item.includes("alto valor")));
+
+const jeittoRows = [
+  { timestamp: Date.parse("2026-07-16T10:00:00"), amount: 1200, signedAmount: 1200, direction: "CREDIT", p2p: true, counterparty: "Origem A" },
+  { timestamp: Date.parse("2026-07-16T10:05:00"), amount: 1100, signedAmount: -1100, direction: "DEBIT", p2p: true, counterparty: "Destino B" }
+];
+const jeitto = engine.analyze({ issuer: "JeittoDockone", rows: jeittoRows });
+assert.equal(jeitto.metrics.validDateCount, 2);
+assert.equal(jeitto.metrics.periodStart, jeittoRows[0].timestamp);
+assert.equal(jeitto.metrics.periodEnd, jeittoRows[1].timestamp);
+assert.ok(jeitto.signals.some((item) => item.code === "JEITTO_24H_HIGH"));
+assert.ok(jeitto.signals.some((item) => item.code === "JEITTO_P2P_BURST"));
+
+const redefrota = engine.analyze({
+  issuer: "FrotaBank",
+  rows: [{ timestamp: Date.now(), amount: 8000, signedAmount: -8000, direction: "DEBIT", p2p: false, counterparty: "Posto Marajó", description: "Combustível" }]
+});
+assert.ok(redefrota.signals.some((item) => item.code === "REDEFROTA_EXPECTED"));
 
 (async () => {
   const pending = await engine.analyzeConsole({ transactionType: "P2P" });

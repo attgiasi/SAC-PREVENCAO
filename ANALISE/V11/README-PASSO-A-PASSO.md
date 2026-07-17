@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 16/07/2026. Build interno `11.8`.
+Versão de testes revisada em 16/07/2026. Build interno local `11.11`.
 
 ## Estrutura
 
@@ -12,8 +12,8 @@ A V11 fica organizada em blocos claros:
 - `sac-counterparty-v11.js`: arquitetura independente para classificação assistida de CNPJs.
 - `sac-corporate-v11.js`: consulta cadastral e cruzamento com dados oficiais da Receita Federal.
 - `sac-transaction-v11.js`: motor de sinais da análise transacional do Console.
-- `sac-media-v11.js`: transporte seguro do pedido e do resultado entre Console e BigData.
-- `sac-transaction-v11.js`: análise assistida de sinais transacionais, com P2P como ponto favorável a não fraude.
+- `sac-media-v11.js`: coleta mapeada de PID e processos no BigData, vinculada ao caso e ao CPF consultado.
+- `sac-ddd-v11.js`: identificação de DDD, UF e região, incluindo a regra regional da BEMOL.
 - `counterparty-registry-v11.json`: snapshot versionado da base de CNPJs; permanece vazio até receber dados confirmados.
 - `counterparty-registry-v11.schema.json`: contrato dos registros de contrapartes.
 - `preview.html`: prévia interativa fiel ao comportamento visual principal.
@@ -22,22 +22,24 @@ A V11 fica organizada em blocos claros:
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.8 adiciona o `Modo investigação`, desligado por padrão. Quando ativado nas Configurações, o rodapé do Console mostra comandos compactos para `Verificar CNPJ`, `Análise transacional` e, quando existir CPF elegível, `Mídia desabonadora`. O Falcon também mostra `Análise transacional` quando houver linhas no grid. Cada comando abre um painel lateral em grids, possui `X` e fecha ao clicar novamente no próprio comando. Nenhum resultado toma a decisão pelo analista. Consulte `README-CNPJ.md`.
+A V11.11 mantém o `Modo investigação` desligado por padrão. Quando ativado, uma aba discreta abre o painel lateral opcional. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu; a análise transacional aparece quando houver linhas mapeadas. O controle de painel usa chevron com marcador lateral para diferenciar abrir e recolher. Clicar novamente na ação ativa também fecha o resultado. O BigData não abre janela de análise: apenas coleta PID e mídia, guarda o resultado e o entrega ao Console. Nenhum resultado toma a decisão pelo analista.
+
+O painel de investigação usa grids compactos. A análise transacional informa explicitamente se houve `P2P detectado`, com verde para sinal favorável, laranja para atenção e vermelho para sinal suspeito. A consulta cadastral mostra nome, abertura e situação; CNPJ com menos de três meses ou situação `INAPTA`, `BAIXADA`, `SUSPENSA` ou `NULA` pulsa em vermelho. O indicador dentro do grid do CNPJ fica verde para base confiável, amarelo para atenção, vermelho para contraparte suspeita e neutro quando ainda não há classificação.
 
 ## Blocos revisados
 
-- `FALCON`: coleta caso, fluxo, regra, data/hora, valor, histórico de infração e dados específicos de cartão quando houver.
+- `FALCON`: coleta caso, fluxo, regra, data/hora, valor, histórico, CPF/CNPJ do titular em BANKING/HOLD e dados específicos de cartão quando houver.
 - `CONSOLE`: recebe os dados do Falcon, complementa status, emissor, conta, cadastro, documento e campos de análise.
 - `TABULADOR`: só aplica os campos depois da decisão; Motivo Status é o único campo dependente que aguarda carregar.
 - `CONFIGURAÇÕES`: usa memória compartilhada para refletir tema, modo seguro, ajuda, fonte, assinatura e cores entre etapas.
 - `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
 - `HISTÓRICO`: grava a tabulação sem CPF/CNPJ visível e deve abrir igual em qualquer etapa.
 
-Na V11, a memória de LISTAS, Histórico e Configurações usa um estado central próprio e também é espelhada por `localStorage`, `sessionStorage`, `window.name`, clipboard customizado e envelope HTML padrão. Se um formato de clipboard falhar, o motor usa os espelhos locais antes de desistir. As configurações, LISTAS e Histórico também viajam dentro dos pacotes Falcon e Console para reforçar tema, modo seguro, modo ajuda, fonte, assinatura, cores dos fluxos e casos pendentes entre etapas.
+Na V11, a memória de LISTAS, Histórico e Configurações usa um estado central próprio e também é espelhada por `localStorage`, `sessionStorage`, `window.name` e envelope HTML padrão no clipboard. O formato customizado antigo é apenas lido para compatibilidade; novas gravações usam formatos padrão. As configurações, LISTAS e Histórico também viajam dentro dos pacotes Falcon e Console para reforçar tema, modo seguro, modo ajuda, fonte, assinatura, cores dos fluxos e casos pendentes entre etapas.
 
 LISTAS também possui um cofre dedicado da V11. Esse cofre guarda os casos pendentes por 12 horas, aplica tombstones quando um item é inserido ou removido, e impede que uma cópia antiga do clipboard traga de volta casos já baixados.
 
-Desde a V11.1, as gravações de LISTAS usam fila única de mutação, cofre persistente e espelho imediato. Ao finalizar um caso BANKING como NÃO FRAUDE, a gravação é confirmada antes de a janela fechar. A leitura da janela LISTAS passa primeiro pelo motor de tombstones, impedindo que cópias antigas reapresentem itens já inseridos. Os blocos compartilhados em `window.name` também são preservados sem apagar LISTAS, Histórico ou Configurações uns dos outros.
+As gravações de LISTAS usam uma única fila canônica de mutação e cofre persistente. Ao finalizar um caso BANKING como NÃO FRAUDE, a gravação é confirmada antes de a janela fechar. A leitura da janela LISTAS passa primeiro pelos registros de baixa, impedindo que cópias antigas reapresentem itens já inseridos ou removidos. Os blocos compartilhados em `window.name` também são preservados sem apagar LISTAS, Histórico ou Configurações uns dos outros.
 
 O Tabulador possui um mapa fixo de aplicação: cada campo tem tipo, seletor, valor esperado e validação. Dropdowns são selecionados pela opção real, não por texto colado, e qualquer inconsistência aparece no painel do Tabulador com o nome do campo.
 
@@ -45,7 +47,7 @@ Também foi feito pente fino no caminho ativo da V11: funções internas não ut
 
 O bloco `FALCON` usa leitura contextual da linha laranja. A coleta prioriza os campos mapeados do grid (`RULESTEXT`, `TRANSACTION_DTTM`, `TRANSACTION_AMT`, `USER_DATA_20`, `MERCHANT_NAME`, `FALCON_DECISION_CODE` e `TRANSACTION_POSTING_ENTRY_XFLG`) e não usa busca global ampla para histórico de infrações.
 
-Na V11, o bloco `CONSOLE` mantém a coleta mapeada e valida o ID da conta contra o Falcon. Com modo seguro ligado, divergência bloqueia a etapa; com modo seguro desligado, a mensagem `CASO DIVERGENTE, CONFIRA O FALCON NOVAMENTE` aparece, mas o fluxo pode continuar.
+Na V11, o bloco `CONSOLE` mantém a coleta mapeada. BANKING/HOLD validam `ID da conta + CPF/CNPJ`; CARTÃO valida o número pelo final do cartão coletado no Falcon. Com modo seguro ligado, divergência bloqueia a etapa; com modo seguro desligado, a mensagem `CASO DIVERGENTE, CONFIRA O FALCON NOVAMENTE` aparece, mas o fluxo pode continuar.
 
 O Tabulador mantém a aplicação estável da V10. Pacotes Falcon/Console só são aceitos quando pertencem à build atual, evitando mistura com dados de versões anteriores.
 
@@ -109,23 +111,36 @@ A assinatura é solicitada somente na primeira vez em que o Tabulador precisar f
 
 O complemento padrão é `SAC Prevenção`. Também existem `Dock Teck Prevenção`, `Backoffice Prevenção` e opção personalizada.
 
-## Modo Investigação
+## Modo Investigação E BigData
 
-O `Modo investigação` é compartilhado entre as etapas e fica desligado por padrão. Quando ligado, os comandos aparecem na parte inferior do Console e, quando houver transações, também no Falcon:
+O `Modo investigação` é compartilhado entre as etapas e fica desligado por padrão. O fluxo opcional completo é:
+
+`FALCON > BigData (opcional) > CONSOLE > TABULADOR`
+
+O BigData só coleta e transporta dados; não exibe janela de análise. No Falcon e no Console, a aba lateral do modo investigação mostra apenas as ações compatíveis com a página:
 
 - `Verificar CNPJ`: cruza a classificação interna, a lista SPA e o cadastro oficial disponível. Situação `INAPTA`, `BAIXADA`, `SUSPENSA` ou `NULA` e abertura inferior a três meses pulsam em vermelho. Sem snapshot oficial sincronizado, informa que o dado da Receita está indisponível em vez de presumir um status.
 - `Análise transacional no Console`: prepara a avaliação da página transacional do Console. P2P é um sinal favorável à decisão de não fraude, mas não decide o caso sozinho.
-- `Análise transacional no Falcon`: lê todas as linhas visíveis do grid, agrupa contrapartes, quantidade e valores e cruza CNPJs com a base operacional. O painel não altera o caso.
-- `Mídia desabonadora`: aparece somente quando há CPF. O Console grava um pedido identificado por número do caso e CPF; a página do BigData devolve o resultado para o mesmo caso. Sem ocorrência, retorna exatamente `SEM MÍDIA` e define o dropdown como `não`.
+- `Análise transacional no Falcon`: lê todas as linhas visíveis do grid, agrupa quem enviou ou recebeu, quantidade e valores, informa o período entre a primeira e a última data válida carregada e cruza CNPJs com a base operacional. O painel não altera o caso.
+- `BigData/PID`: coleta nome, nome da mãe, nascimento, documento/status, endereço principal, cidade, UF, telefone e e-mail nos blocos mapeados.
+- `Mídia desabonadora`: lê processos em `queryResult_judicialCasesHolderData`; só aceita ocorrência quando o CPF consultado coincide com a parte e ela está como réu/polo passivo. Variações de título são normalizadas por categoria. O Console recebe `sim` e as categorias automaticamente; sem ocorrência recebe `não`/`SEM MÍDIA`.
+- antes de classificar processos, o CPF do bloco de dados pessoais do BigData deve coincidir com um CPF do pedido do Falcon; divergência interrompe apenas a coleta opcional e não altera o Console.
 
-Os motores estão isolados por adaptadores. A leitura automática do extrato e do BigData permanece desativada até que os respectivos HTMLs e books sejam mapeados. Isso evita busca ampla, associação com a pessoa errada e dados inventados.
+Os seletores do BigData e das páginas transacionais foram mapeados nos HTMLs fornecidos. O motor não faz busca global por nomes ou documentos fora desses blocos.
 
-Nos fluxos BANKING e HOLD, a contraparte é coletada da mesma linha laranja usada para regra, data e valor:
+Nos fluxos BANKING e HOLD, o documento de quem enviou ou recebeu é coletado da mesma linha laranja usada para regra, data e valor:
 
-- `Depósito bancário de varejo`: usa `DEBIT_CUSTOMER_XID_VALUE`, exibido como `ID do cliente de origem`.
-- `Pagamento bancário de varejo`: usa `CREDIT_CUSTOMER_XID_VALUE`, exibido como `ID do cliente de crédito`.
+- `Depósito bancário de varejo`: usa `CREDIT_CUSTOMER_XID_VALUE`, exibido como `ID do cliente de crédito`.
+- `Pagamento bancário de varejo`: usa `DEBIT_CUSTOMER_XID_VALUE`, exibido como `ID do cliente de origem`.
 - um valor de 14 caracteres válido preenche automaticamente a verificação de CNPJ;
 - um valor de 11 dígitos é mantido como CPF e nunca é enviado à consulta empresarial.
+
+O documento do titular usa o lado da transação definido para conferência:
+
+- `Depósito bancário de varejo`: titular em `CREDIT_CUSTOMER_XID_VALUE`.
+- `Pagamento bancário de varejo`: titular em `DEBIT_CUSTOMER_XID_VALUE` (origem).
+- a conta do mesmo lado é usada como confirmação auxiliar.
+- no fluxo CARTÃO essa regra não é usada; a ligação Falcon/Console é feita pelo número/final do cartão.
 
 ## Modo Seguro
 
@@ -335,7 +350,9 @@ Regras:
 - Se a regra contiver `CONTENÇÃO` ou variações sem acento, o caso também entra na aba `CONTENÇÃO`.
 - Se depois o mesmo caso/conta for decidido como fraude ou outra decisão, o item é removido da lista pendente.
 - Os itens só saem da lista após `INSERIR` ou `REMOVER`.
-- O número do caso é a identidade principal da fila: repetir o mesmo caso atualiza o registro, sem duplicá-lo.
+- A duplicidade da ALLOWLIST usa a combinação `número do caso + ID da conta`.
+- A duplicidade da CONTENÇÃO usa a combinação `número do caso + CPF/CNPJ`.
+- Um caso de CONTENÇÃO gera registros lógicos independentes nas duas abas, para que inserir/remover uma não baixe a outra por engano.
 - Um BANKING `NÃO FRAUDE` com regra de `CONTENÇÃO` aparece imediatamente nas abas `ALLOWLIST` e `CONTENÇÃO`.
 - Se ID da conta ou CPF/CNPJ estiver temporariamente ausente, o registro permanece visível e a inclusão é bloqueada até o dado ser corrigido; ele não é descartado silenciosamente.
 - A janela de tabulação não fecha se o motor não confirmar a gravação do caso em LISTAS.

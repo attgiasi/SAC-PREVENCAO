@@ -100,19 +100,19 @@ assert.equal(engine.validateCnpj(cnpj), true);
 assert.equal(engine.validateCnpj(alphanumericCnpj), true);
 assert.equal(engine.validateCnpj("00000000000000"), false);
 assert.deepEqual(
-  { ...engine.selectFalconCounterparty({ transactionType: "Depósito bancário de varejo", debitCustomerId: cnpj, creditCustomerId: "11111111111" }) },
+  { ...engine.selectFalconCounterparty({ transactionType: "Depósito bancário de varejo", debitCustomerId: "11111111111", creditCustomerId: cnpj }) },
   {
     transactionType: "DEPOSITO BANCARIO DE VAREJO",
     direction: "ORIGIN",
-    sourceField: "DEBIT_CUSTOMER_XID_VALUE",
-    sourceLabel: "ID do cliente de origem",
+    sourceField: "CREDIT_CUSTOMER_XID_VALUE",
+    sourceLabel: "ID do cliente de crédito",
     document: cnpj,
     cnpj,
     cpf: ""
   }
 );
-assert.equal(engine.selectFalconCounterparty({ transactionType: "Pagamento bancário de varejo", debitCustomerId: cnpj, creditCustomerId: "11111111111" }).document, "11111111111");
-assert.equal(engine.selectFalconCounterparty({ transactionType: "Pagamento bancário de varejo", creditCustomerId: secondBranch }).cnpj, secondBranch);
+assert.equal(engine.selectFalconCounterparty({ transactionType: "Pagamento bancário de varejo", debitCustomerId: cnpj, creditCustomerId: "11111111111" }).document, cnpj);
+assert.equal(engine.selectFalconCounterparty({ transactionType: "Pagamento bancário de varejo", debitCustomerId: secondBranch }).cnpj, secondBranch);
 assert.equal(engine.selectFalconCounterparty({ transactionType: "Transferência Pix", debitCustomerId: cnpj, creditCustomerId: secondBranch }).document, "");
 assert.equal(engine.getState().recordCount, 3);
 assert.equal(engine.classifyFromRegistry({ cnpj, issuer: "Outro", direction: "crédito" }).classification, "TRUSTED");
@@ -165,5 +165,9 @@ assert.equal(engine.classifyFromRegistry({ cnpj: "65629658000102", issuer: "Outr
 assert.equal(engine.classifyFromRegistry({ cnpj: "46786961000174", issuer: "Outro", direction: "destino" }).classification, "TRUSTED");
 assert.equal(engine.classifyFromRegistry({ cnpj: "55997392000105", issuer: "Outro", direction: "origem" }).classification, "REVIEW");
 assert.equal(engine.classifyFromRegistry({ cnpj: "56195099000189", issuer: "Outro", direction: "origem" }).classification, "REVIEW");
+
+engine.upsertLocalClassification({ cnpj, issuer: "Emissor Teste", direction: "origem", classification: "TRUSTED" });
+assert.equal(engine.classifyFromRegistry({ cnpj, issuer: "Emissor Teste", direction: "origem" }).classification, "TRUSTED");
+assert.equal(engine.exportLocalRecords().length, 1);
 
 console.log("OK - motor de contrapartes V11 validado");

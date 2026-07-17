@@ -3,9 +3,10 @@
 
   if (window.SACCounterpartyV11) return;
 
-  const ENGINE_VERSION = "1.1.0";
+  const ENGINE_VERSION = "1.2.0";
   const CACHE_KEY = "sac_prevencao_V11:counterparty_registry";
   const CONFIG_KEY = "sac_prevencao_V11:counterparty_config";
+  const LOCAL_RECORDS_KEY = "sac_prevencao_V11:counterparty_local_records";
   const DEFAULT_ENDPOINT = "https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/ANALISE/V11/counterparty-registry-v11.json";
   const DEFAULT_TTL_MS = 60 * 1000;
   const VALID_CLASSIFICATIONS = new Set(["TRUSTED", "UNTRUSTED", "REVIEW", "UNKNOWN"]);
@@ -103,19 +104,19 @@
     const isRetailPayment = transactionType.includes("PAGAMENTO BANCARIO DE VAREJO");
     const direction = isRetailDeposit ? "ORIGIN" : isRetailPayment ? "DESTINATION" : "BOTH";
     const sourceField = isRetailDeposit
-      ? "DEBIT_CUSTOMER_XID_VALUE"
+      ? "CREDIT_CUSTOMER_XID_VALUE"
       : isRetailPayment
-        ? "CREDIT_CUSTOMER_XID_VALUE"
+        ? "DEBIT_CUSTOMER_XID_VALUE"
         : "";
     const sourceLabel = isRetailDeposit
-      ? "ID do cliente de origem"
+      ? "ID do cliente de crédito"
       : isRetailPayment
-        ? "ID do cliente de crédito"
+        ? "ID do cliente de origem"
         : "";
     const rawDocument = isRetailDeposit
-      ? input.debitCustomerId
+      ? input.creditCustomerId
       : isRetailPayment
-        ? input.creditCustomerId
+        ? input.debitCustomerId
         : "";
     const document = normalizeCnpj(rawDocument);
 
@@ -203,6 +204,18 @@
     return Array.from(map.values());
   }
 
+  function localRecords() {
+    const source = readJson(LOCAL_RECORDS_KEY, []);
+    return (Array.isArray(source) ? source : [])
+      .map(normalizeRecord)
+      .filter((record) => record.scope === "ROOT" ? /^[A-Z0-9]{8}$/.test(record.root) : validateCnpj(record.cnpj));
+  }
+
+  function registryWithLocal(registry = state.registry || emptyRegistry()) {
+    const records = dedupeRecords([...(registry?.records || []), ...localRecords()]);
+    return { ...registry, records };
+  }
+
   function isWithinValidity(record, timestamp) {
     if (!record.active) return false;
     const from = record.validFrom ? Date.parse(record.validFrom) : Number.NaN;
@@ -256,6 +269,7 @@
   }
 
   function classifyFromRegistry(input, registry = state.registry || emptyRegistry()) {
+    registry = registryWithLocal(registry);
     const cnpj = normalizeCnpj(input?.cnpj);
     if (/^[0-9]{11}$/.test(cnpj)) return result("NOT_APPLICABLE", "CONTRAPARTE É CPF", "neutral", input, registry, []);
     if (!validateCnpj(cnpj)) return result("NOT_APPLICABLE", "CNPJ AUSENTE OU INVÁLIDO", "neutral", input, registry, []);
@@ -373,6 +387,53 @@
     return classifyFromRegistry(input);
   }
 
+  function upsertLocalClassification(input = {}) {
+    const cnpj = normalizeCnpj(input.cnpj);
+    if (!validateCnpj(cnpj)) throw new Error("COUNTERPARTY_CNPJ_INVALID");
+    const classification = normalizeClassification(input.classification);
+    if (!new Set(["TRUSTED", "UNTRUSTED", "REVIEW"]).has(classification)) throw new Error("COUNTERPARTY_CLASSIFICATION_INVALID");
+    const issuer = normalizeText(input.issuer || "GLOBAL") || "GLOBAL";
+    const direction = normalizeDirection(input.direction || "BOTH");
+    const records = localRecords();
+    const nextRecord = normalizeRecord({
+      id: `local-${cnpj}-${issuer}-${direction}`,
+      cnpj,
+      scope: "EXACT",
+      legalName: String(input.legalName || "").trim(),
+      classification,
+      directions: [direction],
+      issuers: [issuer],
+      category: String(input.category || "CADASTRO DO OPERADOR"),
+      reason: String(input.reason || (classification === "TRUSTED" ? "CNPJ incluído pelo operador na lista confiável." : "CNPJ incluído pelo operador na lista de atenção.")).trim(),
+      source: { type: "LOCAL", label: "Base local do operador" },
+      reviewedAt: new Date().toISOString(),
+      active: true,
+      priority: 10000
+    }, records.length);
+    const kept = records.filter((record) => !(record.cnpj === cnpj && record.issuers.includes(issuer) && record.directions.includes(direction)));
+    writeJson(LOCAL_RECORDS_KEY, [...kept, nextRecord].slice(-500));
+    emit();
+    return publicRecord(nextRecord);
+  }
+
+  function exportLocalRecords() {
+    return localRecords().map((record) => ({
+      ...record,
+      aliases: record.aliases.slice(),
+      directions: record.directions.slice(),
+      issuers: record.issuers.slice(),
+      source: { ...record.source }
+    }));
+  }
+
+  function importLocalRecords(records) {
+    const source = Array.isArray(records) ? records : [];
+    const normalized = source.map(normalizeRecord).filter((record) => validateCnpj(record.cnpj));
+    writeJson(LOCAL_RECORDS_KEY, dedupeRecords([...localRecords(), ...normalized]).slice(-500));
+    emit();
+    return exportLocalRecords();
+  }
+
   function loadSnapshot(value, options = {}) {
     const registry = normalizeRegistry(value);
     state = {
@@ -429,7 +490,8 @@
       source: state.source,
       stale: state.stale,
       error: state.error,
-      recordCount: state.registry?.records?.length || 0,
+      recordCount: registryWithLocal().records.length,
+      localRecordCount: localRecords().length,
       config: { ...state.config }
     };
   }
@@ -447,6 +509,9 @@
     selectFalconCounterparty,
     classify,
     classifyFromRegistry,
+    upsertLocalClassification,
+    exportLocalRecords,
+    importLocalRecords,
     refresh,
     loadSnapshot,
     configure,

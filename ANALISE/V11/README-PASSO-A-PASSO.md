@@ -432,7 +432,7 @@ O sistema mostra principalmente:
 
 O bookmarklet dedicado da V11 não altera nem substitui o favorito universal da V10.
 
-Ao migrar de um favorito V11 antigo, substitua seu conteúdo uma vez pelo código atual de `bookmarklet-v11.txt`. O novo favorito chama `loader-v11.js`, resolve o commit mais recente do repositório e carrega os oito módulos por uma referência imutável, evitando permanecer preso a builds antigas como a V11.8.
+Ao migrar de um favorito V11 antigo, substitua seu conteúdo uma vez pelo código atual de `bookmarklet-v11.txt`. O favorito fixa o próprio loader em um commit imutável; esse loader resolve o commit mais recente do repositório e carrega os oito módulos por outra referência imutável. Assim, a inicialização não depende do cache de `@main` e não permanece presa a builds antigas como a V11.8.
 
 
 

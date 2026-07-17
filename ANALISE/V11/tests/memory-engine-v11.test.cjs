@@ -39,6 +39,8 @@ const context = {
   JSON,
   encodeURIComponent,
   decodeURIComponent,
+  setTimeout,
+  clearTimeout,
   document: documentMock,
   navigator: { clipboard: {} },
   window: {
@@ -111,6 +113,12 @@ memory.lists.replace([
 assert.equal(memory.lists.all().length, 2, "valores ausentes não podem colidir com uma identidade válida");
 
 (async () => {
+  context.navigator.clipboard.read = () => new Promise(() => {});
+  const startedAt = Date.now();
+  const hydrated = await memory.hydrateFromClipboard({ timeoutMs: 25 });
+  assert.ok(hydrated && typeof hydrated === "object");
+  assert.ok(Date.now() - startedAt < 250, "clipboard sem resposta não pode bloquear a automação");
+
   const result = await memory.commit("Tabulação pronta");
   assert.equal(result.method, "copy-event");
   assert.equal(copiedTypes.get("text/plain"), "Tabulação pronta");

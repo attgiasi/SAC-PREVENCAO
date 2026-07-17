@@ -393,15 +393,20 @@
     return setSnapshot(next);
   }
 
-  async function hydrateFromClipboard() {
+  async function hydrateFromClipboard(options = {}) {
     mergeCurrentMirrors();
     if (!navigator.clipboard?.read) return snapshot();
+    const timeoutMs = Math.max(50, Number(options.timeoutMs) || 1200);
     let items = [];
     try {
-      items = await navigator.clipboard.read();
+      items = await Promise.race([
+        navigator.clipboard.read(),
+        new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs))
+      ]);
     } catch (_error) {
       return snapshot();
     }
+    if (!Array.isArray(items)) return snapshot();
     for (const item of items) {
       if (item.types.includes(TYPE)) {
         try {

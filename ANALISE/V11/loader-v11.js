@@ -4,7 +4,7 @@
   const REPOSITORY = "attgiasi/SAC-PREVENCAO";
   const BRANCH = "main";
   const BUILD_PATH = "ANALISE/V11";
-  const LOADER_VERSION = "11.12.0";
+  const LOADER_VERSION = "11.13.0";
   const FILES = Object.freeze([
     "sac-memory-v11.js",
     "sac-counterparty-v11.js",

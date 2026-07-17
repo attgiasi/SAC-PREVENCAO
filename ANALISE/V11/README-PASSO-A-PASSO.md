@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 17/07/2026. Build `11.12`.
+Versão de testes revisada em 17/07/2026. Build `11.13`.
 
 ## Estrutura
 
@@ -23,7 +23,11 @@ A V11 fica organizada em blocos claros:
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.12 mantém o `Modo investigação` desligado por padrão. Quando ativado, uma aba discreta abre o painel lateral opcional. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu; a análise transacional aparece quando houver linhas mapeadas. O controle de painel usa chevron com marcador lateral para diferenciar abrir e recolher. Clicar novamente na ação ativa também fecha o resultado. O BigData não abre janela de análise: apenas coleta PID e mídia, guarda o resultado e o entrega ao Console. Nenhum resultado toma a decisão pelo analista.
+A V11.13 mantém o `Modo investigação` desligado por padrão. Quando ativado, uma aba discreta abre o painel lateral opcional. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu; a análise transacional aparece quando houver linhas mapeadas. O controle de painel usa chevron com marcador lateral para diferenciar abrir e recolher. Clicar novamente na ação ativa também fecha o resultado. O BigData não abre janela de análise: apenas coleta PID e mídia, guarda o resultado e o entrega ao Console. Nenhum resultado toma a decisão pelo analista.
+
+O carregamento inicial limita a espera pela área de transferência. Se o navegador não responder à permissão de leitura, a janela abre normalmente e utiliza as memórias locais disponíveis, sem ficar travada antes do Falcon.
+
+No Console, ligar `COM CHAMADA` abre o painel PID ao lado da janela em qualquer fluxo. O emissor aparece no título, AMIGOZ mantém seu roteiro específico e os dados coletados anteriormente no BigData preenchem os respectivos grids de confirmação.
 
 O painel de investigação usa grids compactos. A análise transacional informa explicitamente se houve `P2P detectado`, com verde para sinal favorável, laranja para atenção e vermelho para sinal suspeito. A consulta cadastral mostra nome, abertura e situação; CNPJ com menos de três meses ou situação `INAPTA`, `BAIXADA`, `SUSPENSA` ou `NULA` pulsa em vermelho. O indicador dentro do grid do CNPJ fica verde para base confiável, amarelo para atenção, vermelho para contraparte suspeita e neutro quando ainda não há classificação.
 

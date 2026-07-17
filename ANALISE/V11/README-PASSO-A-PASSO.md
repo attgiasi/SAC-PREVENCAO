@@ -27,6 +27,8 @@ A V11.13 mantém o `Modo investigação` desligado por padrão. Quando ativado, 
 
 O carregamento inicial limita a espera pela área de transferência. Se o navegador não responder à permissão de leitura, a janela abre normalmente e utiliza as memórias locais disponíveis, sem ficar travada antes do Falcon.
 
+O loader baixa os sete motores independentes em paralelo e executa o módulo principal por último. Assim, a janela não precisa aguardar oito downloads sequenciais.
+
 No Console, ligar `COM CHAMADA` abre o painel PID ao lado da janela em qualquer fluxo. O emissor aparece no título, AMIGOZ mantém seu roteiro específico e os dados coletados anteriormente no BigData preenchem os respectivos grids de confirmação.
 
 O painel de investigação usa grids compactos. A análise transacional informa explicitamente se houve `P2P detectado`, com verde para sinal favorável, laranja para atenção e vermelho para sinal suspeito. A consulta cadastral mostra nome, abertura e situação; CNPJ com menos de três meses ou situação `INAPTA`, `BAIXADA`, `SUSPENSA` ou `NULA` pulsa em vermelho. O indicador dentro do grid do CNPJ fica verde para base confiável, amarelo para atenção, vermelho para contraparte suspeita e neutro quando ainda não há classificação.

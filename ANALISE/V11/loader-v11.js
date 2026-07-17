@@ -4,7 +4,7 @@
   const REPOSITORY = "attgiasi/SAC-PREVENCAO";
   const BRANCH = "main";
   const BUILD_PATH = "ANALISE/V11";
-  const LOADER_VERSION = "11.13.0";
+  const LOADER_VERSION = "11.13.1";
   const FILES = Object.freeze([
     "sac-memory-v11.js",
     "sac-counterparty-v11.js",
@@ -81,7 +81,9 @@
   try {
     removePreviousRuntime();
     const ref = await latestCommit();
-    for (const file of FILES) await loadScript(file, ref);
+    const runtimeFiles = FILES.slice(0, -1);
+    await Promise.all(runtimeFiles.map((file) => loadScript(file, ref)));
+    await loadScript(FILES.at(-1), ref);
   } catch (error) {
     showLoaderError(error);
   }

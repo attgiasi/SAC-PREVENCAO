@@ -37,7 +37,7 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "loader-v11.js"), "ut
   assert.ok(loaded.every((url) => url.includes(`@${commit}/ANALISE/V11/`)));
   assert.match(loaded[0], /sac-memory-v11\.js/);
   assert.match(loaded.at(-1), /sac-prevencao-v11\.js/);
-  assert.ok(loaded.every((url) => url.includes("v=11.13.0")));
+  assert.ok(loaded.every((url) => url.includes("v=11.13.1")));
   console.log("OK - carregador dedicado V11 validado");
 })().catch((error) => {
   console.error(error);

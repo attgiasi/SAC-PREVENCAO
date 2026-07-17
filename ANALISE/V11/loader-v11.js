@@ -4,7 +4,9 @@
   const REPOSITORY = "attgiasi/SAC-PREVENCAO";
   const BRANCH = "main";
   const BUILD_PATH = "ANALISE/V11";
-  const LOADER_VERSION = "11.13.1";
+  const LOADER_VERSION = "11.16.0";
+  const SAFE_FALLBACK_REF = "512d5c44b53bf72b603b297beecf968ef8c823a7";
+  const RELEASE_MANIFEST = `https://raw.githubusercontent.com/${REPOSITORY}/${BRANCH}/${BUILD_PATH}/release-v11.json`;
   const FILES = Object.freeze([
     "sac-memory-v11.js",
     "sac-counterparty-v11.js",
@@ -35,30 +37,85 @@
       });
   }
 
-  async function latestCommit() {
-    try {
-      const response = await fetch(`https://api.github.com/repos/${REPOSITORY}/commits/${BRANCH}?cache=${Date.now()}`, {
-        cache: "no-store",
-        headers: { Accept: "application/vnd.github+json" }
-      });
-      if (!response.ok) return BRANCH;
-      const payload = await response.json();
-      return /^[a-f0-9]{40}$/i.test(payload?.sha || "") ? payload.sha : BRANCH;
-    } catch (_error) {
-      return BRANCH;
-    }
+  function validCommit(value) {
+    return /^[a-f0-9]{40}$/i.test(String(value || "")) ? String(value) : "";
   }
 
-  function loadScript(file, ref) {
+  function fetchJson(url, options = {}) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("Tempo excedido ao consultar a versão.")), 4500);
+      fetch(url, { cache: "no-store", ...options })
+        .then((response) => {
+          if (!response.ok) throw new Error(`Consulta de versão falhou (${response.status}).`);
+          return response.json();
+        })
+        .then((payload) => {
+          clearTimeout(timer);
+          resolve(payload);
+        })
+        .catch((error) => {
+          clearTimeout(timer);
+          reject(error);
+        });
+    });
+  }
+
+  async function latestCommit() {
+    const resolvers = [
+      async () => {
+        const payload = await fetchJson(`https://api.github.com/repos/${REPOSITORY}/commits/${BRANCH}?cache=${Date.now()}`, {
+          headers: { Accept: "application/vnd.github+json" }
+        });
+        return validCommit(payload?.sha);
+      },
+      async () => {
+        const payload = await fetchJson(`${RELEASE_MANIFEST}?cache=${Date.now()}`);
+        return validCommit(payload?.commit);
+      }
+    ];
+
+    for (const resolveCommit of resolvers) {
+      try {
+        const commit = await resolveCommit();
+        if (commit) return commit;
+      } catch (_error) {
+        // Tenta a próxima fonte sem interromper a execução do favorito.
+      }
+    }
+    return SAFE_FALLBACK_REF;
+  }
+
+  function appendScript(source, file) {
     return new Promise((resolve, reject) => {
       const script = document.createElement("script");
       script.dataset.sacV11Runtime = LOADER_VERSION;
-      script.src = `https://cdn.jsdelivr.net/gh/${REPOSITORY}@${ref}/${BUILD_PATH}/${file}?v=${LOADER_VERSION}&cache=${Date.now()}`;
+      script.src = source;
       script.async = false;
       script.onload = resolve;
-      script.onerror = () => reject(new Error(`Falha ao carregar ${file}.`));
+      script.onerror = () => {
+        script.remove();
+        reject(new Error(`Falha ao carregar ${file}.`));
+      };
       document.documentElement.appendChild(script);
     });
+  }
+
+  async function loadScript(file, ref) {
+    const cacheKey = `${LOADER_VERSION}-${Date.now()}`;
+    const sources = [
+      `https://cdn.jsdelivr.net/gh/${REPOSITORY}@${ref}/${BUILD_PATH}/${file}?v=${cacheKey}`,
+      `https://raw.githubusercontent.com/${REPOSITORY}/${ref}/${BUILD_PATH}/${file}?v=${cacheKey}`
+    ];
+    let lastError;
+    for (const source of sources) {
+      try {
+        await appendScript(source, file);
+        return;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError || new Error(`Falha ao carregar ${file}.`);
   }
 
   function showLoaderError(error) {
@@ -81,6 +138,7 @@
   try {
     removePreviousRuntime();
     const ref = await latestCommit();
+    window.__SAC_PREVENCAO_V11_LOADER__ = Object.freeze({ version: LOADER_VERSION, ref });
     const runtimeFiles = FILES.slice(0, -1);
     await Promise.all(runtimeFiles.map((file) => loadScript(file, ref)));
     await loadScript(FILES.at(-1), ref);

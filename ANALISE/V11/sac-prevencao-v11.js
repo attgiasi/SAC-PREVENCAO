@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V11_20260715";
   const BUILD = "ANALISE/V11";
   const BUILD_FAMILY = "11";
-  const BUILD_VERSION = "11.14";
+  const BUILD_VERSION = "11.15";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -672,19 +672,25 @@
     const host = byId("sac-panel-console");
     if (!panel || !host) return;
     const config = host.querySelector(".sac-config.open:not([hidden])");
-    const side = all(`.sac-side-panel[data-owner="${cssEscape(host.id)}"]`).filter((item) => !item.classList.contains("sac-minimized")).at(-1);
+    const visibleSides = all(`.sac-side-panel[data-owner="${cssEscape(host.id)}"]`).filter((item) => !item.classList.contains("sac-minimized"));
+    const side = visibleSides[visibleSides.length - 1] || null;
     const anchor = config || side || host;
     const rect = anchor.getBoundingClientRect();
     const width = panel.offsetWidth || 360;
-    const preferredLeft = rect.left - width - 8;
-    if (preferredLeft >= 8) {
-      panel.style.left = `${preferredLeft}px`;
-      panel.style.top = `${Math.max(8, rect.top)}px`;
-    } else {
-      const height = panel.offsetHeight || 420;
-      panel.style.left = `${Math.max(8, Math.min(window.innerWidth - width - 8, rect.left))}px`;
-      panel.style.top = `${Math.max(8, Math.min(window.innerHeight - height - 8, rect.bottom + 8))}px`;
-    }
+    const height = panel.offsetHeight || 420;
+    const viewportWidth = Math.max(width + 16, window.innerWidth || document.documentElement.clientWidth || width + 16);
+    const viewportHeight = Math.max(120, window.innerHeight || document.documentElement.clientHeight || 720);
+    const leftOfAnchor = rect.left - width - 8;
+    const rightOfAnchor = rect.right + 8;
+    const fitsLeft = leftOfAnchor >= 8;
+    const fitsRight = rightOfAnchor + width <= viewportWidth - 8;
+    const left = fitsLeft ? leftOfAnchor : fitsRight ? rightOfAnchor : Math.max(8, Math.min(rect.left, viewportWidth - width - 8));
+    const below = rect.bottom + 8;
+    const top = !fitsLeft && !fitsRight && below + Math.min(height, viewportHeight - 16) <= viewportHeight
+      ? below
+      : Math.max(8, Math.min(rect.top, viewportHeight - Math.min(height, viewportHeight - 16) - 8));
+    panel.style.left = `${left}px`;
+    panel.style.top = `${top}px`;
     panel.style.right = "auto";
   }
   function pidProfileFor(data) {
@@ -702,12 +708,22 @@
   }
   function openPidPanel(data) {
     ensureStyles();
-    closePidPanel();
+    const existing = byId("sac-pid-panel");
+    const pidKey = normalize(`${data?.falcon?.caseNumber || data?.caseNumber || ""}|${data?.issuer || data?.falcon?.issuer || ""}`);
+    if (existing?.dataset.pidKey === pidKey) {
+      const existingFlow = ["banking", "card", "hold"].includes(data?.visualFlow) ? data.visualFlow : (["banking", "card", "hold"].includes(data?.flow) ? data.flow : "banking");
+      existing.dataset.flow = existingFlow;
+      existing.style.setProperty("--sac-primary", getFlowTone(existingFlow));
+      try { placePidPanel(); } catch (_error) { /* O painel já está visível na posição atual. */ }
+      return existing;
+    }
+    existing?.remove();
     const profile = pidProfileFor(data);
     const panel = document.createElement("div");
     panel.id = "sac-pid-panel";
     panel.className = `sac-choice-popover sac-pid-panel sac-${getTheme()}`;
     panel.dataset.owner = "sac-panel-console";
+    panel.dataset.pidKey = pidKey;
     const pidFlow = ["banking", "card", "hold"].includes(data?.visualFlow) ? data.visualFlow : (["banking", "card", "hold"].includes(data?.flow) ? data.flow : "banking");
     panel.dataset.flow = pidFlow;
     panel.style.setProperty("--sac-primary", getFlowTone(pidFlow));
@@ -739,8 +755,16 @@
     `;
     document.body.appendChild(panel);
     const host = byId("sac-panel-console");
-    if (!host) return panel.remove();
-    placePidPanel();
+    if (!host) {
+      panel.remove();
+      return null;
+    }
+    try {
+      placePidPanel();
+    } catch (_error) {
+      placeAuxiliaryPanel(host, panel);
+    }
+    return panel;
   }
 
   function ensureStyles() {
@@ -3066,7 +3090,10 @@
       if (enabled) openPidPanel(data);
       else closePidPanel();
     };
-    all("#sac-call-mode-toggle,#sac-call-result-toggle", panel).forEach((input) => input.addEventListener("change", syncCallToggles));
+    all("#sac-call-mode-toggle,#sac-call-result-toggle", panel).forEach((input) => {
+      input.addEventListener("input", syncCallToggles);
+      input.addEventListener("change", syncCallToggles);
+    });
     syncCallToggles();
     enableManualGridEditing(panel, data);
     if (data.cardDataOptional) {

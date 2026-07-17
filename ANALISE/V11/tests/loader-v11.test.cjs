@@ -4,7 +4,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "loader-v11.js"), "utf8");
-const safeFallback = "512d5c44b53bf72b603b297beecf968ef8c823a7";
+const safeFallback = "c2047fed315b10442aadeaf04b235494dcaf4976";
 
 async function executeLoader(fetchImpl) {
   const loaded = [];

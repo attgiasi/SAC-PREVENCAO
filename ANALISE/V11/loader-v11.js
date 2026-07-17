@@ -5,7 +5,7 @@
   const BRANCH = "main";
   const BUILD_PATH = "ANALISE/V11";
   const LOADER_VERSION = "11.17.0";
-  const SAFE_FALLBACK_REF = "512d5c44b53bf72b603b297beecf968ef8c823a7";
+  const SAFE_FALLBACK_REF = "c2047fed315b10442aadeaf04b235494dcaf4976";
   const RELEASE_MANIFEST = `https://raw.githubusercontent.com/${REPOSITORY}/${BRANCH}/${BUILD_PATH}/release-v11.json`;
   const FILES = Object.freeze([
     "sac-memory-v11.js",

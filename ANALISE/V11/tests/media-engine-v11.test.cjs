@@ -8,6 +8,8 @@ vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "sac-media-v11.js"), "utf8"), context);
 
 const engine = context.window.SACMediaV11;
+assert.equal(engine.isBigDataPage({ querySelector: (selector) => selector.includes("#inputCPF") ? {} : null }), true);
+assert.equal(engine.isBigDataPage({ querySelector: () => null }), false);
 assert.equal(engine.isCpf("111.111.111-11"), true);
 assert.equal(engine.isCpf("11.111.111/0001-11"), false);
 assert.equal(engine.eligibleParties({ holderDocument: "111.111.111-11", originDocument: "11111111111" }).length, 1);

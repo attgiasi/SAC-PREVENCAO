@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 16/07/2026. Build interno local `11.11`.
+Versão de testes revisada em 17/07/2026. Build `11.12`.
 
 ## Estrutura
 
@@ -19,10 +19,11 @@ A V11 fica organizada em blocos claros:
 - `preview.html`: prévia interativa fiel ao comportamento visual principal.
 - `issuer-directory.json`: base de apoio para cruzamento de emissores.
 - `bookmarklet-v11.txt`: favorito dedicado para testar a V11 diretamente.
+- `loader-v11.js`: carregador dedicado que resolve o commit mais recente e evita reutilizar uma build antiga do CDN.
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.11 mantém o `Modo investigação` desligado por padrão. Quando ativado, uma aba discreta abre o painel lateral opcional. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu; a análise transacional aparece quando houver linhas mapeadas. O controle de painel usa chevron com marcador lateral para diferenciar abrir e recolher. Clicar novamente na ação ativa também fecha o resultado. O BigData não abre janela de análise: apenas coleta PID e mídia, guarda o resultado e o entrega ao Console. Nenhum resultado toma a decisão pelo analista.
+A V11.12 mantém o `Modo investigação` desligado por padrão. Quando ativado, uma aba discreta abre o painel lateral opcional. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu; a análise transacional aparece quando houver linhas mapeadas. O controle de painel usa chevron com marcador lateral para diferenciar abrir e recolher. Clicar novamente na ação ativa também fecha o resultado. O BigData não abre janela de análise: apenas coleta PID e mídia, guarda o resultado e o entrega ao Console. Nenhum resultado toma a decisão pelo analista.
 
 O painel de investigação usa grids compactos. A análise transacional informa explicitamente se houve `P2P detectado`, com verde para sinal favorável, laranja para atenção e vermelho para sinal suspeito. A consulta cadastral mostra nome, abertura e situação; CNPJ com menos de três meses ou situação `INAPTA`, `BAIXADA`, `SUSPENSA` ou `NULA` pulsa em vermelho. O indicador dentro do grid do CNPJ fica verde para base confiável, amarelo para atenção, vermelho para contraparte suspeita e neutro quando ainda não há classificação.
 
@@ -127,6 +128,8 @@ O BigData só coleta e transporta dados; não exibe janela de análise. No Falco
 - antes de classificar processos, o CPF do bloco de dados pessoais do BigData deve coincidir com um CPF do pedido do Falcon; divergência interrompe apenas a coleta opcional e não altera o Console.
 
 Os seletores do BigData e das páginas transacionais foram mapeados nos HTMLs fornecidos. O motor não faz busca global por nomes ou documentos fora desses blocos.
+
+Na página-base do BigData, sem resultado visível, a V11 orienta a realizar a consulta e executar o favorito novamente após o carregamento. Um HTML salvo pode conter os resultados no código-fonte e removê-los do DOM ao ser reaberto; a coleta operacional ocorre sobre os resultados visíveis da consulta real.
 
 Nos fluxos BANKING e HOLD, o documento de quem enviou ou recebeu é coletado da mesma linha laranja usada para regra, data e valor:
 
@@ -422,6 +425,8 @@ O sistema mostra principalmente:
 4. Para testar a V11 sem alterar o favorito universal, use `ANALISE/V11/bookmarklet-v11.txt`.
 
 O bookmarklet dedicado da V11 não altera nem substitui o favorito universal da V10.
+
+Ao migrar de um favorito V11 antigo, substitua seu conteúdo uma vez pelo código atual de `bookmarklet-v11.txt`. O novo favorito chama `loader-v11.js`, resolve o commit mais recente do repositório e carrega os oito módulos por uma referência imutável, evitando permanecer preso a builds antigas como a V11.8.
 
 
 

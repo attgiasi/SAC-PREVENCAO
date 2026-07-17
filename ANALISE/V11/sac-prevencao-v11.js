@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V11_20260715";
   const BUILD = "ANALISE/V11";
   const BUILD_FAMILY = "11";
-  const BUILD_VERSION = "11.11-local";
+  const BUILD_VERSION = "11.12";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -2683,7 +2683,7 @@
       return;
     }
     if (!scan.supported) {
-      showNotice("Não encontrei os blocos mapeados do BigData nesta página.", "error");
+      showNotice("Faça a consulta no BigData, aguarde os resultados e execute o favorito novamente.", "warn", 12000);
       return;
     }
     const result = mediaEngine.createResult(request, scan);
@@ -4775,7 +4775,7 @@
   }
 
   function detectStage() {
-    if (mediaEngine.canScanPage(document)) return "bigdata";
+    if (mediaEngine.isBigDataPage?.(document) || mediaEngine.canScanPage(document)) return "bigdata";
     if (byId("f33:hotlisrEditorGridView:activeFromInput1_0_dctxt") || /hotlisrEditorGridView/i.test(bodyText())) return "listas";
     if (byId("txt_obs") || byId("ddl_status") || byId("ddl_tabulador")) return "tabulador";
     if (document.querySelector(".userGuide-company-menu") || document.querySelector(".account-data") || document.querySelector("[data-testid='column_0_0']")) return "console";

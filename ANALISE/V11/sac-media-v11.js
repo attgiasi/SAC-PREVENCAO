@@ -3,7 +3,7 @@
 
   if (window.SACMediaV11) return;
 
-  const ENGINE_VERSION = "2.1.0";
+  const ENGINE_VERSION = "2.2.0";
   const MEDIA_TYPES = Object.freeze([
     "Crimes contra a fé pública",
     "Tráfico de drogas",
@@ -212,6 +212,16 @@
     }
   });
 
+  function isBigDataPage(root = document) {
+    if (builtInProvider.canScan(root)) return true;
+    return Boolean(root?.querySelector?.([
+      "#inputCPF",
+      "#datasets_people",
+      "#querybydoc",
+      "[xtargetapi='people']"
+    ].join(",")));
+  }
+
   function requestIdentity(value = {}) {
     const caseNumber = String(value.caseNumber || "").replace(/\D/g, "");
     const documents = (value.parties || eligibleParties(value))
@@ -327,6 +337,7 @@
     resultMatches,
     scanPage,
     canScanPage,
+    isBigDataPage,
     useProvider
   });
 })();

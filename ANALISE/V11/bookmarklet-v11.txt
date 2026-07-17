@@ -1,4 +1,4 @@
-javascript:(async()=>{try{delete window.SACMemoryV11;delete window.SACTabulatorV11;delete window.SACCounterpartyV11;delete window.SACCorporateV11;delete window.SACTransactionV11;delete window.SACMediaV11;delete window.SACDddV11}catch(e){}const b='https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/ANALISE/V11/';for(const f of ['sac-memory-v11.js','sac-counterparty-v11.js','sac-corporate-v11.js','sac-transaction-v11.js','sac-media-v11.js','sac-ddd-v11.js','sac-tabulator-v11.js','sac-prevencao-v11.js'])await new Promise((r,j)=>{const s=document.createElement('script');s.src=b+f+'?v=11.11.0&cache='+Date.now();s.async=false;s.onload=r;s.onerror=()=>j(new Error('Falha ao carregar '+f));document.documentElement.appendChild(s);});})();
+javascript:(()=>{document.querySelectorAll('script[data-sac-v11-loader]').forEach(s=>s.remove());const s=document.createElement('script');s.dataset.sacV11Loader='11.12.0';s.src='https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/ANALISE/V11/loader-v11.js?v=11.12.0&cache='+Date.now();document.documentElement.appendChild(s);})();
 
 
 

@@ -91,6 +91,11 @@
     rule: ["RULESTEXT_VALUE1", "RULESTEXT_VALUE", "RULES_TEXT"],
     date: ["TRANSACTION_DTTM_VALUE", "TRANSACTION_DATE_VALUE"],
     amount: ["TRANSACTION_AMT_VALUE", "TRANSACTION_AMOUNT_VALUE"],
+    merchant: ["MERCHANT_NAME_VALUE", "MERCHANT_DBA_NAME_VALUE", "CARD_ACCEPTOR_NAME_VALUE"],
+    merchantId: ["MERCHANT_XID_VALUE", "CARD_ACCEPTOR_XID_VALUE"],
+    entryMode: ["TRANSACTION_POSTING_ENTRY_XFLG_VALUE", "TRANSACTION_ENTRY_MODE_VALUE", "POS_ENTRY_MODE_VALUE"],
+    decision: ["FALCON_DECISION_CODE_VALUE", "FALCON_DECISION_VALUE"],
+    authorizationResponse: ["AUTHORIZATION_RESPONSE_XCD_VALUE"],
     debitCustomerId: ["DEBIT_CUSTOMER_XID_VALUE"],
     creditCustomerId: ["CREDIT_CUSTOMER_XID_VALUE"],
     debitAccount: ["DEBIT_ACCOUNT_NUM_VALUE"],
@@ -110,6 +115,70 @@
 
   function containsP2P(value) {
     return /(^|[^A-Z0-9])P2P([^A-Z0-9]|$)/.test(normalizeText(value));
+  }
+
+  function cardEntryMode(value) {
+    const mode = normalizeText(value);
+    if (!mode || mode === "A") return "";
+    if (mode === "V" || /CHIP|SENHA|PIN/.test(mode)) return "CHIP E SENHA";
+    if (mode === "D" || /APROX|CONTACTLESS|NFC/.test(mode)) return "APROXIMAÇÃO";
+    if (mode === "K" || /MANUAL|DIGITAD/.test(mode)) return "DIGITADO MANUAL";
+    if (mode === "E" || /E.?COMMERCE|ECOMMERCE/.test(mode)) return "E-COMMERCE";
+    return mode;
+  }
+
+  function isCardTransaction(input = {}, rows = []) {
+    if (normalizeText(input.flow) === "CARD" || normalizeText(input.flow) === "CARTAO") return true;
+    const context = normalizeText(`${input.transactionType || ""} ${input.description || ""}`);
+    if (/AUTORIZACAO|LANCAMENTO DE CREDITO|CREDIT AUTHORIZATION/.test(context)) return true;
+    return rows.some((row) => Boolean(row?.merchant || row?.merchantId || cardEntryMode(row?.entryMode || row?.entryModeCode)));
+  }
+
+  function cardActivity(rows = []) {
+    const items = Array.isArray(rows) ? rows : [];
+    const merchants = new Map();
+    let chipPinCount = 0;
+    let attentionModeCount = 0;
+    items.forEach((row) => {
+      const mode = cardEntryMode(row?.entryMode || row?.entryModeCode);
+      if (mode === "CHIP E SENHA") chipPinCount += 1;
+      if (["APROXIMAÇÃO", "DIGITADO MANUAL", "E-COMMERCE"].includes(mode)) attentionModeCount += 1;
+      const name = String(row?.merchant || "").replace(/\s+/g, " ").trim();
+      const id = String(row?.merchantId || "").trim();
+      const key = normalizeText(id || name);
+      if (!key) return;
+      const current = merchants.get(key) || {
+        key,
+        name: name || id,
+        id,
+        count: 0,
+        amount: 0,
+        modes: new Set(),
+        decisions: new Set(),
+        attentionModeCount: 0,
+        chipPinCount: 0
+      };
+      current.count += 1;
+      current.amount += Number(row?.amount || 0);
+      if (mode) current.modes.add(mode);
+      if (row?.decision) current.decisions.add(normalizeText(row.decision));
+      if (mode === "CHIP E SENHA") current.chipPinCount += 1;
+      if (["APROXIMAÇÃO", "DIGITADO MANUAL", "E-COMMERCE"].includes(mode)) current.attentionModeCount += 1;
+      merchants.set(key, current);
+    });
+    const merchantList = Array.from(merchants.values(), (item) => Object.freeze({
+      ...item,
+      modes: Object.freeze(Array.from(item.modes)),
+      decisions: Object.freeze(Array.from(item.decisions))
+    }));
+    return Object.freeze({
+      chipPinCount,
+      attentionModeCount,
+      merchantCount: merchantList.length,
+      repeatedMerchantCount: merchantList.filter((item) => item.count >= 2).length,
+      repeatedAttentionMerchantCount: merchantList.filter((item) => item.attentionModeCount >= 2).length,
+      merchants: Object.freeze(merchantList)
+    });
   }
 
   function issuerProfileFor(value) {
@@ -300,6 +369,12 @@
           signedAmount: direction === "DEBIT" ? -parseBrazilianAmount(amountText) : parseBrazilianAmount(amountText),
           direction,
           p2p: containsP2P(`${transactionType} ${rule}`),
+          merchant: falconFieldText(row, "merchant"),
+          merchantId: falconFieldText(row, "merchantId"),
+          entryModeCode: falconFieldText(row, "entryMode"),
+          entryMode: cardEntryMode(falconFieldText(row, "entryMode")),
+          decision: falconFieldText(row, "decision"),
+          authorizationResponse: falconFieldText(row, "authorizationResponse"),
           debitCustomerId,
           creditCustomerId,
           debitAccount: falconFieldText(row, "debitAccount"),
@@ -315,6 +390,7 @@
   function summarizeFalconTransactions(rows = []) {
     const items = Array.isArray(rows) ? rows : [];
     const metrics = transactionMetrics(items);
+    const card = cardActivity(items);
     const counterparties = new Map();
     let totalAmount = 0;
 
@@ -347,6 +423,12 @@
       totalAmount,
       p2pDetected: items.some((row) => containsP2P(`${row?.transactionType || ""} ${row?.rule || ""}`)),
       uniqueCounterpartyCount: counterparties.size,
+      merchantCount: card.merchantCount,
+      chipPinCount: card.chipPinCount,
+      attentionModeCount: card.attentionModeCount,
+      repeatedMerchantCount: card.repeatedMerchantCount,
+      repeatedAttentionMerchantCount: card.repeatedAttentionMerchantCount,
+      merchants: card.merchants,
       counterparties: Object.freeze(Array.from(counterparties.values(), (item) => Object.freeze({
         ...item,
         payerNames: Object.freeze(Array.from(item.payerNames))
@@ -362,6 +444,33 @@
     const metrics = transactionMetrics(rows);
     const issuer = normalizeText(input.issuer);
     const signals = [];
+    if (isCardTransaction(input, rows)) {
+      const card = cardActivity(rows);
+      if (card.chipPinCount > 0) {
+        signals.push(signal("favorable", "CARD_CHIP_PIN", "Chip e senha identificado", `${card.chipPinCount} tentativa${card.chipPinCount === 1 ? "" : "s"} com chip e senha foram identificadas. Esse modo é um sinal favorável de autenticação.`, 1));
+      }
+      const riskyRepeated = card.merchants.filter((item) => item.attentionModeCount >= 2);
+      if (riskyRepeated.length) {
+        const details = riskyRepeated.map((item) => `${item.name}: ${item.attentionModeCount} tentativas (${item.modes.join(", ")})`).join(" · ");
+        signals.push(signal("alert", "CARD_REPEATED_RISKY_MERCHANT", "Repetição suspeita no mesmo estabelecimento", `${details}. Aproximação, digitado manual e e-commerce repetidos exigem atenção reforçada.`, -1));
+      }
+      const otherRepeated = card.merchants.filter((item) => item.count >= 2 && item.attentionModeCount < 2);
+      if (otherRepeated.length) {
+        const details = otherRepeated.map((item) => `${item.name}: ${item.count} tentativas`).join(" · ");
+        signals.push(signal("attention", "CARD_REPEATED_MERCHANT", "Tentativas repetidas no mesmo estabelecimento", `${details}. Confira intervalo, valores, decisões e histórico de compra do cliente.`, 0));
+      }
+      return {
+        metrics: Object.freeze({
+          ...metrics,
+          merchantCount: card.merchantCount,
+          chipPinCount: card.chipPinCount,
+          attentionModeCount: card.attentionModeCount,
+          repeatedMerchantCount: card.repeatedMerchantCount,
+          repeatedAttentionMerchantCount: card.repeatedAttentionMerchantCount
+        }),
+        signals
+      };
+    }
     if (metrics.p2pCount > 0) {
       signals.push(signal("favorable", "P2P_PRESENT", "P2P identificado", "Ponto favorável à decisão de não fraude conforme a regra operacional definida.", 1));
     }
@@ -443,8 +552,9 @@
       .filter(Boolean)
       .join(" | ");
     const signals = [];
+    const cardFlow = isCardTransaction(input, input.rows || []);
 
-    if (containsP2P(transactionText) && !(Array.isArray(input.rows) && input.rows.some((row) => row.p2p))) {
+    if (!cardFlow && containsP2P(transactionText) && !(Array.isArray(input.rows) && input.rows.some((row) => row.p2p))) {
       signals.push(signal(
         "favorable",
         "P2P_PRESENT",
@@ -454,7 +564,7 @@
       ));
     }
 
-    const counterpart = counterpartySignal(input.counterpartyResult);
+    const counterpart = cardFlow ? null : counterpartySignal(input.counterpartyResult);
     if (counterpart) signals.push(counterpart);
 
     const mapped = rowSignals(input.rows || [], input);
@@ -534,6 +644,9 @@
     version: ENGINE_VERSION,
     normalizeText,
     containsP2P,
+    cardEntryMode,
+    isCardTransaction,
+    cardActivity,
     parseBrazilianAmount,
     parseSignedAmount,
     parseTransactionDate,

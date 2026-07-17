@@ -122,6 +122,53 @@ const redefrota = engine.analyze({
 });
 assert.ok(redefrota.signals.some((item) => item.code === "REDEFROTA_EXPECTED"));
 
+assert.equal(engine.cardEntryMode("V"), "CHIP E SENHA");
+assert.equal(engine.cardEntryMode("D"), "APROXIMAÇÃO");
+assert.equal(engine.cardEntryMode("K"), "DIGITADO MANUAL");
+assert.equal(engine.cardEntryMode("E"), "E-COMMERCE");
+assert.equal(engine.cardEntryMode("A"), "");
+
+const cardRoot = {
+  querySelectorAll: () => [
+    falconRow(2, {
+      TRANSACTION_DTTM_VALUE: "16/07/2026 11:00:00",
+      TRANSACTION_AMT_VALUE: "150,00",
+      MERCHANT_NAME_VALUE: "LOJA TESTE",
+      MERCHANT_XID_VALUE: "LOJA-001",
+      TRANSACTION_POSTING_ENTRY_XFLG_VALUE: "D",
+      FALCON_DECISION_CODE_VALUE: "DECLINE"
+    }),
+    falconRow(3, {
+      TRANSACTION_DTTM_VALUE: "16/07/2026 11:03:00",
+      TRANSACTION_AMT_VALUE: "175,00",
+      MERCHANT_NAME_VALUE: "LOJA TESTE",
+      MERCHANT_XID_VALUE: "LOJA-001",
+      TRANSACTION_POSTING_ENTRY_XFLG_VALUE: "E",
+      FALCON_DECISION_CODE_VALUE: "DECLINE"
+    }),
+    falconRow(4, {
+      TRANSACTION_DTTM_VALUE: "16/07/2026 11:10:00",
+      TRANSACTION_AMT_VALUE: "80,00",
+      MERCHANT_NAME_VALUE: "MERCADO SEGURO",
+      MERCHANT_XID_VALUE: "LOJA-002",
+      TRANSACTION_POSTING_ENTRY_XFLG_VALUE: "V",
+      FALCON_DECISION_CODE_VALUE: "APPROVE"
+    })
+  ]
+};
+const cardRows = engine.collectFalconTransactions({ root: cardRoot, transactionType: "Autorização ou lançamento de crédito" });
+const cardSummary = engine.summarizeFalconTransactions(cardRows);
+const cardAnalysis = engine.analyze({ flow: "card", transactionType: "Autorização ou lançamento de crédito", rows: cardRows });
+assert.equal(cardRows.length, 3);
+assert.equal(cardSummary.merchantCount, 2);
+assert.equal(cardSummary.chipPinCount, 1);
+assert.equal(cardSummary.attentionModeCount, 2);
+assert.equal(cardSummary.repeatedAttentionMerchantCount, 1);
+assert.equal(cardAnalysis.classification, "REVIEW");
+assert.ok(cardAnalysis.signals.some((item) => item.code === "CARD_CHIP_PIN"));
+assert.ok(cardAnalysis.signals.some((item) => item.code === "CARD_REPEATED_RISKY_MERCHANT"));
+assert.equal(cardAnalysis.p2pDetected, false);
+
 (async () => {
   const pending = await engine.analyzeConsole({ transactionType: "P2P" });
   assert.equal(pending.mappingPending, true);

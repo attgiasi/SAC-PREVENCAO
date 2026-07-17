@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 17/07/2026. Build `11.13`.
+Versão de testes revisada em 17/07/2026. Build `11.14`.
 
 ## Estrutura
 
@@ -23,13 +23,13 @@ A V11 fica organizada em blocos claros:
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.13 mantém o `Modo investigação` desligado por padrão. Quando ativado, uma aba discreta abre o painel lateral opcional. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu; a análise transacional aparece quando houver linhas mapeadas. O controle de painel usa chevron com marcador lateral para diferenciar abrir e recolher. Clicar novamente na ação ativa também fecha o resultado. O BigData não abre janela de análise: apenas coleta PID e mídia, guarda o resultado e o entrega ao Console. Nenhum resultado toma a decisão pelo analista.
+A V11.14 mantém o `Modo investigação` desligado por padrão. Quando ativado, uma aba discreta abre o painel lateral opcional. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu; a análise transacional aparece quando houver linhas mapeadas. O controle de painel usa chevron com marcador lateral para diferenciar abrir e recolher. Clicar novamente na ação ativa também fecha o resultado. O BigData não abre janela de análise: apenas coleta PID e mídia, guarda o resultado e o entrega ao Console. Nenhum resultado toma a decisão pelo analista.
 
 O carregamento inicial limita a espera pela área de transferência. Se o navegador não responder à permissão de leitura, a janela abre normalmente e utiliza as memórias locais disponíveis, sem ficar travada antes do Falcon.
 
 O loader baixa os sete motores independentes em paralelo e executa o módulo principal por último. Assim, a janela não precisa aguardar oito downloads sequenciais.
 
-No Console, ligar `COM CHAMADA` abre o painel PID ao lado da janela em qualquer fluxo. O emissor aparece no título, AMIGOZ mantém seu roteiro específico e os dados coletados anteriormente no BigData preenchem os respectivos grids de confirmação.
+No Console, ligar `COM CHAMADA` abre o painel PID ao lado da janela em qualquer fluxo. O painel PID usa a mesma cor do fluxo atual, inclusive quando a cor foi personalizada. O emissor aparece no título, AMIGOZ mantém seu roteiro específico e os dados coletados anteriormente no BigData preenchem os respectivos grids de confirmação.
 
 O painel de investigação usa grids compactos. A análise transacional informa explicitamente se houve `P2P detectado`, com verde para sinal favorável, laranja para atenção e vermelho para sinal suspeito. A consulta cadastral mostra nome, abertura e situação; CNPJ com menos de três meses ou situação `INAPTA`, `BAIXADA`, `SUSPENSA` ou `NULA` pulsa em vermelho. O indicador dentro do grid do CNPJ fica verde para base confiável, amarelo para atenção, vermelho para contraparte suspeita e neutro quando ainda não há classificação.
 
@@ -128,7 +128,7 @@ O BigData só coleta e transporta dados; não exibe janela de análise. No Falco
 
 - `Verificar CNPJ`: cruza a classificação interna, a lista SPA e o cadastro oficial disponível. Situação `INAPTA`, `BAIXADA`, `SUSPENSA` ou `NULA` e abertura inferior a três meses pulsam em vermelho. Sem snapshot oficial sincronizado, informa que o dado da Receita está indisponível em vez de presumir um status.
 - `Análise transacional no Console`: prepara a avaliação da página transacional do Console. P2P é um sinal favorável à decisão de não fraude, mas não decide o caso sozinho.
-- `Análise transacional no Falcon`: lê todas as linhas visíveis do grid, agrupa quem enviou ou recebeu, quantidade e valores, informa o período entre a primeira e a última data válida carregada e cruza CNPJs com a base operacional. O painel não altera o caso.
+- `Análise transacional no Falcon`: em BANKING/HOLD, lê as linhas visíveis, agrupa quem enviou ou recebeu, quantidade e valores, informa o período e cruza CNPJs com a base operacional. Em CARTÃO, agrupa por estabelecimento e modo de entrada. Chip e senha é sinal favorável; duas ou mais tentativas no mesmo estabelecimento por aproximação, digitado manual ou e-commerce formam alerta. O painel não altera o caso.
 - `BigData/PID`: coleta nome, nome da mãe, nascimento, documento/status, endereço principal, cidade, UF, telefone e e-mail nos blocos mapeados.
 - `Mídia desabonadora`: lê processos em `queryResult_judicialCasesHolderData`; só aceita ocorrência quando o CPF consultado coincide com a parte e ela está como réu/polo passivo. Variações de título são normalizadas por categoria. O Console recebe `sim` e as categorias automaticamente; sem ocorrência recebe `não`/`SEM MÍDIA`.
 - antes de classificar processos, o CPF do bloco de dados pessoais do BigData deve coincidir com um CPF do pedido do Falcon; divergência interrompe apenas a coleta opcional e não altera o Console.

@@ -127,7 +127,7 @@ O arquivo público no GitHub não recebe credenciais. O motor consulta primeiro 
 
 ## Mídia e análise transacional
 
-O motor transacional lê os campos mapeados dos HTMLs do Console e Falcon, calcula volume, direção, intervalos, concentração, passagem de saldo e horários, informa o período efetivamente analisado e cruza as particularidades explícitas do book por emissor. P2P é ponto favorável a não fraude, mas nenhum sinal decide o caso sozinho.
+O motor transacional lê os campos mapeados dos HTMLs do Console e Falcon, calcula volume, direção, intervalos, concentração, passagem de saldo e horários, informa o período efetivamente analisado e cruza as particularidades explícitas do book por emissor. P2P é ponto favorável a não fraude em BANKING/HOLD. Em CARTÃO, chip e senha é sinal favorável; duas ou mais tentativas por aproximação, digitado manual ou e-commerce no mesmo estabelecimento geram alerta. Nenhum sinal decide o caso sozinho.
 
 A investigação de mídia segue `FALCON > BigData (opcional) > CONSOLE`. O Falcon cria um pedido identificado por caso e CPF; o BigData coleta silenciosamente e devolve o resultado para a mesma identidade. O CPF do bloco de dados pessoais precisa coincidir com o pedido. Só conta processo em que esse mesmo CPF seja parte ré/polo passivo. Variações de assunto são classificadas por palavras-chave tolerantes. Resultado sem categoria criminal compatível é `SEM MÍDIA` e atualiza o campo do Console para `não`; com ocorrência, o Console recebe `sim` e as categorias marcadas automaticamente.
 

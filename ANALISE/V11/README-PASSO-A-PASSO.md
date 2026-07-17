@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 17/07/2026. Build `11.16`.
+Versão de testes revisada em 17/07/2026. Build `11.17`.
 
 ## Estrutura
 
@@ -23,7 +23,9 @@ A V11 fica organizada em blocos claros:
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.16 mantém o `Modo investigação` desligado por padrão. Quando ativado, uma aba discreta abre o painel lateral opcional. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu; a análise transacional aparece quando houver linhas mapeadas. O controle de painel usa chevron com marcador lateral para diferenciar abrir e recolher. Clicar novamente na ação ativa também fecha o resultado. O BigData não abre janela de análise: apenas coleta PID e mídia, guarda o resultado e o entrega ao Console. Nenhum resultado toma a decisão pelo analista.
+A V11.17 mantém o `Modo investigação` desligado por padrão. Quando ativado, uma aba discreta abre o painel lateral opcional. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu; a análise transacional aparece quando houver linhas mapeadas. O controle de painel usa chevron com marcador lateral para diferenciar abrir e recolher. Clicar novamente na ação ativa também fecha o resultado. O BigData não abre janela de análise: apenas coleta PID e mídia, guarda o resultado e o entrega ao Console. Nenhum resultado toma a decisão pelo analista.
+
+O PID usa botões de chave próprios, sem depender do comportamento de labels da página do Console. A reexecução encerra listeners e janelas da instância anterior antes de criar a nova, e o PID possui ciclo independente dos popovers auxiliares.
 
 O carregador V11 resolve a revisão mais recente pela API do GitHub e, se necessário, pelo manifesto de lançamento. Se ambas as consultas estiverem indisponíveis, usa uma revisão imutável que já contém a abertura corrigida do PID. Isso impede que o cache de `@main` recupere uma implementação antiga.
 

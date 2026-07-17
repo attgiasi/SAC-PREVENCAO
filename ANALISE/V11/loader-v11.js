@@ -4,7 +4,7 @@
   const REPOSITORY = "attgiasi/SAC-PREVENCAO";
   const BRANCH = "main";
   const BUILD_PATH = "ANALISE/V11";
-  const LOADER_VERSION = "11.16.0";
+  const LOADER_VERSION = "11.17.0";
   const SAFE_FALLBACK_REF = "512d5c44b53bf72b603b297beecf968ef8c823a7";
   const RELEASE_MANIFEST = `https://raw.githubusercontent.com/${REPOSITORY}/${BRANCH}/${BUILD_PATH}/release-v11.json`;
   const FILES = Object.freeze([
@@ -19,6 +19,7 @@
   ]);
 
   function removePreviousRuntime() {
+    try { window.__SAC_PREVENCAO_V11_RUNTIME__?.dispose?.(); } catch (_error) {}
     document.querySelectorAll([
       "script[data-sac-v11-runtime]",
       "[id^='sac-style']",

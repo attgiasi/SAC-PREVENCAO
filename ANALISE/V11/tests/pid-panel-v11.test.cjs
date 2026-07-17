@@ -20,8 +20,14 @@ assert.match(source, /Análise transacional de cartão/);
 assert.match(source, /Leitura por estabelecimento e modo de entrada/);
 assert.match(source, /sac-transaction-view/);
 assert.match(source, /placePidPanel\(\);/);
-assert.match(source, /input\.addEventListener\("input", syncCallToggles\)/);
-assert.match(source, /input\.addEventListener\("change", syncCallToggles\)/);
+assert.match(source, /id="sac-call-mode-toggle" class="sac-toggle/);
+assert.match(source, /byId\("sac-call-mode-toggle"\)\?\.addEventListener\("click"/);
+assert.match(source, /button\.dataset\.active = button\.dataset\.active === "true" \? "false" : "true"/);
+assert.doesNotMatch(source, /id="sac-call-mode-toggle"[^>]*type="checkbox"/);
+assert.match(source, /:not\(\.sac-pid-panel\)/);
+assert.match(source, /const RUNTIME_SLOT = "__SAC_PREVENCAO_V11_RUNTIME__"/);
+assert.match(source, /runtimeController\.abort\(\)/);
+assert.match(source, /addRuntimeEvent\(document, "keydown"/);
 assert.match(source, /placeAuxiliaryPanel\(host, panel\)/);
 assert.match(source, /return panel;/);
 
@@ -30,7 +36,7 @@ const functionEnd = source.indexOf("  function ensureStyles()", functionStart);
 assert.ok(functionStart >= 0 && functionEnd > functionStart);
 const elements = new Map();
 let appendCount = 0;
-const host = { id: "sac-panel-console" };
+const host = { id: "sac-panel-console", isConnected: true };
 elements.set(host.id, host);
 const sandbox = {
   elements,
@@ -39,6 +45,7 @@ const sandbox = {
     body: {
       appendChild(panel) {
         appendCount += 1;
+        panel.isConnected = true;
         elements.set(panel.id, panel);
       }
     },
@@ -49,24 +56,28 @@ const sandbox = {
         style,
         className: "",
         innerHTML: "",
-        remove() { elements.delete(this.id); }
+        isConnected: false,
+        remove() { this.isConnected = false; elements.delete(this.id); }
       };
     }
   }
 };
 vm.createContext(sandbox);
 vm.runInContext(`
+  const BUILD_VERSION = "11.17";
   const ensureStyles = () => {};
   const byId = (id) => elements.get(id) || null;
   const normalize = (value) => String(value || "").toUpperCase();
   const pidProfileFor = () => ({ title: "PID TESTE", required: [], complementary: [], note: "" });
   const getTheme = () => "dark";
   const getFlowTone = (flow) => flow === "hold" ? "#ff2d00" : "#22c55e";
+  const forcePidPanelVisible = (panel) => { panel.hidden = false; panel.style.setProperty("display", "grid"); };
   const escapeHtml = (value) => String(value || "");
   const trimTimeToMinute = (value) => String(value || "");
   const isMissing = () => false;
   const placePidPanel = () => { placed += 1; };
   const placeAuxiliaryPanel = () => {};
+  const requestAnimationFrame = (callback) => callback();
   ${source.slice(functionStart, functionEnd)}
   globalThis.openPidPanelForTest = openPidPanel;
 `, sandbox);
@@ -79,6 +90,6 @@ assert.equal(appendCount, 1);
 const reopened = sandbox.openPidPanelForTest({ flow: "hold", issuer: "SOFISA", caseNumber: "49373744", pidData: {} });
 assert.equal(reopened, opened);
 assert.equal(appendCount, 1);
-assert.equal(sandbox.placed, 2);
+assert.equal(sandbox.placed, 3);
 
 console.log("OK - painel PID ligado à chamada e aos dados do BigData");

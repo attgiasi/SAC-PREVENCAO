@@ -8,7 +8,8 @@ const safeFallback = "512d5c44b53bf72b603b297beecf968ef8c823a7";
 
 async function executeLoader(fetchImpl) {
   const loaded = [];
-  const window = {};
+  let disposedRuntimes = 0;
+  const window = { __SAC_PREVENCAO_V11_RUNTIME__: { dispose() { disposedRuntimes += 1; } } };
   const document = {
     querySelectorAll: () => [],
     getElementById: () => null,
@@ -35,7 +36,7 @@ async function executeLoader(fetchImpl) {
   for (let attempt = 0; attempt < 40 && loaded.length < 8; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 5));
   }
-  return { loaded, state: window.__SAC_PREVENCAO_V11_LOADER__ };
+  return { loaded, state: window.__SAC_PREVENCAO_V11_LOADER__, disposedRuntimes };
 }
 
 function response(payload, ok = true, status = 200) {
@@ -46,6 +47,7 @@ function response(payload, ok = true, status = 200) {
   const apiCommit = "a".repeat(40);
   const viaApi = await executeLoader(async () => response({ sha: apiCommit }));
   assert.equal(viaApi.loaded.length, 8);
+  assert.equal(viaApi.disposedRuntimes, 1);
   assert.ok(viaApi.loaded.every((url) => url.includes(`@${apiCommit}/ANALISE/V11/`)));
   assert.equal(viaApi.state.ref, apiCommit);
 
@@ -65,7 +67,7 @@ function response(payload, ok = true, status = 200) {
 
   assert.match(viaApi.loaded[0], /sac-memory-v11\.js/);
   assert.match(viaApi.loaded.at(-1), /sac-prevencao-v11\.js/);
-  assert.ok(viaApi.loaded.every((url) => url.includes("v=11.16.0-")));
+  assert.ok(viaApi.loaded.every((url) => url.includes("v=11.17.0-")));
   console.log("OK - carregador V11 validado por API, manifesto e revisão segura");
 })().catch((error) => {
   console.error(error);

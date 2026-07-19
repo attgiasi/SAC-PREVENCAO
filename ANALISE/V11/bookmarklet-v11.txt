@@ -1,4 +1,4 @@
-javascript:(()=>{document.querySelectorAll('script[data-sac-v11-loader]').forEach(s=>s.remove());const s=document.createElement('script');s.dataset.sacV11Loader='11.20.0';s.src='https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@bd22d20fb536e8afbd25cfb6b1c51c1b407ac5ed/ANALISE/V11/loader-v11.js?v=11.20.0';document.documentElement.appendChild(s);})();
+javascript:(()=>{document.querySelectorAll('script[data-sac-v11-loader]').forEach(s=>s.remove());const s=document.createElement('script');s.dataset.sacV11Loader='11.21.0';s.src='https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@b0449b1c199eb89d2f9eaba713d7ee5f17601d0c/ANALISE/V11/loader-v11.js?v=11.21.0';document.documentElement.appendChild(s);})();
 
 
 

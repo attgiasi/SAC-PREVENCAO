@@ -50,6 +50,8 @@
       .toUpperCase();
   }
 
+  const MEDIA_TYPE_BY_KEY = new Map(MEDIA_TYPES.map((item) => [normalizeText(item), item]));
+
   function digits(value) {
     return String(value ?? "").replace(/\D/g, "");
   }
@@ -76,9 +78,8 @@
   }
 
   function normalizeTypes(values) {
-    const allowed = new Map(MEDIA_TYPES.map((item) => [normalizeText(item), item]));
     return Array.from(new Set((Array.isArray(values) ? values : [])
-      .map((item) => allowed.get(normalizeText(item)))
+      .map((item) => MEDIA_TYPE_BY_KEY.get(normalizeText(item)))
       .filter(Boolean)));
   }
 

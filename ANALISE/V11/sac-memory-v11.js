@@ -228,7 +228,7 @@
       applied: { ...(item?.applied || {}) }
     };
     const stamp = itemStamp(next);
-    const removals = tombstoneMap(tombstones);
+    const removals = tombstones instanceof Map ? tombstones : tombstoneMap(tombstones);
     ["allowlist", "contencao"].forEach((listType) => {
       if (!next.lists?.[listType]) return;
       const removal = listIdentityAliases(next, listType)
@@ -262,9 +262,10 @@
 
   function mergeLists(...groups) {
     const tombstones = memory?.listTombstones || [];
+    const removals = tombstoneMap(tombstones);
     const byIdentity = new Map();
     groups.flat().filter(validAge).forEach((item) => {
-      const normalizedItem = applyListTombstones(item, tombstones);
+      const normalizedItem = applyListTombstones(item, removals);
       if (!hasPendingList(normalizedItem)) return;
       splitPendingListEntries(normalizedItem).forEach((entry) => {
         const listType = entry.lists?.contencao ? "contencao" : "allowlist";

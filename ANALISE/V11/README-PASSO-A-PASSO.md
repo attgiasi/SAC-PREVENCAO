@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 18/07/2026. Build `11.21`.
+Versão de testes revisada em 19/07/2026. Build `11.22`.
 
 ## Estrutura
 
@@ -23,7 +23,7 @@ A V11 fica organizada em blocos claros:
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.21 mantém `Investigação e ajuda` desligado por padrão. Ajuda e investigação usam uma única configuração compartilhada, sem estado paralelo. Quando ativada em qualquer etapa, a mesma preferência é refletida no fluxo e o painel lateral abre automaticamente com as análises disponíveis. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu; a análise transacional aparece quando houver linhas mapeadas. O painel reúne consulta cadastral, transacional, orientações de regra/emissor e um roteiro curto fundamentado no book, sem alterar a decisão do analista. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
+A V11.22 mantém `Investigação e ajuda` desligado por padrão. Ajuda e investigação usam uma única configuração compartilhada, sem estado paralelo. Quando ativada em qualquer etapa, a mesma preferência é refletida no fluxo e o painel lateral abre automaticamente com as análises disponíveis. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu; a análise transacional aparece quando houver linhas mapeadas. O painel reúne consulta cadastral, transacional, orientações de regra/emissor e um roteiro curto fundamentado no book, sem alterar a decisão do analista. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
 
 O PID usa botões de chave próprios, sem depender do comportamento de labels da página do Console. Seus dados aparecem em duas colunas e, quando a investigação também estiver aberta, o posicionador tenta usar o lado oposto da janela do Console para evitar sobreposição. A reexecução encerra listeners e janelas da instância anterior antes de criar a nova, e o PID possui ciclo independente dos popovers auxiliares.
 
@@ -46,17 +46,19 @@ O painel de investigação usa grids compactos com título na borda. A visão ge
 - `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
 - `HISTÓRICO`: grava a tabulação sem CPF/CNPJ visível e deve abrir igual em qualquer etapa.
 
-## Pente fino da build 11.21
+## Pente fino da build 11.22
 
 - `FALCON e CONSOLE`: seletores mapeados e fallbacks contextuais foram mantidos porque atendem variações reais das páginas; não existem funções ou constantes internas sem consumidor.
-- `TABULADOR`: o módulo auxiliar foi reduzido ao seletor de dropdown usado pelo runtime. O segundo aplicador de inputs, que não participava do fluxo real, foi removido.
+- `TABULADOR`: o módulo auxiliar permanece restrito ao seletor de opções reais. O caminho de mapas que nunca era executado foi removido; a aplicação direta estável e a espera exclusiva do Motivo Status foram preservadas.
 - `MEMÓRIA`: leituras deixaram de regravar o estado inteiro. Os espelhos completos antigos foram migrados para chaves dedicadas e compactas.
 - `CNPJ`: a função que abria o site da Receita em outra janela foi removida. A consulta continua automática pela base cadastrada e pelo serviço público configurado.
 - `INVESTIGAÇÃO`: ajuda e investigação usam uma única preferência. O painel lateral usa trilho recolhível, cabeçalho neutro contextual, grids com dimensões estáveis e classificação local `Favorável` ou `Suspeito`.
 - `CONFIGURAÇÕES`: tema, modo seguro, investigação, fonte, assinatura e cores são gravados no estado compartilhado e transportados nos pacotes Falcon/Console.
-- `LISTAS e HISTÓRICO`: as confirmações múltiplas de persistência foram mantidas por serem proteção operacional entre páginas, não duplicação descartável.
+- `LISTAS e HISTÓRICO`: o índice de baixas de LISTAS é calculado uma vez por mesclagem, e o arraste do Histórico libera seus eventos ao fechar. As confirmações múltiplas de persistência foram mantidas por serem proteção operacional entre páginas, não duplicação descartável.
 - `VALIDAÇÃO`: corrigido o retorno da conferência FALCON → Console para que ID da conta, CPF/CNPJ ou final do cartão sejam efetivamente comparados.
-- `CICLO DE VIDA`: arraste, observadores, temporizadores e investigação agora são liberados junto com a janela correspondente.
+- `CICLO DE VIDA`: a proteção de escrita da página agora só é instalada no Tabulador. Arraste, observadores, temporizadores e investigação são liberados junto com a janela correspondente.
+- `DESEMPENHO`: aliases de dropdown, tipos de mídia e baixas de LISTAS são indexados uma vez, evitando reconstruções durante cada seleção ou leitura.
+- `INTERFACE`: declarações duplicadas do PID e da investigação foram consolidadas na execução e na prévia, preservando as dimensões finais sem cascatas contraditórias.
 
 Na V11, a memória é dividida por responsabilidade. Histórico, LISTAS e Configurações possuem armazenamento persistente dedicado. O caso atual usa transporte temporário por sessão, `window.name` e envelope HTML padrão no clipboard para atravessar as páginas. Os pacotes Falcon e Console levam somente o necessário para continuar a análise, junto com uma cópia compacta de Histórico, LISTAS e Configurações.
 

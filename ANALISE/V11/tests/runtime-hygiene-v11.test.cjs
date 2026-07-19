@@ -13,6 +13,9 @@ assert.doesNotMatch(runtime, /SETTINGS_WINDOW_NAME|readSharedSettings|writeShare
 assert.doesNotMatch(runtime, /Legacy/);
 assert.doesNotMatch(runtime, /\.sac-grid\.two/);
 assert.doesNotMatch(runtime, /sac-support-form|sac-support-field/);
+assert.doesNotMatch(runtime, /applyMappedTabulatorFields|tabulatorTextFieldMap|tabulatorDropdownFieldMap/);
+assert.doesNotMatch(runtime, /window\.set(?:Dirty|Value)\s*=\s*\(\)\s*=>/);
+assert.match(runtime, /async function renderTabulator\([^)]*\)\s*\{\s*installTabulatorWriteGuard\(\);/);
 assert.match(runtime, /getInvestigationMode/);
 assert.match(runtime, /data-classify-counterparty="TRUSTED"/);
 assert.match(runtime, /data-classify-counterparty="UNTRUSTED"/);
@@ -43,6 +46,7 @@ assert.doesNotMatch(memory, /web application\/x-sac-prevencao-memory|legacyListI
 assert.doesNotMatch(memory, /type: TYPE|bootKey: BOOT_KEY/);
 assert.match(memory, /SAC_PREVENCAO_MEMORY_V11/);
 assert.match(memory, /listTombstones/);
+assert.match(memory, /const removals = tombstoneMap\(tombstones\)/);
 assert.match(memory, /TRANSPORT_STAGES/);
 assert.doesNotMatch(memory, /writeJson\(localStore, STATE_KEY/);
 assert.doesNotMatch(memory, /writeJson\(sessionStore, STATE_SESSION_KEY/);

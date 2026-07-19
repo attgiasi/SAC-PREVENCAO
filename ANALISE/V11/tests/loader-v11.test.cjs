@@ -4,7 +4,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "loader-v11.js"), "utf8");
-const safeFallback = "3ed452de3126df45ca7557a7ac4d43d307ee22eb";
+const safeFallback = "011d135c5c08434829444f6e1c6ff6aa66579256";
 const release = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "release-v11.json"), "utf8"));
 const bookmarklet = fs.readFileSync(path.join(__dirname, "..", "bookmarklet-v11.txt"), "utf8");
 
@@ -72,7 +72,7 @@ function response(payload, ok = true, status = 200) {
 
   assert.match(viaApi.loaded[0], /sac-memory-v11\.js/);
   assert.match(viaApi.loaded.at(-1), /sac-prevencao-v11\.js/);
-  assert.ok(viaApi.loaded.every((url) => url.includes("v=11.18.0-")));
+  assert.ok(viaApi.loaded.every((url) => url.includes("v=11.19.0-")));
   console.log("OK - carregador V11 validado por API, manifesto e revisão segura");
 })().catch((error) => {
   console.error(error);

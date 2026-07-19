@@ -55,6 +55,16 @@ vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "sac-memory-v11.js"), "utf8"), context, { filename: "sac-memory-v11.js" });
 
 const memory = context.window.SACMemoryV11;
+memory.settings.set("theme", "light");
+memory.settings.set("investigationMode", "on");
+memory.settings.set("flowTone:banking", "#22c55e");
+assert.deepEqual(
+  { ...memory.settings.all() },
+  { theme: "light", investigationMode: "on", "flowTone:banking": "#22c55e" },
+  "configurações precisam compartilhar a mesma memória entre as etapas"
+);
+assert.equal(memory.snapshot().settings.investigationMode.value, "on");
+
 const base = {
   id: "case-49373570",
   caseNumber: "49373570",

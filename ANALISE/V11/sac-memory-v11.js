@@ -3,7 +3,6 @@
 
   if (window.SACMemoryV11) return;
 
-  const TYPE = "web application/x-sac-prevencao-memory";
   const HTML_TYPE = "text/html";
   const HTML_MARKER = "SAC_PREVENCAO_MEMORY_V11";
   const BOOT_KEY = "__SAC_PREVENCAO_SHARED_MEMORY__";
@@ -51,7 +50,7 @@
     return identity(item) || normalizeText(item?.id);
   };
   const listIdentity = (item, listType = "allowlist") => listBaseIdentity(item, listType);
-  const legacyListIdentity = (item, listType = "") => `${identity(item) || item?.id || ""}:${normalizeText(listType)}`;
+  const compositeListIdentityAlias = (item, listType = "") => `${identity(item) || item?.id || ""}:${normalizeText(listType)}`;
   const caseOnlyListIdentity = (item, listType = "") => {
     const caseNumber = identityPart(item?.caseNumber);
     return caseNumber ? `CASE:${caseNumber}:${normalizeText(listType)}` : "";
@@ -59,7 +58,7 @@
   const listIdentityAliases = (item, listType = "") => Array.from(new Set([
     listIdentity(item, listType),
     caseOnlyListIdentity(item, listType),
-    legacyListIdentity(item, listType)
+    compositeListIdentityAlias(item, listType)
   ].filter(Boolean)));
   const redactDocuments = (value) => String(value || "")
     .replace(/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, "[CPF protegido]")
@@ -409,12 +408,6 @@
     }
     if (!Array.isArray(items)) return snapshot();
     for (const item of items) {
-      if (item.types.includes(TYPE)) {
-        try {
-          const blob = await item.getType(TYPE);
-          return mergeIncomingMemory(JSON.parse(await blob.text()));
-        } catch (_error) {}
-      }
       if (item.types.includes(HTML_TYPE)) {
         try {
           const blob = await item.getType(HTML_TYPE);
@@ -599,21 +592,16 @@
   };
 
   window.SACMemoryV11 = Object.freeze({
-    type: TYPE,
-    bootKey: BOOT_KEY,
     hydrateFromClipboard,
     mergeCurrentMirrors,
     mergeSnapshot: mergeIncomingMemory,
     snapshot,
-    setSnapshot,
     commit,
     commitCurrentText,
     transport,
     state,
     lists,
     settings,
-    history,
-    redactDocuments
+    history
   });
 })();
-

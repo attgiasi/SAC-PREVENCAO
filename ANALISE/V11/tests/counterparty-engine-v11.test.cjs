@@ -169,6 +169,9 @@ assert.equal(engine.classifyFromRegistry({ cnpj: "56195099000189", issuer: "Outr
 engine.upsertLocalClassification({ cnpj, issuer: "Emissor Teste", direction: "origem", classification: "TRUSTED" });
 assert.equal(engine.classifyFromRegistry({ cnpj, issuer: "Emissor Teste", direction: "origem" }).classification, "TRUSTED");
 assert.equal(engine.exportLocalRecords().length, 1);
+engine.upsertLocalClassification({ cnpj, issuer: "Emissor Teste", direction: "origem", classification: "UNTRUSTED" });
+assert.equal(engine.classifyFromRegistry({ cnpj, issuer: "Emissor Teste", direction: "origem" }).classification, "UNTRUSTED");
+assert.match(engine.exportLocalRecords()[0].reason, /lista de suspeitos/i);
 assert.equal(engine.removeLocalClassification({ cnpj, issuer: "Emissor Teste", direction: "origem" }), true);
 assert.equal(engine.exportLocalRecords().length, 0);
 

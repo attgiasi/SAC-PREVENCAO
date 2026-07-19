@@ -42,9 +42,6 @@ Object.defineProperty(FakeSelect.prototype, "value", {
   }
 });
 
-class FakeInput {}
-class FakeTextArea extends FakeInput {}
-
 const selects = new Map();
 const documentMock = {
   getElementById: (id) => selects.get(id) || null,
@@ -55,8 +52,6 @@ const context = {
   document: documentMock,
   Event: FakeEvent,
   HTMLSelectElement: FakeSelect,
-  HTMLInputElement: FakeInput,
-  HTMLTextAreaElement: FakeTextArea,
   Object,
   window: {}
 };
@@ -93,6 +88,8 @@ const queue = addSelect("ddl_Fila", [
 ]);
 assert.equal(engine.selectNow("ddl_Fila", "CARTÕES RECUSADAS"), true);
 assert.equal(queue.value, "CARTÕES RECUSADAS");
+assert.equal(engine.selectNow("ddl_Fila", "CARTÕES REPROVADAS"), true);
+assert.equal(queue.value, "CARTÕES RECUSADAS");
 
 const callType = addSelect("ddl_TipoChamada", [
   ["", "Tipo Chamada*"],
@@ -103,32 +100,13 @@ const callType = addSelect("ddl_TipoChamada", [
 assert.equal(engine.selectNow("ddl_TipoChamada", "ATIVA - PLANILHA"), true);
 assert.equal(callType.value, "ATIVA – PLANILHA");
 
-const reason = addSelect("ddl_motivostatus", [["", "Motivo Status*"]]);
-let waits = 0;
-(async () => {
-  const result = await engine.applyMap([{
-    type: "select",
-    id: "ddl_motivostatus",
-    label: "Motivo status",
-    value: "DADOS INSUFICIENTES PARA ANÁLISE",
-    tries: 4,
-    delay: 1,
-    confirmDelay: 0
-  }], {
-    wait: async () => {
-      waits += 1;
-      if (waits === 1) reason.options.push({
-        value: "DADOS INSUFICIENTES PARA ANÁLISE",
-        textContent: "DADOS INSUFICIENTES PARA ANÁLISE",
-        selected: false
-      });
-    }
-  });
-  assert.equal(result.ok, true);
-  assert.equal(reason.value, "DADOS INSUFICIENTES PARA ANÁLISE");
-  assert.ok(reason.events.includes("change"));
-  console.log("OK - motor de dropdowns do Tabulador V11 validado");
-})().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+const reason = addSelect("ddl_motivostatus", [
+  ["", "Motivo Status*"],
+  ["DADOS INSUFICIENTES PARA ANÁLISE", "DADOS INSUFICIENTES PARA ANÁLISE"]
+]);
+assert.equal(engine.selectNow("ddl_motivostatus", "DADOS INSUFICIENTES PARA ANÁLISE"), true);
+assert.equal(reason.value, "DADOS INSUFICIENTES PARA ANÁLISE");
+assert.ok(reason.events.includes("change"));
+assert.deepEqual(Object.keys(engine), ["selectNow"], "o motor auxiliar deve expor apenas o contrato usado pelo runtime");
+
+console.log("OK - motor de dropdowns do Tabulador V11 validado");

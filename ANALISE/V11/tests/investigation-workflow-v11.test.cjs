@@ -6,9 +6,10 @@ const root = path.join(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "sac-prevencao-v11.js"), "utf8");
 const media = fs.readFileSync(path.join(root, "sac-media-v11.js"), "utf8");
 
-assert.match(source, /const BUILD_VERSION = "11\.18"/);
+assert.match(source, /const BUILD_VERSION = "11\.19"/);
 assert.match(source, />Investigação e ajuda</);
 assert.doesNotMatch(source, /data-action="help-mode"/);
+assert.doesNotMatch(source, /helpMode|getHelpMode/);
 assert.match(source, /requestAnimationFrame\(\(\) => drawer\.querySelectorAll\("\[data-investigation\]"\)/);
 assert.match(source, /data-investigation-slot="transaction"/);
 assert.match(source, /data-investigation-slot="cnpj"/);

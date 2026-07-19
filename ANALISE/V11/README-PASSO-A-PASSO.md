@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 18/07/2026. Build `11.18`.
+Versão de testes revisada em 18/07/2026. Build `11.19`.
 
 ## Estrutura
 
@@ -8,7 +8,7 @@ A V11 fica organizada em blocos claros:
 
 - `sac-prevencao-v11.js`: interface, coleta, fluxos Falcon/Console/Tabulador, Histórico e LISTAS.
 - `sac-memory-v11.js`: memória própria da V11 para pacotes entre etapas, Histórico e LISTAS.
-- `sac-tabulator-v11.js`: motor rápido de aplicação dos campos no Tabulador.
+- `sac-tabulator-v11.js`: seletor robusto das opções reais dos dropdowns do Tabulador.
 - `sac-counterparty-v11.js`: arquitetura independente para classificação assistida de CNPJs.
 - `sac-corporate-v11.js`: consulta cadastral e cruzamento com dados oficiais da Receita Federal.
 - `sac-transaction-v11.js`: motor de sinais da análise transacional do Console.
@@ -23,7 +23,7 @@ A V11 fica organizada em blocos claros:
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.18 mantém `Investigação e ajuda` desligado por padrão. Quando ativado em qualquer etapa, o mesmo ajuste é refletido no fluxo e o painel lateral abre automaticamente com as análises disponíveis. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu; a análise transacional aparece quando houver linhas mapeadas. O painel reúne consulta cadastral, transacional e orientações de regra/emissor sem alterar a decisão do analista. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
+A V11.19 mantém `Investigação e ajuda` desligado por padrão. Ajuda e investigação usam uma única configuração compartilhada, sem estado paralelo. Quando ativada em qualquer etapa, a mesma preferência é refletida no fluxo e o painel lateral abre automaticamente com as análises disponíveis. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu; a análise transacional aparece quando houver linhas mapeadas. O painel reúne consulta cadastral, transacional e orientações de regra/emissor sem alterar a decisão do analista. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
 
 O PID usa botões de chave próprios, sem depender do comportamento de labels da página do Console. A reexecução encerra listeners e janelas da instância anterior antes de criar a nova, e o PID possui ciclo independente dos popovers auxiliares.
 
@@ -46,7 +46,17 @@ O painel de investigação usa grids compactos com título na borda. A visão ge
 - `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
 - `HISTÓRICO`: grava a tabulação sem CPF/CNPJ visível e deve abrir igual em qualquer etapa.
 
-Na V11, a memória de LISTAS, Histórico e Configurações usa um estado central próprio e também é espelhada por `localStorage`, `sessionStorage`, `window.name` e envelope HTML padrão no clipboard. O formato customizado antigo é apenas lido para compatibilidade; novas gravações usam formatos padrão. As configurações, LISTAS e Histórico também viajam dentro dos pacotes Falcon e Console para reforçar tema, modo seguro, investigação/ajuda, fonte, assinatura, cores dos fluxos e casos pendentes entre etapas.
+## Pente fino da build 11.19
+
+- `FALCON e CONSOLE`: seletores mapeados e fallbacks contextuais foram mantidos porque atendem variações reais das páginas; não existem funções ou constantes internas sem consumidor.
+- `TABULADOR`: o módulo auxiliar foi reduzido ao seletor de dropdown usado pelo runtime. O segundo aplicador de inputs, que não participava do fluxo real, foi removido.
+- `MEMÓRIA`: o leitor do MIME customizado que a versão atual não grava mais foi removido. Permanecem apenas os espelhos ativos, o cofre de LISTAS e os tombstones.
+- `CNPJ`: a função que abria o site da Receita em outra janela foi removida. A consulta continua automática pela base cadastrada e pelo serviço público configurado.
+- `INVESTIGAÇÃO`: ajuda e investigação usam uma única preferência. O painel lateral usa cabeçalho neutro, grids com dimensões estáveis e classificação local `Favorável` ou `Suspeito`.
+- `CONFIGURAÇÕES`: tema, modo seguro, investigação, fonte, assinatura e cores são gravados no estado compartilhado e transportados nos pacotes Falcon/Console.
+- `LISTAS e HISTÓRICO`: as confirmações múltiplas de persistência foram mantidas por serem proteção operacional entre páginas, não duplicação descartável.
+
+Na V11, a memória de LISTAS, Histórico e Configurações usa um estado central próprio e também é espelhada por `localStorage`, `sessionStorage`, `window.name` e envelope HTML padrão no clipboard. As configurações, LISTAS e Histórico também viajam dentro dos pacotes Falcon e Console para reforçar tema, modo seguro, investigação/ajuda, fonte, assinatura, cores dos fluxos e casos pendentes entre etapas.
 
 LISTAS também possui um cofre dedicado da V11. Esse cofre guarda os casos pendentes por 12 horas, aplica tombstones quando um item é inserido ou removido, e impede que uma cópia antiga do clipboard traga de volta casos já baixados.
 
@@ -60,7 +70,7 @@ O bloco `FALCON` usa leitura contextual da linha laranja. A coleta prioriza os c
 
 Na V11, o bloco `CONSOLE` mantém a coleta mapeada. BANKING/HOLD validam `ID da conta + CPF/CNPJ`; CARTÃO valida o número pelo final do cartão coletado no Falcon. Com modo seguro ligado, divergência bloqueia a etapa; com modo seguro desligado, a mensagem `CASO DIVERGENTE, CONFIRA O FALCON NOVAMENTE` aparece, mas o fluxo pode continuar.
 
-O Tabulador mantém a aplicação estável da V10. Pacotes Falcon/Console só são aceitos quando pertencem à build atual, evitando mistura com dados de versões anteriores.
+O Tabulador usa o mapa fixo da V11 e aceita somente pacotes Falcon/Console da build atual, evitando mistura com dados de versões anteriores.
 
 ## Fluxos
 
@@ -436,7 +446,4 @@ O sistema mostra principalmente:
 
 O bookmarklet dedicado da V11 não altera nem substitui o favorito universal da V10.
 
-Ao migrar de um favorito V11 antigo, substitua seu conteúdo uma vez pelo código atual de `bookmarklet-v11.txt`. O favorito fixa o próprio loader em um commit imutável; esse loader resolve o commit mais recente do repositório e carrega os oito módulos por outra referência imutável. Assim, a inicialização não depende do cache de `@main` e não permanece presa a builds antigas como a V11.8.
-
-
-
+Ao migrar de um favorito V11 antigo, substitua seu conteúdo uma vez pelo código atual de `bookmarklet-v11.txt`. O favorito fixa o próprio loader em um commit imutável; esse loader resolve o commit mais recente do repositório e carrega os oito módulos por outra referência imutável. Assim, a inicialização não depende do cache de `@main` nem recupera uma build anterior.

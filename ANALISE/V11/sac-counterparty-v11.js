@@ -3,7 +3,7 @@
 
   if (window.SACCounterpartyV11) return;
 
-  const ENGINE_VERSION = "1.3.0";
+  const ENGINE_VERSION = "1.3.1";
   const CACHE_KEY = "sac_prevencao_V11:counterparty_registry";
   const CONFIG_KEY = "sac_prevencao_V11:counterparty_config";
   const LOCAL_RECORDS_KEY = "sac_prevencao_V11:counterparty_local_records";
@@ -404,7 +404,11 @@
       directions: [direction],
       issuers: [issuer],
       category: String(input.category || "CADASTRO DO OPERADOR"),
-      reason: String(input.reason || (classification === "TRUSTED" ? "CNPJ incluído pelo operador na lista confiável." : "CNPJ incluído pelo operador na lista de atenção.")).trim(),
+      reason: String(input.reason || ({
+        TRUSTED: "CNPJ incluído pelo operador na lista favorável.",
+        UNTRUSTED: "CNPJ incluído pelo operador na lista de suspeitos.",
+        REVIEW: "CNPJ incluído pelo operador na lista de atenção."
+      }[classification] || "CNPJ classificado pelo operador.")).trim(),
       source: { type: "LOCAL", label: "Base local do operador" },
       reviewedAt: new Date().toISOString(),
       active: true,

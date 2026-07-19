@@ -3,12 +3,11 @@
 
   if (window.SACCorporateV11) return;
 
-  const ENGINE_VERSION = "1.3.0";
+  const ENGINE_VERSION = "1.3.1";
   const CACHE_KEY = "sac_prevencao_V11:rfb_registry";
   const LOOKUP_CACHE_KEY = "sac_prevencao_V11:rfb_lookup_cache";
   const CONFIG_KEY = "sac_prevencao_V11:rfb_config";
   const DEFAULT_ENDPOINT = "https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/ANALISE/V11/rfb-cnpj-registry-v11.json";
-  const OFFICIAL_QUERY_URL = "https://solucoes.receita.fazenda.gov.br/Servicos/cnpjreva/Cnpjreva_Solicitacao.asp";
   const DEFAULT_TTL_MS = 15 * 60 * 1000;
   const LOOKUP_TTL_MS = 24 * 60 * 60 * 1000;
   const BRASIL_API_ENDPOINT = "https://brasilapi.com.br/api/cnpj/v1/";
@@ -336,12 +335,6 @@
     return getState();
   }
 
-  function openOfficialQuery() {
-    const opened = window.open?.(OFFICIAL_QUERY_URL, "_blank", "noopener,noreferrer");
-    if (opened) opened.opener = null;
-    return Boolean(opened);
-  }
-
   function getState() {
     return {
       engineVersion: ENGINE_VERSION,
@@ -372,8 +365,6 @@
     loadSnapshot,
     configure,
     useProvider,
-    openOfficialQuery,
-    officialQueryUrl: OFFICIAL_QUERY_URL,
     getState
   });
 })();

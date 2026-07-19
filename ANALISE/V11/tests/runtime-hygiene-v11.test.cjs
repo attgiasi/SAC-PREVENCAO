@@ -18,7 +18,10 @@ assert.match(runtime, /data-classify-counterparty="TRUSTED"/);
 assert.match(runtime, /data-classify-counterparty="UNTRUSTED"/);
 assert.doesNotMatch(runtime, /data-classify-counterparty="REVIEW"/);
 assert.match(runtime, />INVESTIGAÇÃO</);
-assert.match(runtime, /\.sac-investigation-drawer\{width:312px;border-top-width:1px\}/);
+assert.match(runtime, /\.sac-investigation-drawer\{width:332px/);
+assert.match(runtime, /\.sac-investigation-head\{/);
+assert.match(runtime, /\.sac-investigation-arrow\.is-open/);
+assert.doesNotMatch(runtime, /\.sac-investigation-drawer\{width:312px/);
 assert.match(runtime, /\.sac-side-panel,\.sac-side-panel \*\{box-sizing:border-box!important\}/);
 
 for (const setting of ["theme", "safeMode", "investigationMode", "fontScale", "signatureName", "signatureSector"]) {

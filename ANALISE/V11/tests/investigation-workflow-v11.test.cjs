@@ -6,7 +6,7 @@ const root = path.join(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "sac-prevencao-v11.js"), "utf8");
 const media = fs.readFileSync(path.join(root, "sac-media-v11.js"), "utf8");
 
-assert.match(source, /const BUILD_VERSION = "11\.20"/);
+assert.match(source, /const BUILD_VERSION = "11\.21"/);
 assert.match(source, />Investigação e ajuda</);
 assert.doesNotMatch(source, /data-action="help-mode"/);
 assert.doesNotMatch(source, /helpMode|getHelpMode/);
@@ -14,6 +14,10 @@ assert.match(source, /requestAnimationFrame\(\(\) => drawer\.querySelectorAll\("
 assert.match(source, /data-investigation-slot="transaction"/);
 assert.match(source, /data-investigation-slot="cnpj"/);
 assert.match(source, /data-investigation-slot="help"/);
+assert.match(source, /Pontos de análise do book/);
+assert.match(source, /pelo menos dois indícios concretos/);
+assert.match(source, /sac-investigation-heading/);
+assert.match(source, /sac-investigation-arrow is-close/);
 assert.match(source, /Transacionando com/);
 assert.match(source, /P2P Emissor/);
 assert.match(source, /P2P Pessoal/);

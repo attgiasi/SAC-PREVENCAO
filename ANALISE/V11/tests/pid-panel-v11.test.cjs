@@ -33,6 +33,14 @@ assert.match(source, /runtimeController\.abort\(\)/);
 assert.match(source, /addRuntimeEvent\(document, "keydown"/);
 assert.match(source, /placeAuxiliaryPanel\(host, panel\)/);
 assert.match(source, /return panel;/);
+assert.match(source, /\.sac-pid-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
+assert.match(source, /const oppositeOfSide = side/);
+
+const preview = fs.readFileSync(path.join(__dirname, "..", "preview.html"), "utf8");
+assert.match(preview, /investigation:true/);
+assert.match(preview, /callMode:"com chamada",callResult:"com sucesso"/);
+assert.match(preview, /if\(norm\(data\.fields\.callMode\)==="COM CHAMADA"\)openPid\(data\)/);
+assert.match(preview, /\.pid-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
 
 const functionStart = source.indexOf("  function openPidPanel(data, options = {}) {");
 const functionEnd = source.indexOf("  function ensureStyles()", functionStart);

@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 18/07/2026. Build `11.20`.
+Versão de testes revisada em 18/07/2026. Build `11.21`.
 
 ## Estrutura
 
@@ -23,9 +23,9 @@ A V11 fica organizada em blocos claros:
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.20 mantém `Investigação e ajuda` desligado por padrão. Ajuda e investigação usam uma única configuração compartilhada, sem estado paralelo. Quando ativada em qualquer etapa, a mesma preferência é refletida no fluxo e o painel lateral abre automaticamente com as análises disponíveis. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu; a análise transacional aparece quando houver linhas mapeadas. O painel reúne consulta cadastral, transacional e orientações de regra/emissor sem alterar a decisão do analista. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
+A V11.21 mantém `Investigação e ajuda` desligado por padrão. Ajuda e investigação usam uma única configuração compartilhada, sem estado paralelo. Quando ativada em qualquer etapa, a mesma preferência é refletida no fluxo e o painel lateral abre automaticamente com as análises disponíveis. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu; a análise transacional aparece quando houver linhas mapeadas. O painel reúne consulta cadastral, transacional, orientações de regra/emissor e um roteiro curto fundamentado no book, sem alterar a decisão do analista. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
 
-O PID usa botões de chave próprios, sem depender do comportamento de labels da página do Console. A reexecução encerra listeners e janelas da instância anterior antes de criar a nova, e o PID possui ciclo independente dos popovers auxiliares.
+O PID usa botões de chave próprios, sem depender do comportamento de labels da página do Console. Seus dados aparecem em duas colunas e, quando a investigação também estiver aberta, o posicionador tenta usar o lado oposto da janela do Console para evitar sobreposição. A reexecução encerra listeners e janelas da instância anterior antes de criar a nova, e o PID possui ciclo independente dos popovers auxiliares.
 
 O carregador V11 resolve a revisão mais recente pela API do GitHub e, se necessário, pelo manifesto de lançamento. Se ambas as consultas estiverem indisponíveis, usa uma revisão imutável que já contém a abertura corrigida do PID. Isso impede que o cache de `@main` recupere uma implementação antiga.
 
@@ -46,13 +46,13 @@ O painel de investigação usa grids compactos com título na borda. A visão ge
 - `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
 - `HISTÓRICO`: grava a tabulação sem CPF/CNPJ visível e deve abrir igual em qualquer etapa.
 
-## Pente fino da build 11.20
+## Pente fino da build 11.21
 
 - `FALCON e CONSOLE`: seletores mapeados e fallbacks contextuais foram mantidos porque atendem variações reais das páginas; não existem funções ou constantes internas sem consumidor.
 - `TABULADOR`: o módulo auxiliar foi reduzido ao seletor de dropdown usado pelo runtime. O segundo aplicador de inputs, que não participava do fluxo real, foi removido.
 - `MEMÓRIA`: leituras deixaram de regravar o estado inteiro. Os espelhos completos antigos foram migrados para chaves dedicadas e compactas.
 - `CNPJ`: a função que abria o site da Receita em outra janela foi removida. A consulta continua automática pela base cadastrada e pelo serviço público configurado.
-- `INVESTIGAÇÃO`: ajuda e investigação usam uma única preferência. O painel lateral usa cabeçalho neutro, grids com dimensões estáveis e classificação local `Favorável` ou `Suspeito`.
+- `INVESTIGAÇÃO`: ajuda e investigação usam uma única preferência. O painel lateral usa trilho recolhível, cabeçalho neutro contextual, grids com dimensões estáveis e classificação local `Favorável` ou `Suspeito`.
 - `CONFIGURAÇÕES`: tema, modo seguro, investigação, fonte, assinatura e cores são gravados no estado compartilhado e transportados nos pacotes Falcon/Console.
 - `LISTAS e HISTÓRICO`: as confirmações múltiplas de persistência foram mantidas por serem proteção operacional entre páginas, não duplicação descartável.
 - `VALIDAÇÃO`: corrigido o retorno da conferência FALCON → Console para que ID da conta, CPF/CNPJ ou final do cartão sejam efetivamente comparados.

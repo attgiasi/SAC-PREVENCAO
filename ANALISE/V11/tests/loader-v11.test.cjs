@@ -4,7 +4,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "loader-v11.js"), "utf8");
-const safeFallback = "c2047fed315b10442aadeaf04b235494dcaf4976";
+const safeFallback = "3ed452de3126df45ca7557a7ac4d43d307ee22eb";
 
 async function executeLoader(fetchImpl) {
   const loaded = [];
@@ -67,7 +67,7 @@ function response(payload, ok = true, status = 200) {
 
   assert.match(viaApi.loaded[0], /sac-memory-v11\.js/);
   assert.match(viaApi.loaded.at(-1), /sac-prevencao-v11\.js/);
-  assert.ok(viaApi.loaded.every((url) => url.includes("v=11.17.0-")));
+  assert.ok(viaApi.loaded.every((url) => url.includes("v=11.18.0-")));
   console.log("OK - carregador V11 validado por API, manifesto e revisão segura");
 })().catch((error) => {
   console.error(error);

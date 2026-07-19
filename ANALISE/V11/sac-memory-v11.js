@@ -243,9 +243,10 @@
   function splitPendingListEntries(item) {
     return ["allowlist", "contencao"].flatMap((listType) => {
       if (!item?.lists?.[listType] || item?.applied?.[listType]) return [];
+      const stableId = (normalizeText(item?.id) || listBaseIdentity(item, listType)).replace(/:(allowlist|contencao)$/i, "");
       return [{
         ...item,
-        id: `${normalizeText(item?.id) || listBaseIdentity(item, listType)}:${listType}`,
+        id: `${stableId}:${listType}`,
         lists: { allowlist: listType === "allowlist", contencao: listType === "contencao" },
         applied: { allowlist: listType !== "allowlist", contencao: listType !== "contencao" }
       }];

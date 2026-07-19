@@ -104,11 +104,11 @@ O sincronizador remove somente registros gerados anteriormente com os prefixos `
 
 ## Integração no Console
 
-O `Modo investigação` fica desligado por padrão. Quando ativado, uma aba discreta abre o painel lateral. `Verificar CNPJ` aparece no Falcon quando o documento de quem enviou ou recebeu na linha laranja for um CNPJ válido; `Análise transacional` aparece quando houver transações mapeadas. O BigData não mostra painel: somente coleta PID/mídia e transporta o resultado ao Console.
+O modo unificado `Investigação e ajuda` fica desligado por padrão. Quando ativado, o painel lateral abre automaticamente e reúne consulta de CNPJ, análise transacional e orientações de regra/emissor. `Verificar CNPJ` aparece no Falcon quando o documento de quem enviou ou recebeu na linha laranja for um CNPJ válido; `Análise transacional` aparece quando houver transações mapeadas. O BigData não coleta PID e participa somente da mídia desabonadora do CPF titular.
 
 - `Análise transacional`: avalia somente sinais explicitamente cadastrados. P2P adiciona um ponto favorável a não fraude.
 - `Verificar CNPJ`: consulta a base versionada e apresenta a classificação em um indicador dentro do próprio grid do CNPJ.
-- a mesma consulta mostra nome fantasia ou razão social, abertura e situação cadastral em grids compactos.
+- a mesma consulta mostra nome fantasia ou razão social, abertura, situação cadastral e porte da empresa em grids compactos.
 - situação `INAPTA`, `BAIXADA`, `SUSPENSA` ou `NULA` e empresa com menos de três meses recebem alerta pulsante vermelho.
 - nenhum resultado seleciona decisão ou Motivo Status automaticamente.
 
@@ -127,7 +127,7 @@ O arquivo público no GitHub não recebe credenciais. O motor consulta primeiro 
 
 ## Mídia e análise transacional
 
-O motor transacional lê os campos mapeados dos HTMLs do Console e Falcon, calcula volume, direção, intervalos, concentração, passagem de saldo e horários, informa o período efetivamente analisado e cruza as particularidades explícitas do book por emissor. P2P é ponto favorável a não fraude em BANKING/HOLD. Em CARTÃO, chip e senha é sinal favorável; duas ou mais tentativas por aproximação, digitado manual ou e-commerce no mesmo estabelecimento geram alerta. Nenhum sinal decide o caso sozinho.
+O motor transacional lê os campos mapeados dos HTMLs do Console e Falcon. A visão geral mostra total de transações, valor total, período, contatos diferentes, P2P do emissor e P2P pessoal. A seção `Transacionando com` agrupa CPF/CNPJ, quantidade e valor, enquanto a velocidade exibe o menor intervalo relevante entre 1, 5 e 10 minutos. As particularidades do emissor ficam em uma seção de coluna única. P2P é ponto favorável a não fraude em BANKING/HOLD. Em CARTÃO, chip e senha é sinal favorável; duas ou mais tentativas por aproximação, digitado manual ou e-commerce no mesmo estabelecimento geram alerta. Nenhum sinal decide o caso sozinho.
 
 A investigação de mídia segue `FALCON > BigData (opcional) > CONSOLE`. O Falcon cria um pedido identificado por caso e CPF; o BigData coleta silenciosamente e devolve o resultado para a mesma identidade. O CPF do bloco de dados pessoais precisa coincidir com o pedido. Só conta processo em que esse mesmo CPF seja parte ré/polo passivo. Variações de assunto são classificadas por palavras-chave tolerantes. Resultado sem categoria criminal compatível é `SEM MÍDIA` e atualiza o campo do Console para `não`; com ocorrência, o Console recebe `sim` e as categorias marcadas automaticamente.
 

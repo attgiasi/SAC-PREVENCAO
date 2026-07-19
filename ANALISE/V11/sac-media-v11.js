@@ -104,34 +104,13 @@
     return "";
   }
 
-  function collectPidData(root = document) {
+  function collectCustomerIdentity(root = document) {
     const personCards = Array.from(root?.querySelectorAll?.("#queryResult_personData .content-card") || []);
     const person = personCards.map(fieldMap).find((fields) => fieldValue(fields, "Nome", "Documento")) || new Map();
-    const addressCards = Array.from(root?.querySelectorAll?.("#queryResult_addressData .content-card") || []).map(fieldMap);
-    const address = addressCards.find((fields) => normalizeText(fieldValue(fields, "Endereço é principal")) === "SIM")
-      || addressCards.find((fields) => fieldValue(fields, "Endereço"))
-      || new Map();
-    const phoneCards = Array.from(root?.querySelectorAll?.("#queryResult_phoneData .content-card,#queryResult_extendedPhonesData .content-card") || []).map(fieldMap);
-    const phoneFields = phoneCards.find((fields) => fieldValue(fields, "Telefone", "Número", "Phone")) || new Map();
-    const emailCards = Array.from(root?.querySelectorAll?.("#queryResult_emailData .content-card,#queryResult_extendedEmailsData .content-card") || []).map(fieldMap);
-    const emailFields = emailCards.find((fields) => fieldValue(fields, "E-mail", "Email")) || new Map();
-    const addressText = [fieldValue(address, "Endereço"), fieldValue(address, "Complemento"), fieldValue(address, "Cidade"), fieldValue(address, "UF")]
-      .filter(Boolean)
-      .join(" - ");
-    const phone = fieldValue(phoneFields, "Telefone", "Número", "Phone");
     return Object.freeze({
       supported: Boolean(person.size),
       name: fieldValue(person, "Nome"),
-      motherName: fieldValue(person, "Nome da mãe", "Nome da mae"),
-      birthDate: fieldValue(person, "Data de nascimento"),
-      document: digits(fieldValue(person, "Documento")),
-      documentStatus: fieldValue(person, "Status"),
-      address: addressText,
-      city: fieldValue(address, "Cidade"),
-      uf: fieldValue(address, "UF"),
-      phone,
-      email: fieldValue(emailFields, "E-mail", "Email"),
-      source: "BigData"
+      document: digits(fieldValue(person, "Documento"))
     });
   }
 
@@ -200,15 +179,14 @@
     },
     async scan(input = {}) {
       const root = input.root || document;
-      const pid = collectPidData(root);
-      const pageDocument = digits(pid.document);
+      const pageDocument = digits(collectCustomerIdentity(root).document);
       const requestedDocuments = new Set((input.parties || []).map((party) => digits(party?.document)).filter(isCpf));
       if (!isCpf(pageDocument) || !requestedDocuments.has(pageDocument)) {
-        return { found: false, mediaTypes: [], defendants: [], pid, pageDocument, identityMismatch: true, source: "BigData" };
+        return { found: false, mediaTypes: [], defendants: [], pageDocument, identityMismatch: true, source: "BigData" };
       }
       const selectedParty = (input.parties || []).filter((party) => digits(party?.document) === pageDocument);
       const result = classifyProcessRecords(parseBigDataProcesses(root), selectedParty);
-      return { ...result, pid, pageDocument, identityMismatch: false, source: "BigData" };
+      return { ...result, pageDocument, identityMismatch: false, source: "BigData" };
     }
   });
 
@@ -300,8 +278,7 @@
         parties,
         defendants: [],
         mediaTypes: [],
-        source: String(raw?.source || "BigData").trim(),
-        pid: raw?.pid || collectPidData(input.root || document)
+        source: String(raw?.source || "BigData").trim()
       };
     }
     return {
@@ -312,8 +289,7 @@
       parties,
       defendants: Array.isArray(raw?.defendants) ? raw.defendants : [],
       mediaTypes,
-      source: String(raw?.source || "BigData").trim(),
-      pid: raw?.pid || collectPidData(input.root || document)
+      source: String(raw?.source || "BigData").trim()
     };
   }
 
@@ -328,7 +304,7 @@
     isCpf,
     eligibleParties,
     normalizeTypes,
-    collectPidData,
+    collectCustomerIdentity,
     classifyProcessRecords,
     parseBigDataProcesses,
     requestIdentity,

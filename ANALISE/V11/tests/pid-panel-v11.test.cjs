@@ -12,6 +12,9 @@ assert.match(source, /pid\.motherName/);
 assert.match(source, /pid\.birthDate/);
 assert.match(source, /pid\.address/);
 assert.match(source, /pid\.phone/);
+assert.match(source, /data-pid-reload/);
+assert.match(source, /collectConsolePidField/);
+assert.doesNotMatch(source, /Vencimento da fatura/);
 assert.match(source, /const pasted = await readClipboardText\(\);/);
 assert.match(source, /panel\.dataset\.flow = pidFlow;/);
 assert.match(source, /getFlowTone\(pidFlow\)/);
@@ -31,7 +34,7 @@ assert.match(source, /addRuntimeEvent\(document, "keydown"/);
 assert.match(source, /placeAuxiliaryPanel\(host, panel\)/);
 assert.match(source, /return panel;/);
 
-const functionStart = source.indexOf("  function openPidPanel(data) {");
+const functionStart = source.indexOf("  function openPidPanel(data, options = {}) {");
 const functionEnd = source.indexOf("  function ensureStyles()", functionStart);
 assert.ok(functionStart >= 0 && functionEnd > functionStart);
 const elements = new Map();
@@ -64,10 +67,12 @@ const sandbox = {
 };
 vm.createContext(sandbox);
 vm.runInContext(`
-  const BUILD_VERSION = "11.17";
+  const BUILD_VERSION = "11.18";
   const ensureStyles = () => {};
   const byId = (id) => elements.get(id) || null;
   const normalize = (value) => String(value || "").toUpperCase();
+  const clean = (value, fallback = "") => String(value || "").trim() || fallback;
+  const all = () => [];
   const pidProfileFor = () => ({ title: "PID TESTE", required: [], complementary: [], note: "" });
   const getTheme = () => "dark";
   const getFlowTone = (flow) => flow === "hold" ? "#ff2d00" : "#22c55e";
@@ -78,6 +83,8 @@ vm.runInContext(`
   const placePidPanel = () => { placed += 1; };
   const placeAuxiliaryPanel = () => {};
   const requestAnimationFrame = (callback) => callback();
+  const collectConsolePidField = () => ({ key: "", value: "" });
+  const showNotice = () => {};
   ${source.slice(functionStart, functionEnd)}
   globalThis.openPidPanelForTest = openPidPanel;
 `, sandbox);
@@ -92,4 +99,4 @@ assert.equal(reopened, opened);
 assert.equal(appendCount, 1);
 assert.equal(sandbox.placed, 3);
 
-console.log("OK - painel PID ligado à chamada e aos dados do BigData");
+console.log("OK - painel PID ligado à chamada e aos dados do Console");

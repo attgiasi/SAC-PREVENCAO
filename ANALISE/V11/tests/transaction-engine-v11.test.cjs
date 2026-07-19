@@ -68,7 +68,7 @@ const falconRows = engine.collectFalconTransactions({ root: falconRoot, transact
 assert.equal(falconRows.length, 2);
 assert.equal(falconRows[0].counterparty.document, "42054886000104");
 assert.equal(falconRows[0].rowIndex, "0");
-const falconSummary = engine.summarizeFalconTransactions(falconRows);
+const falconSummary = engine.summarizeFalconTransactions(falconRows, { issuer: "GETNET", holderDocument: "11111111111" });
 assert.equal(falconSummary.transactionCount, 2);
 assert.equal(falconSummary.totalAmount, 2000);
 assert.equal(falconSummary.uniqueCounterpartyCount, 1);
@@ -76,6 +76,22 @@ assert.equal(falconSummary.p2pDetected, true);
 assert.equal(falconSummary.counterparties[0].transactionCount, 2);
 assert.equal(falconSummary.validDateCount, 2);
 assert.equal(falconSummary.periodEnd - falconSummary.periodStart, 8 * 60 * 1000);
+assert.equal(falconSummary.velocity1m, 1);
+assert.equal(falconSummary.velocity5m, 1);
+assert.equal(falconSummary.velocity10m, 2);
+assert.equal(falconSummary.p2pIssuerCount, 2);
+
+const velocityRows = [
+  { timestamp: Date.parse("2026-07-16T10:00:00"), amount: 100, direction: "CREDIT", p2p: true, counterparty: "111.111.111-11", counterpartyDocument: "11111111111" },
+  { timestamp: Date.parse("2026-07-16T10:00:30"), amount: 200, direction: "DEBIT", p2p: true, counterparty: "111.111.111-11", counterpartyDocument: "11111111111" },
+  { timestamp: Date.parse("2026-07-16T10:04:30"), amount: 300, direction: "DEBIT", p2p: false, counterparty: "EMPRESA TESTE 42054886000104", counterpartyDocument: "42054886000104" }
+];
+const velocityMetrics = engine.transactionMetrics(velocityRows, { holderDocument: "11111111111" });
+assert.equal(velocityMetrics.velocity1m, 2);
+assert.equal(velocityMetrics.velocity5m, 3);
+assert.equal(velocityMetrics.p2pPersonalCount, 2);
+assert.equal(velocityMetrics.counterparties.length, 2);
+assert.equal(velocityMetrics.counterparties[0].transactionCount, 2);
 
 const p2p = engine.analyze({ transactionType: "P2P" });
 assert.equal(p2p.classification, "FAVORABLE");

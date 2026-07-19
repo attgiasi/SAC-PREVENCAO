@@ -3,7 +3,7 @@
 
   if (window.SACTransactionV11) return;
 
-  const ENGINE_VERSION = "2.1.0";
+  const ENGINE_VERSION = "2.2.0";
   let provider = null;
 
   const ISSUER_PROFILES = Object.freeze([
@@ -115,6 +115,46 @@
 
   function containsP2P(value) {
     return /(^|[^A-Z0-9])P2P([^A-Z0-9]|$)/.test(normalizeText(value));
+  }
+
+  function documentInText(value) {
+    const source = String(value ?? "");
+    const formatted = source.match(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b|\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/);
+    if (formatted) return formatted[0].replace(/\D/g, "");
+    const compact = source.replace(/[^0-9A-Za-z]/g, " ").split(/\s+/).find((token) => /^\d{11}$|^\d{14}$/.test(token));
+    return compact || "";
+  }
+
+  function transactionCounterparties(rows = []) {
+    const grouped = new Map();
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const objectValue = typeof row?.counterparty === "object" ? row.counterparty : null;
+      const documentValue = String(row?.counterpartyDocument || objectValue?.document || documentInText(row?.counterparty) || "").replace(/\D/g, "");
+      const name = String(row?.counterpartyName || (typeof row?.counterparty === "string" ? row.counterparty : "") || row?.payerName || "").replace(/\s+/g, " ").trim();
+      const key = documentValue || normalizeText(name);
+      if (!key) return;
+      const current = grouped.get(key) || { key, document: documentValue, name, transactionCount: 0, totalAmount: 0 };
+      current.transactionCount += 1;
+      current.totalAmount += Number(row?.amount || 0);
+      if (!current.name && name) current.name = name;
+      grouped.set(key, current);
+    });
+    return Object.freeze(Array.from(grouped.values(), (item) => Object.freeze({ ...item })));
+  }
+
+  function p2pRelationshipMetrics(rows = [], input = {}) {
+    const issuer = normalizeText(input.issuer);
+    const holderDocument = String(input.holderDocument || input.customerDocument || "").replace(/\D/g, "");
+    let issuerCount = 0;
+    let personalCount = 0;
+    (Array.isArray(rows) ? rows : []).filter((row) => row?.p2p || containsP2P(`${row?.description || ""} ${row?.transactionType || ""} ${row?.rule || ""}`)).forEach((row) => {
+      const objectValue = typeof row?.counterparty === "object" ? row.counterparty : null;
+      const documentValue = String(row?.counterpartyDocument || objectValue?.document || documentInText(row?.counterparty) || "").replace(/\D/g, "");
+      const context = normalizeText(`${row?.counterpartyName || ""} ${typeof row?.counterparty === "string" ? row.counterparty : ""} ${row?.payerName || ""} ${row?.description || ""}`);
+      if ((holderDocument && documentValue === holderDocument) || /MESMA TITULARIDADE|PROPRIA TITULARIDADE|ENTRE CONTAS PROPRIAS/.test(context)) personalCount += 1;
+      if ((issuer.length >= 3 && context.includes(issuer)) || /P2P (?:DO|PARA O|VINDO DO) EMISSOR/.test(context)) issuerCount += 1;
+    });
+    return Object.freeze({ issuerCount, personalCount });
   }
 
   function cardEntryMode(value) {
@@ -237,7 +277,8 @@
     const indexes = {
       date: indexOf("DATA E HORA"),
       description: indexOf("DESCRICAO", "OPERACAO"),
-      counterparty: indexOf("BENEFICIARIO", "ESTABELECIMENTO"),
+      counterparty: indexOf("BENEFICIARIO", "ESTABELECIMENTO", "CONTRAPARTE", "ORIGEM", "DESTINO"),
+      document: indexOf("CPF/CNPJ", "CPF OU CNPJ", "DOCUMENTO", "DOCUMENTO DA CONTRAPARTE"),
       category: indexOf("CATEGORIA"),
       status: indexOf("STATUS"),
       amount: indexOf("VALOR")
@@ -250,6 +291,8 @@
       const amountText = valueAt(indexes.amount);
       const signedAmount = parseSignedAmount(amountText);
       const description = valueAt(indexes.description);
+      const counterparty = valueAt(indexes.counterparty);
+      const counterpartyDocument = documentInText(valueAt(indexes.document) || counterparty || textOf(row));
       return [Object.freeze({
         rowIndex,
         source,
@@ -257,7 +300,9 @@
         timestamp: parseTransactionDate(valueAt(indexes.date)),
         description,
         category: valueAt(indexes.category),
-        counterparty: valueAt(indexes.counterparty),
+        counterparty,
+        counterpartyName: counterparty.replace(/\b\d{11,14}\b/g, "").trim(),
+        counterpartyDocument,
         status: valueAt(indexes.status),
         amountText,
         signedAmount,
@@ -269,7 +314,7 @@
     return Object.freeze(rows);
   }
 
-  function transactionMetrics(rows = []) {
+  function transactionMetrics(rows = [], input = {}) {
     const items = Array.isArray(rows) ? rows : [];
     const validTimes = items.map((row) => Number(row.timestamp)).filter(Number.isFinite).sort((a, b) => a - b);
     let shortIntervals = 0;
@@ -303,12 +348,23 @@
       });
       return maximum;
     };
+    const maxRollingCount = (windowMs) => {
+      let left = 0;
+      let maximum = 0;
+      chronological.forEach((row, right) => {
+        while (chronological[right].timestamp - chronological[left].timestamp > windowMs) left += 1;
+        maximum = Math.max(maximum, right - left + 1);
+      });
+      return maximum;
+    };
     const monthlyTotals = new Map();
     chronological.forEach((row) => {
       const date = new Date(row.timestamp);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       monthlyTotals.set(key, Number(monthlyTotals.get(key) || 0) + Number(row.amount || 0));
     });
+    const p2pRelationships = p2pRelationshipMetrics(items, input);
+    const groupedCounterparties = transactionCounterparties(items);
     return Object.freeze({
       count: items.length,
       validDateCount: validTimes.length,
@@ -322,8 +378,14 @@
       totalAmount: creditAmount + debitAmount,
       largestAmount,
       uniqueCounterparties: counterparties.size,
+      counterparties: groupedCounterparties,
       p2pCount: p2pRows.length,
+      p2pIssuerCount: p2pRelationships.issuerCount,
+      p2pPersonalCount: p2pRelationships.personalCount,
       shortIntervals,
+      velocity1m: maxRollingCount(60 * 1000),
+      velocity5m: maxRollingCount(5 * 60 * 1000),
+      velocity10m: maxRollingCount(10 * 60 * 1000),
       unusualHours,
       maxAmount24h: maxRollingAmount(24 * 60 * 60 * 1000),
       maxMonthlyAmount: Math.max(0, ...monthlyTotals.values()),
@@ -387,9 +449,9 @@
     return Object.freeze(rows);
   }
 
-  function summarizeFalconTransactions(rows = []) {
+  function summarizeFalconTransactions(rows = [], input = {}) {
     const items = Array.isArray(rows) ? rows : [];
-    const metrics = transactionMetrics(items);
+    const metrics = transactionMetrics(items, input);
     const card = cardActivity(items);
     const counterparties = new Map();
     let totalAmount = 0;
@@ -422,6 +484,11 @@
       periodDurationMs: metrics.periodDurationMs,
       totalAmount,
       p2pDetected: items.some((row) => containsP2P(`${row?.transactionType || ""} ${row?.rule || ""}`)),
+      p2pIssuerCount: metrics.p2pIssuerCount,
+      p2pPersonalCount: metrics.p2pPersonalCount,
+      velocity1m: metrics.velocity1m,
+      velocity5m: metrics.velocity5m,
+      velocity10m: metrics.velocity10m,
       uniqueCounterpartyCount: counterparties.size,
       merchantCount: card.merchantCount,
       chipPinCount: card.chipPinCount,
@@ -441,7 +508,7 @@
   }
 
   function rowSignals(rows, input = {}) {
-    const metrics = transactionMetrics(rows);
+    const metrics = transactionMetrics(rows, input);
     const issuer = normalizeText(input.issuer);
     const signals = [];
     if (isCardTransaction(input, rows)) {
@@ -651,6 +718,7 @@
     parseSignedAmount,
     parseTransactionDate,
     collectConsoleTransactions,
+    transactionCounterparties,
     transactionMetrics,
     issuerProfileFor,
     collectFalconTransactions,

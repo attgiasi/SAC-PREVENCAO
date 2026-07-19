@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V11_20260715";
   const BUILD = "ANALISE/V11";
   const BUILD_FAMILY = "11";
-  const BUILD_VERSION = "11.17";
+  const BUILD_VERSION = "11.18";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -89,7 +89,6 @@
     "Final do CPF",
     "Data de nascimento",
     "Últimos dígitos do cartão",
-    "Vencimento da fatura",
     "Última compra"
   ];
   const PID_AMIGOZ_COMPLEMENTARY = [
@@ -500,10 +499,16 @@
   const getTheme = () => storageGet("theme") === "light" ? "light" : "dark";
   const getSafeMode = () => storageGet("safeMode") !== "off";
   const setSafeMode = (enabled) => storageSet("safeMode", enabled ? "on" : "off");
-  const getHelpMode = () => storageGet("helpMode") === "on";
-  const setHelpMode = (enabled) => storageSet("helpMode", enabled ? "on" : "off");
-  const getInvestigationMode = () => storageGet("investigationMode") === "on";
-  const setInvestigationMode = (enabled) => storageSet("investigationMode", enabled ? "on" : "off");
+  const getInvestigationMode = () => {
+    const current = storageGet("investigationMode");
+    if (current) return current === "on";
+    return storageGet("helpMode") === "on";
+  };
+  const getHelpMode = getInvestigationMode;
+  const setInvestigationMode = (enabled) => {
+    storageSet("investigationMode", enabled ? "on" : "off");
+    storageSet("helpMode", enabled ? "on" : "off");
+  };
   const setTheme = (theme) => {
     storageSet("theme", theme === "light" ? "light" : "dark");
     all(".sac-panel,.sac-history-panel").forEach((panel) => {
@@ -746,13 +751,13 @@
         : "Tempo mínimo de espera no ativo: 30 segundos. Não revele ao cliente quais respostas divergiram."
     };
   }
-  function openPidPanel(data) {
+  function openPidPanel(data, options = {}) {
     ensureStyles();
     const host = byId("sac-panel-console");
     if (!host?.isConnected) return null;
     const existing = byId("sac-pid-panel");
     const pidKey = normalize(`${data?.falcon?.caseNumber || data?.caseNumber || ""}|${data?.issuer || data?.falcon?.issuer || ""}`);
-    if (existing?.dataset.pidKey === pidKey) {
+    if (existing?.dataset.pidKey === pidKey && !options.rebuild) {
       const existingFlow = ["banking", "card", "hold"].includes(data?.visualFlow) ? data.visualFlow : (["banking", "card", "hold"].includes(data?.flow) ? data.flow : "banking");
       existing.dataset.flow = existingFlow;
       existing.style.setProperty("--sac-primary", getFlowTone(existingFlow));
@@ -778,14 +783,17 @@
       if (keyValue.includes("CPF")) return String(data?.cpfCnpj || pid.document || "").replace(/\D/g, "").slice(-2);
       if (keyValue.includes("NASCIMENTO")) return pid.birthDate;
       if (keyValue.includes("CARTAO")) return data?.cardLast4 || data?.falcon?.cardLast4;
-      if (keyValue.includes("ULTIMA COMPRA")) return [data?.falcon?.merchant, trimTimeToMinute(data?.falcon?.transactionDate)].filter((value) => !isMissing(value)).join(" · ");
+      if (keyValue.includes("ULTIMA COMPRA")) return pid.lastPurchase;
       if (keyValue.includes("ENDERECO")) return pid.address;
       if (keyValue.includes("TELEFONE")) return pid.phone || data?.phone;
+      if (keyValue.includes("LIMITE") && keyValue.includes("SALDO")) return pid.cardLimit || pid.balance;
+      if (keyValue.includes("LIMITE")) return pid.cardLimit;
+      if (keyValue.includes("SALDO")) return pid.balance;
       return "";
     };
     const cards = (items) => items.map((item, index) => {
       const value = clean(knownPidValue(item), "");
-      return `<div class="sac-pid-card ${value ? "sac-pid-filled" : ""}"><b>${index + 1}</b><span><strong>${escapeHtml(item)}</strong>${value ? `<small>${escapeHtml(value)}</small>` : ""}</span></div>`;
+      return `<div class="sac-pid-card ${value ? "sac-pid-filled" : ""}"><b>${index + 1}</b><span><strong>${escapeHtml(item)}</strong>${value ? `<small>${escapeHtml(value)}</small>` : ""}</span>${value ? "" : `<button type="button" class="sac-pid-reload" data-pid-reload="${escapeHtml(item)}" aria-label="Buscar somente ${escapeHtml(item)}" title="Buscar este dado na página do Console">↻</button>`}</div>`;
     }).join("");
     panel.innerHTML = `
       <div class="sac-choice-head">
@@ -809,6 +817,21 @@
       forcePidPanelVisible(panel);
       placePidPanel();
     });
+    all("[data-pid-reload]", panel).forEach((button) => button.addEventListener("click", async () => {
+      button.disabled = true;
+      button.classList.add("loading");
+      const label = button.dataset.pidReload || "";
+      const result = collectConsolePidField(label, data);
+      if (result.key && result.value) {
+        data.pidData = { ...(data.pidData || {}), [result.key]: result.value };
+        if (result.key === "phone" && !data.phone) data.phone = result.value;
+        openPidPanel(data, { rebuild: true });
+        return;
+      }
+      button.disabled = false;
+      button.classList.remove("loading");
+      showNotice(`Não encontrei ${label.toLowerCase()} nesta página do Console.`, "error", 10000);
+    }));
     return panel;
   }
 
@@ -830,7 +853,7 @@
       .sac-main{width:100%;border:0;border-radius:6px;background:var(--sac-primary);color:#fff;font-size:calc(11.5px * var(--sac-font-scale));font-weight:950;padding:9px 7px;line-height:1.12;cursor:pointer;white-space:normal;overflow-wrap:anywhere;text-shadow:0 1px 1px rgba(0,0,0,.55),0 0 1px rgba(0,0,0,.72)}.sac-main:hover,.sac-secondary:hover,.sac-decision:hover,.sac-icon:hover{filter:brightness(1.12);box-shadow:0 0 0 2px rgba(255,255,255,.14)}.sac-secondary{width:100%;border:1px solid var(--sac-border);border-radius:6px;background:transparent;color:var(--sac-text);font-size:calc(11px * var(--sac-font-scale));font-weight:950;padding:8px 7px;line-height:1.12;cursor:pointer;white-space:normal}.sac-decision-grid,.sac-final-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px}.sac-decision{min-height:54px;border:0;border-radius:6px;color:#fff;font-size:calc(11.5px * var(--sac-font-scale));font-weight:950;line-height:1.08;white-space:pre-line;cursor:pointer;padding:7px 5px;overflow-wrap:anywhere;text-shadow:0 1px 1px rgba(0,0,0,.55),0 0 1px rgba(0,0,0,.72)}.sac-decision.danger{background:#dc2626}.sac-decision.success{background:#16a34a}.sac-decision.warning{background:#d97706}.sac-decision.info{background:#2563eb}
       .sac-textarea{width:100%;height:232px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);font:700 calc(10.5px * var(--sac-font-scale))/1.08 Consolas,Menlo,monospace;padding:6px;resize:none;overflow:hidden;white-space:pre-wrap}.sac-motive{height:62px;font:800 calc(11px * var(--sac-font-scale))/1.2 Inter,Segoe UI,Arial,sans-serif}.sac-final-textarea{height:286px;font-size:calc(10.8px * var(--sac-font-scale));line-height:1.12}.sac-final-textarea.sac-final-card{height:214px}
       #sac-notices{position:fixed;left:50%;right:auto;bottom:16px;transform:translateX(-50%);z-index:2147483647;display:grid;gap:6px;justify-items:center;pointer-events:none}.sac-notice{width:min(360px,calc(100vw - 36px));border:1px solid #38506c;border-left:4px solid #2563eb;border-radius:8px;background:#101722;color:#f8fbff;padding:8px 10px;font:800 11.5px/1.22 Inter,Segoe UI,Arial,sans-serif;box-shadow:0 10px 26px rgba(0,0,0,.24);opacity:.96;text-align:left;pointer-events:auto}.sac-notice.success{border-left-color:#16a34a;background:#062e1b;color:#ecfdf5}.sac-notice.warn{border-left-color:#d97706;background:#351f05;color:#fff7ed}.sac-notice.warn-pulse{animation:sacPulseOrange 1.15s ease-in-out infinite}.sac-notice.error{border-left-color:#dc2626;background:#3a0d0d;color:#fef2f2}.sac-notice.info{border-left-color:#2563eb;background:#0b2442;color:#eff6ff}.sac-notice.sac-light{background:#fff;color:#172033;border-color:#cbd5e1}.sac-notice.sac-light.success{background:#ecfdf5;color:#064e3b}.sac-notice.sac-light.warn{background:#fff7ed;color:#7c2d12}.sac-notice.sac-light.error{background:#fef2f2;color:#7f1d1d}.sac-notice.sac-light.info{background:#eff6ff;color:#1e3a8a}
-      .sac-choice-popover{position:fixed;right:14px;top:72px;z-index:2147483647;width:min(354px,calc(100vw - 28px));display:grid;gap:6px;padding:0 8px 8px;border:1px solid var(--sac-border);border-top:3px solid var(--sac-primary);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);box-shadow:0 18px 44px rgba(0,0,0,.32);font-family:Inter,Segoe UI,Arial,sans-serif;box-sizing:border-box!important}.sac-choice-popover.sac-minimized{display:none!important}.sac-choice-popover *{box-sizing:border-box!important}.sac-choice-head{margin:0 -8px;padding:7px 8px;background:var(--sac-primary);color:#fff;display:flex;justify-content:space-between;align-items:center;border-radius:6px 6px 0 0}.sac-choice-head strong{font-size:12px}.sac-choice-head button{width:24px;height:24px;padding:0;border-color:#fecaca;background:#dc2626;color:#fff}.sac-choice-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px}.sac-choice-popover label{display:flex;gap:5px;align-items:flex-start;min-width:0;min-height:34px;border:1px solid var(--sac-border);border-radius:5px;background:var(--sac-card);padding:5px;font-size:9.5px;font-weight:850;line-height:1.15;cursor:pointer;word-break:normal;overflow-wrap:normal;hyphens:none;white-space:normal}.sac-choice-popover label>span{display:block;min-width:0;white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none}.sac-choice-popover label:hover{border-color:#38bdf8;background:#10263a;color:#edf3fb}.sac-light.sac-choice-popover label:hover{background:#eef7ff;color:#172033}.sac-choice-popover input[type="checkbox"]{flex:0 0 auto;margin:1px 0 0}.sac-choice-extra{display:grid!important;gap:4px;min-height:0!important;font-size:10.5px!important}.sac-choice-extra input{width:100%;height:30px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);padding:5px;font-weight:850}.sac-choice-popover .sac-choice-actions{display:grid;grid-template-columns:1fr;gap:6px}.sac-choice-popover button{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-primary);color:#fff;padding:8px;font-weight:950;cursor:pointer}.sac-choice-popover button.secondary{background:transparent;color:var(--sac-text)}.sac-pid-panel{width:min(360px,calc(100vw - 16px))!important;min-width:0!important;max-width:360px!important;max-height:calc(100vh - 16px);overflow:auto;padding:0 10px 10px!important}.sac-pid-panel .sac-choice-head{margin:0 -10px}.sac-pid-groups{display:grid;gap:7px}.sac-pid-group{display:grid;gap:4px}.sac-pid-group strong{font-size:10px;color:var(--sac-muted);text-transform:uppercase}.sac-pid-grid{display:grid;grid-template-columns:1fr;gap:4px}.sac-pid-card{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 7px;min-height:31px;font-size:10.5px;font-weight:850;line-height:1.12;display:grid;grid-template-columns:22px 1fr;align-items:center;gap:5px}.sac-pid-card.sac-pid-filled{border-color:#22c55e;background:rgba(34,197,94,.10)}.sac-pid-card b{display:grid;place-items:center;width:20px;height:20px;border-radius:4px;background:var(--sac-primary);color:#fff;font-size:9px}.sac-pid-card span strong{display:block;color:var(--sac-text);font-size:10px;text-transform:none}.sac-pid-card span small{display:block;margin-top:2px;color:var(--sac-muted);font-size:9.5px;overflow-wrap:break-word}.sac-pid-note{border:1px solid #f59e0b;border-radius:6px;background:#3a230b;color:#fff7ed;padding:6px;font-size:10.5px;font-weight:900;line-height:1.18}.sac-light .sac-pid-note{background:#fff7ed;color:#7c2d12}
+      .sac-choice-popover{position:fixed;right:14px;top:72px;z-index:2147483647;width:min(354px,calc(100vw - 28px));display:grid;gap:6px;padding:0 8px 8px;border:1px solid var(--sac-border);border-top:3px solid var(--sac-primary);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);box-shadow:0 18px 44px rgba(0,0,0,.32);font-family:Inter,Segoe UI,Arial,sans-serif;box-sizing:border-box!important}.sac-choice-popover.sac-minimized{display:none!important}.sac-choice-popover *{box-sizing:border-box!important}.sac-choice-head{margin:0 -8px;padding:7px 8px;background:var(--sac-primary);color:#fff;display:flex;justify-content:space-between;align-items:center;border-radius:6px 6px 0 0}.sac-choice-head strong{font-size:12px}.sac-choice-head button{width:24px;height:24px;padding:0;border-color:#fecaca;background:#dc2626;color:#fff}.sac-choice-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px}.sac-choice-popover label{display:flex;gap:5px;align-items:flex-start;min-width:0;min-height:34px;border:1px solid var(--sac-border);border-radius:5px;background:var(--sac-card);padding:5px;font-size:9.5px;font-weight:850;line-height:1.15;cursor:pointer;word-break:normal;overflow-wrap:normal;hyphens:none;white-space:normal}.sac-choice-popover label>span{display:block;min-width:0;white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none}.sac-choice-popover label:hover{border-color:#38bdf8;background:#10263a;color:#edf3fb}.sac-light.sac-choice-popover label:hover{background:#eef7ff;color:#172033}.sac-choice-popover input[type="checkbox"]{flex:0 0 auto;margin:1px 0 0}.sac-choice-extra{display:grid!important;gap:4px;min-height:0!important;font-size:10.5px!important}.sac-choice-extra input{width:100%;height:30px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);padding:5px;font-weight:850}.sac-choice-popover .sac-choice-actions{display:grid;grid-template-columns:1fr;gap:6px}.sac-choice-popover button{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-primary);color:#fff;padding:8px;font-weight:950;cursor:pointer}.sac-choice-popover button.secondary{background:transparent;color:var(--sac-text)}.sac-pid-panel{width:min(360px,calc(100vw - 16px))!important;min-width:0!important;max-width:360px!important;max-height:calc(100vh - 16px);overflow:auto;padding:0 10px 10px!important}.sac-pid-panel .sac-choice-head{margin:0 -10px}.sac-pid-groups{display:grid;gap:7px}.sac-pid-group{display:grid;gap:4px}.sac-pid-group strong{font-size:10px;color:var(--sac-muted);text-transform:uppercase}.sac-pid-grid{display:grid;grid-template-columns:1fr;gap:4px}.sac-pid-card{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 7px;min-height:31px;font-size:10.5px;font-weight:850;line-height:1.12;display:grid;grid-template-columns:22px minmax(0,1fr) 25px;align-items:center;gap:5px}.sac-pid-card.sac-pid-filled{border-color:#22c55e;background:rgba(34,197,94,.10)}.sac-pid-card b{display:grid;place-items:center;width:20px;height:20px;border-radius:4px;background:var(--sac-primary);color:#fff;font-size:9px}.sac-pid-card span strong{display:block;color:var(--sac-text);font-size:10px;text-transform:none}.sac-pid-card span small{display:block;margin-top:2px;color:var(--sac-muted);font-size:9.5px;overflow-wrap:break-word}.sac-pid-reload{width:24px!important;height:24px!important;min-width:24px;padding:0!important;display:grid;place-items:center;border-radius:5px!important;background:var(--sac-input)!important;color:var(--sac-text)!important;font-size:15px}.sac-pid-reload.loading{animation:sacPidSpin .75s linear infinite}.sac-pid-card.sac-pid-filled:after{content:"✓";display:grid;place-items:center;width:20px;height:20px;border-radius:999px;background:#16a34a;color:#fff;font-size:10px}@keyframes sacPidSpin{to{transform:rotate(360deg)}}.sac-pid-note{border:1px solid #f59e0b;border-radius:6px;background:#3a230b;color:#fff7ed;padding:6px;font-size:10.5px;font-weight:900;line-height:1.18}.sac-light .sac-pid-note{background:#fff7ed;color:#7c2d12}
       .sac-apply-status{border:1px solid var(--sac-border);border-left:4px solid #2563eb;border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:7px;font-size:calc(10.5px * var(--sac-font-scale));font-weight:900;line-height:1.15}.sac-apply-status.ok{border-left-color:#16a34a}.sac-apply-status.warn{border-left-color:#d97706}.sac-apply-status.error{border-left-color:#dc2626}.sac-issue-list{display:grid;gap:4px;margin-top:6px}.sac-issue-list span{display:block;border:1px solid #f59e0b;border-radius:5px;background:rgba(245,158,11,.12);padding:5px 6px;color:var(--sac-text);font-size:calc(10px * var(--sac-font-scale));font-weight:900;text-align:left}
       .sac-history-panel{--sac-history-tone:#64748b;position:fixed;left:10px;top:10px;z-index:2147483647;width:min(780px,calc(100vw - 20px));max-height:min(720px,calc(100vh - 20px));border:1px solid var(--sac-border);border-top:3px solid var(--sac-history-tone);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);font-family:Inter,Segoe UI,Arial,sans-serif;box-shadow:0 18px 44px rgba(0,0,0,.30);overflow:hidden}.sac-history-head{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--sac-history-tone);color:#fff;padding:8px;font-weight:950;cursor:grab;user-select:none;touch-action:none}.sac-history-tools{display:grid;grid-template-columns:1fr 126px;gap:6px;padding:7px;border-bottom:1px solid var(--sac-border);background:var(--sac-panel)}.sac-history-tools input,.sac-history-tools select{min-width:0;height:34px;border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-input);color:var(--sac-text);padding:7px 9px;font-weight:900;outline:none}.sac-history-tools input:hover,.sac-history-tools select:hover,.sac-history-tools input:focus,.sac-history-tools select:focus{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.18)}.sac-light .sac-history-tools input:hover,.sac-light .sac-history-tools select:hover,.sac-light .sac-history-tools input:focus,.sac-light .sac-history-tools select:focus{background:#eef7ff;color:#172033}.sac-history-body{display:grid;grid-template-columns:236px 1fr;gap:6px;padding:6px}.sac-history-list{display:grid;gap:4px;align-content:start;max-height:560px;overflow:auto;padding-right:3px}.sac-history-list button{text-align:left;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:7px;font-weight:900;line-height:1.1;cursor:pointer}.sac-history-list button:hover,.sac-history-list button.active{border-color:#38bdf8;background:#10263a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.12);transform:translateY(-1px)}.sac-light .sac-history-list button:hover,.sac-light .sac-history-list button.active{background:#eef7ff;color:#172033}.sac-history-list small{display:block;color:var(--sac-muted);font-size:10px;margin-top:2px}.sac-history-empty{color:var(--sac-muted);font-weight:850;padding:8px}.sac-history-identifiers{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:6px}.sac-history-detail textarea{height:472px;overflow:auto;resize:none}.sac-list-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px}.sac-list-tabs button{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:8px 6px;font-size:11px;font-weight:950;cursor:pointer}.sac-list-tabs button:hover,.sac-list-tabs button.active{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-light .sac-list-tabs button:hover,.sac-light .sac-list-tabs button.active{background:#eef7ff;color:#172033}.sac-allowlist-list{display:grid;gap:7px;max-height:min(560px,calc(100vh - 210px));overflow:auto;padding-right:3px}.sac-list-issuer-group{display:grid;gap:5px}.sac-list-issuer-head{display:flex;align-items:center;justify-content:space-between;gap:8px;border-left:4px solid var(--sac-primary);border-radius:5px;background:var(--sac-panel);padding:6px 7px}.sac-list-issuer-head strong{min-width:0;overflow-wrap:break-word;font-size:11px}.sac-list-issuer-head button{flex:0 0 auto;border:1px solid #86efac;border-radius:5px;background:#166534;color:#fff;padding:5px 7px;font-size:9px;font-weight:950;cursor:pointer}.sac-allowlist-item{border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-card);padding:6px;display:grid;grid-template-columns:1fr 72px;gap:6px;align-items:stretch}.sac-allowlist-item:hover{border-color:#38bdf8;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-allowlist-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px}.sac-allowlist-actions{display:grid;grid-template-rows:1fr 1fr;gap:4px}.sac-allowlist-actions button{border:0;border-radius:6px;color:#fff;font-size:10px;font-weight:950;cursor:pointer}.sac-allowlist-actions [data-list-apply]{background:#16a34a}.sac-allowlist-actions [data-list-remove]{background:#dc2626}
       .sac-help-btn{position:absolute;top:3px;right:3px;width:18px;height:18px;border:1px solid #fde68a;border-radius:999px;background:#d4af37;color:#1f1600;font-size:11px;font-weight:950;line-height:1;display:grid;place-items:center;padding:0;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.16)}.sac-help-btn:hover{filter:brightness(1.12);box-shadow:0 0 0 2px rgba(250,204,21,.32)}
@@ -839,6 +862,8 @@
       .sac-cnpj-card{position:relative;padding-right:30px!important}.sac-cnpj-indicator{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:grid;width:19px;height:19px;place-items:center;border:1px solid var(--sac-border);border-radius:999px;background:transparent;color:var(--sac-muted);font-size:11px;font-weight:950}.sac-cnpj-card.is-success{border-color:#16a34a;background:#052e1a}.sac-cnpj-card.is-warning{border-color:#d97706;background:#3a230b}.sac-cnpj-card.is-danger{border-color:#dc2626;background:#3a0d0d}.sac-cnpj-indicator.is-success{border-color:#22c55e;background:#16a34a;color:#fff}.sac-cnpj-indicator.is-warning{border-color:#f59e0b;background:#d97706;color:#fff}.sac-cnpj-indicator.is-danger{border-color:#ef4444;background:#dc2626;color:#fff}.sac-light .sac-cnpj-card.is-success{background:#ecfdf5}.sac-light .sac-cnpj-card.is-warning{background:#fff7ed}.sac-light .sac-cnpj-card.is-danger{background:#fef2f2}
       .sac-investigation-launcher{position:absolute;left:-30px;top:50px;width:30px;height:44px;border:1px solid var(--sac-border);border-right:0;border-radius:8px 0 0 8px;background:var(--sac-primary);color:#fff;display:grid;place-items:center;cursor:pointer;padding:0;box-shadow:-5px 5px 14px rgba(0,0,0,.22),inset -1px 0 rgba(255,255,255,.18);transition:filter .15s,transform .15s,box-shadow .15s}.sac-investigation-launcher:hover,.sac-investigation-launcher:focus-visible{filter:brightness(1.12);transform:translateX(-1px);box-shadow:-7px 6px 17px rgba(0,0,0,.28),inset -1px 0 rgba(255,255,255,.28);outline:2px solid rgba(255,255,255,.72);outline-offset:-4px}.sac-panel.sac-minimized .sac-investigation-launcher{display:none}.sac-chevron{position:relative;display:block;width:14px;height:14px}.sac-chevron:before{content:"";position:absolute;top:3px;width:7px;height:7px;border-top:2px solid currentColor;border-right:2px solid currentColor}.sac-chevron:after{content:"";position:absolute;top:2px;width:1.5px;height:10px;border-radius:999px;background:currentColor;opacity:.72}.sac-chevron.left:before{left:2px;transform:rotate(-135deg)}.sac-chevron.left:after{right:1px}.sac-chevron.right:before{right:2px;transform:rotate(45deg)}.sac-chevron.right:after{left:1px}.sac-drawer-toggle{width:30px;height:28px;border:1px solid rgba(255,255,255,.44);border-radius:7px;background:rgba(255,255,255,.14);color:#fff;display:grid;place-items:center;padding:0;cursor:pointer;transition:background .15s,transform .15s,box-shadow .15s}.sac-drawer-toggle:hover,.sac-drawer-toggle:focus-visible{background:rgba(255,255,255,.25);transform:translateX(1px);box-shadow:0 0 0 2px rgba(255,255,255,.18);outline:none}.sac-investigation-drawer{width:312px}.sac-investigation-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.sac-investigation-controls button{min-width:0;min-height:32px;display:flex;align-items:center;justify-content:center;gap:5px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:4px 5px;text-align:center;font-size:9.3px;font-weight:950;line-height:1.08;cursor:pointer}.sac-investigation-controls button:hover,.sac-investigation-controls button:focus,.sac-investigation-controls button.active{border-color:#38bdf8;background:#10263a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.14);outline:none}.sac-light .sac-investigation-controls button:hover,.sac-light .sac-investigation-controls button:focus,.sac-light .sac-investigation-controls button.active{background:#eef7ff;color:#172033}.sac-investigation-controls button span{display:grid;place-items:center;width:17px;height:17px;border-radius:5px;background:var(--sac-primary);color:#fff;font-size:9px}.sac-investigation-controls .sac-investigation-cnpj{font-size:8.9px;background:transparent}.sac-investigation-controls.single{grid-template-columns:minmax(0,1fr)}.sac-investigation-result{display:grid;gap:5px;margin-top:5px}
       .sac-side-panel,.sac-config.open,.sac-pid-panel{animation:sacPanelEnter .18s cubic-bezier(.2,.8,.2,1) both;transform-origin:top right}.sac-transaction-view{display:grid;gap:6px}.sac-transaction-hero{position:relative;overflow:hidden;padding:7px 8px!important;border-left:4px solid var(--sac-primary)!important;background:var(--sac-panel)!important}.sac-transaction-hero strong{display:block;color:var(--sac-text);font-size:12px;line-height:1.12}.sac-transaction-hero span{margin-top:3px}.sac-transaction-metric{border-color:color-mix(in srgb,var(--sac-primary) 34%,var(--sac-border))!important;background:color-mix(in srgb,var(--sac-primary) 7%,var(--sac-card))!important}.sac-transaction-metric strong{font-size:10px!important}.sac-merchant-card{display:grid;gap:4px;padding:6px!important}.sac-merchant-card>strong{display:block;font-size:10.5px;color:var(--sac-text);overflow-wrap:break-word}.sac-merchant-meta{display:flex!important;flex-wrap:wrap;gap:3px;margin-top:1px}.sac-merchant-meta i{display:inline-flex;align-items:center;min-height:19px;border:1px solid var(--sac-border);border-radius:4px;background:var(--sac-input);color:var(--sac-muted);padding:2px 4px;font-size:8.5px;font-style:normal;font-weight:900;line-height:1.05}.sac-side-head,.sac-choice-head{box-shadow:inset 0 -1px 0 rgba(255,255,255,.18)}@keyframes sacPanelEnter{from{opacity:0;transform:translateX(8px) scale(.985)}to{opacity:1;transform:translateX(0) scale(1)}}@media (prefers-reduced-motion:reduce){.sac-side-panel,.sac-config.open,.sac-pid-panel{animation:none!important}.sac-switch:after{transition:none!important}}
+      .sac-investigation-drawer .sac-side-body{gap:7px}.sac-investigation-drawer .sac-side-card span{color:var(--sac-text);font-size:9.4px;line-height:1.14}.sac-investigation-drawer .sac-side-group-title{font-size:9.3px}.sac-investigation-grid .sac-side-card{position:relative;margin-top:7px;padding:8px 5px 4px!important;overflow:visible}.sac-investigation-grid .sac-side-card>strong{position:absolute;top:-7px;left:4px;z-index:1;max-width:calc(100% - 8px);padding:1px 3px;border-radius:3px;background:var(--sac-bg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:8.2px!important}.sac-counterparty-line{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px}.sac-counterparty-line .sac-side-card{min-height:38px}.sac-counterparty-line strong{display:block;color:var(--sac-text);font-size:8.8px;line-height:1.05}.sac-cnpj-actions button{display:flex;align-items:center;justify-content:center;gap:4px;border-width:1px;border-style:solid;border-radius:6px;color:#fff;font-weight:950;cursor:pointer}.sac-cnpj-actions i{display:grid;place-items:center;width:16px;height:16px;border-radius:999px;background:rgba(255,255,255,.18);font-style:normal}.sac-classify-safe{background:#166534!important;border-color:#4ade80!important}.sac-classify-attention{background:#a16207!important;border-color:#facc15!important}.sac-classify-remove{background:#991b1b!important;border-color:#f87171!important}.sac-cnpj-actions button:hover{filter:brightness(1.12)}
+      .sac-list-group-actions{display:flex;align-items:center;gap:4px}.sac-list-group-actions button{font-size:8.5px!important;padding:5px 6px!important}.sac-list-group-actions [data-list-remove-issuer]{background:#991b1b!important;border-color:#f87171!important}.sac-list-group-actions button:disabled{opacity:.58;cursor:wait}
       @media (max-width:460px){.sac-grid.three,.sac-grid,.sac-field-grid{grid-template-columns:1fr}.sac-history-body{grid-template-columns:1fr}.sac-pid-grid{grid-template-columns:1fr}}
     `;
     document.head.appendChild(style);
@@ -938,26 +963,30 @@
     const source = kind === "issuer" ? ISSUER_HELP : RULE_HELP;
     return matchedHelpEntries(source, value).some((entry) => compactHelpItems(entry, value).length > 0);
   }
+  function contextHelpGroups(kind, value) {
+    const entries = matchedHelpEntries(kind === "issuer" ? ISSUER_HELP : RULE_HELP, value);
+    return entries.map((entry) => {
+      const items = compactHelpItems(entry, value);
+      if (!items.length) return "";
+      return `<div class="sac-side-group"><div class="sac-side-group-title">${escapeHtml(entry.title)}</div>${items.map((item) => `<div class="sac-side-card"><span>${escapeHtml(item)}</span></div>`).join("")}</div>`;
+    }).join("");
+  }
   function openContextHelp(kind, value, ownerPanel) {
     if (!getHelpMode()) return;
-    const entries = matchedHelpEntries(kind === "issuer" ? ISSUER_HELP : RULE_HELP, value);
-    if (!entries.length) return;
+    const groups = contextHelpGroups(kind, value);
+    if (!groups.trim()) return;
+    const drawer = document.querySelector(`.sac-investigation-drawer[data-owner="${cssEscape(ownerPanel.id)}"]`);
+    if (drawer) {
+      const slot = drawer.querySelector("[data-investigation-slot='help']");
+      if (slot) slot.innerHTML = `<div class="sac-side-group-title">${kind === "issuer" ? "Particularidades do emissor" : "Orientação da regra"}</div>${groups}`;
+      return drawer;
+    }
     closeSidePanels(ownerPanel.id);
     const panel = document.createElement("div");
     panel.className = `sac-side-panel sac-${getTheme()}`;
     panel.dataset.owner = ownerPanel.id;
     panel.style.setProperty("--sac-primary", ownerPanel.style.getPropertyValue("--sac-primary") || "#64748b");
-    const groups = entries.map((entry) => {
-      const items = compactHelpItems(entry, value);
-      if (!items.length) return "";
-      return `
-      <div class="sac-side-group">
-        <div class="sac-side-group-title">${escapeHtml(entry.title)}</div>
-        ${items.map((item) => `<div class="sac-side-card"><span>${escapeHtml(item)}</span></div>`).join("")}
-      </div>
-    `;
-    }).join("");
-    if (!groups.trim()) return;
+    panel.classList.add("sac-context-help");
     panel.innerHTML = `<div class="sac-side-head"><span>${kind === "issuer" ? "Ajuda do emissor" : "Ajuda da regra"}</span></div><div class="sac-side-body">${groups}</div>`;
     document.body.appendChild(panel);
     placeSidePanel(ownerPanel, panel);
@@ -1034,8 +1063,7 @@
             </div>
           </div>
           <button class="sac-toggle ${getSafeMode() ? "on" : ""}" data-action="safe-mode" aria-pressed="${getSafeMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Modo seguro</span><b>${getSafeMode() ? "Ligado" : "Desligado"}</b></button>
-          <button class="sac-toggle ${getHelpMode() ? "on" : ""}" data-action="help-mode" aria-pressed="${getHelpMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Modo ajuda</span><b>${getHelpMode() ? "Ligado" : "Desligado"}</b></button>
-          <button class="sac-toggle ${getInvestigationMode() ? "on" : ""}" data-action="investigation-mode" aria-pressed="${getInvestigationMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Modo investigação</span><b>${getInvestigationMode() ? "Ligado" : "Desligado"}</b></button>
+          <button class="sac-toggle ${getInvestigationMode() ? "on" : ""}" data-action="investigation-mode" aria-pressed="${getInvestigationMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Investigação e ajuda</span><b>${getInvestigationMode() ? "Ligado" : "Desligado"}</b></button>
           ${signatureConfig}
           <div class="sac-flow-legend">
             <span><i style="background:${escapeHtml(getFlowTone("banking"))}"></i>BANKING</span>
@@ -1144,16 +1172,6 @@
       const state = event.currentTarget.querySelector("b");
       if (state) state.textContent = next ? "Ligado" : "Desligado";
     });
-    panel.querySelector("[data-action='help-mode']")?.addEventListener("click", (event) => {
-      const next = !getHelpMode();
-      setHelpMode(next);
-      event.currentTarget.classList.toggle("on", next);
-      event.currentTarget.setAttribute("aria-pressed", next ? "true" : "false");
-      const state = event.currentTarget.querySelector("b");
-      if (state) state.textContent = next ? "Ligado" : "Desligado";
-      closeSidePanels(panel.id);
-      reload();
-    });
     panel.querySelector("[data-action='investigation-mode']")?.addEventListener("click", (event) => {
       const next = !getInvestigationMode();
       setInvestigationMode(next);
@@ -1219,12 +1237,13 @@
     panel.addEventListener("mouseout", (event) => {
       const help = event.target.closest("[data-help-kind]");
       if (!help) return;
+      if (document.querySelector(`.sac-investigation-drawer[data-owner="${cssEscape(panel.id)}"]`)) return;
       const next = event.relatedTarget;
       if (next?.closest?.(`.sac-side-panel[data-owner="${cssEscape(panel.id)}"]`)) return;
       setTimeout(() => {
         const hoveredHelp = panel.matches(":hover") && panel.querySelector("[data-help-kind]:hover");
         const hoveredPanel = document.querySelector(`.sac-side-panel[data-owner="${cssEscape(panel.id)}"]:hover`);
-        if (!hoveredHelp && !hoveredPanel) closeSidePanels(panel.id);
+        if (!hoveredHelp && !hoveredPanel) all(`.sac-context-help[data-owner="${cssEscape(panel.id)}"]`).forEach((item) => item.remove());
       }, 80);
     });
     all("[data-other-select]", panel).forEach((select) => {
@@ -2110,6 +2129,38 @@
     return clean(direct, "");
   }
 
+  function firstConsoleLabeledValue(labels = []) {
+    return clean(labels.map(findValueAfterLabel).find((value) => !isMissing(value)), "");
+  }
+
+  function collectConsolePidField(label, data = {}) {
+    const wanted = normalize(label);
+    if (wanted.includes("NOME DA MAE")) return { key: "motherName", value: firstConsoleLabeledValue(["Nome da mãe", "Nome da mae", "Mãe", "Mae"]) };
+    if (wanted.includes("NASCIMENTO")) return { key: "birthDate", value: firstConsoleLabeledValue(["Data de nascimento", "Nascimento"]) };
+    if (wanted.includes("ENDERECO")) return { key: "address", value: firstConsoleLabeledValue(["Endereço de correspondência", "Endereço cadastrado", "Endereço"]) };
+    if (wanted.includes("TELEFONE")) return { key: "phone", value: findConsolePhone() };
+    if (wanted.includes("ULTIMA COMPRA")) return { key: "lastPurchase", value: firstConsoleLabeledValue(["Última compra", "Ultima compra", "Última transação de cartão", "Ultima transacao de cartao"]) };
+    if (wanted.includes("LIMITE") && wanted.includes("SALDO")) {
+      const cardLimit = firstConsoleLabeledValue(["Limite disponível", "Limite do cartão", "Limite"]);
+      if (cardLimit) return { key: "cardLimit", value: cardLimit };
+      return { key: "balance", value: firstConsoleLabeledValue(["Saldo disponível", "Saldo da conta", "Saldo"]) };
+    }
+    if (wanted.includes("LIMITE")) return { key: "cardLimit", value: firstConsoleLabeledValue(["Limite disponível", "Limite do cartão", "Limite"]) };
+    if (wanted.includes("SALDO")) return { key: "balance", value: firstConsoleLabeledValue(["Saldo disponível", "Saldo da conta", "Saldo"]) };
+    if (wanted.includes("CPF")) return { key: "document", value: documentFieldValue(data.cpfCnpj) };
+    if (wanted.includes("CARTAO")) return { key: "cardLast4", value: last4(data.cardNumber || data.cardLast4) };
+    return { key: "", value: "" };
+  }
+
+  function collectConsolePidData(data = {}) {
+    const labels = [...PID_DEFAULT_REQUIRED, ...PID_DEFAULT_COMPLEMENTARY, ...PID_AMIGOZ_REQUIRED, ...PID_AMIGOZ_COMPLEMENTARY];
+    return labels.reduce((result, label) => {
+      const field = collectConsolePidField(label, data);
+      if (field.key && field.value && !result[field.key]) result[field.key] = field.value;
+      return result;
+    }, {});
+  }
+
   function compareFalconConsoleAccount(falcon, consoleAccount, consoleDocument = "", consoleCardNumber = "") {
     if (falcon?.flow === "card") {
       const falconCardLast4 = last4(falcon?.cardNumber || falcon?.cardLast4);
@@ -2133,7 +2184,7 @@
     const documentComparable = Boolean(falconDocument && consoleDocumentValue);
     const accountMatches = !accountComparable || falconKey === consoleKey;
     const documentMatches = !documentComparable || falconDocument === consoleDocumentValue;
-    return {
+    const data = {
       comparable: accountComparable || documentComparable,
       matches: (accountComparable || documentComparable) && accountMatches && documentMatches,
       accountComparable,
@@ -2442,6 +2493,8 @@
       cardDataOptional: globalCardWithoutData,
       fields: defaultConsoleFields(flow, isGlobal)
     };
+    data.pidData = collectConsolePidData(data);
+    return data;
   }
   function defaultConsoleFields(flow, isGlobal) {
     if (flow === "card") return { callMode: "sem chamada", callResult: "", merchantHistory: "", purchasePattern: "" };
@@ -2464,16 +2517,6 @@
       .join("|") || "CURRENT";
   }
 
-  function investigationInput(data) {
-    const falcon = data?.falcon || {};
-    return {
-      holderDocument: data?.cpfCnpj || falcon.holderDocument,
-      originDocument: falcon.originCustomerId || falcon.originDocument,
-      destinationDocument: falcon.creditCustomerId || falcon.destinationDocument,
-      counterpartyDocument: falcon.counterpartyDocument || falcon.counterpartyCpf
-    };
-  }
-
   function investigationControls(stage, data, rows = []) {
     const controls = [];
     if (stage === "FALCON" && counterpartyEngine.validateCnpj(data?.counterpartyCnpj || "")) {
@@ -2488,10 +2531,29 @@
     return `<div class="sac-investigation-controls ${controls.length === 1 ? "single" : ""}">${controls.join("")}</div>`;
   }
 
+  function investigationHelpOverview(data) {
+    const issuer = clean(data?.issuer || data?.falcon?.issuer, "");
+    const rule = clean(data?.rule || data?.falcon?.rule, "");
+    const issuerHelp = issuer ? contextHelpGroups("issuer", issuer) : "";
+    const ruleHelp = rule ? contextHelpGroups("rule", rule) : "";
+    const profile = transactionEngine.issuerProfileFor(issuer);
+    const transactional = profile ? `
+      <div class="sac-side-group">
+        <div class="sac-side-group-title">Particularidades transacionais do emissor</div>
+        ${profile.expected.map((item) => `<div class="sac-side-card sac-support-summary success"><span>${escapeHtml(item)}</span></div>`).join("")}
+        ${profile.cautions.map((item) => `<div class="sac-side-card sac-support-summary warning"><span>${escapeHtml(item)}</span></div>`).join("")}
+      </div>` : "";
+    return [
+      issuerHelp ? `<div class="sac-side-group"><div class="sac-side-group-title">Particularidades do emissor</div>${issuerHelp}</div>` : "",
+      transactional,
+      ruleHelp ? `<div class="sac-side-group"><div class="sac-side-group-title">Orientação da regra</div>${ruleHelp}</div>` : ""
+    ].filter(Boolean).join("") || `<div class="sac-side-card"><span>Não há particularidades cadastradas para este emissor ou regra.</span></div>`;
+  }
+
   function attachInvestigationLauncher(ownerPanel, stage, data, rows = []) {
     if (!ownerPanel || !getInvestigationMode() || !["FALCON", "CONSOLE"].includes(stage)) return;
     const controls = investigationControls(stage, data, rows);
-    if (!controls.includes("data-investigation")) return;
+    const hasActions = controls.includes("data-investigation");
     ownerPanel.querySelector(".sac-investigation-launcher")?.remove();
     const launcher = document.createElement("button");
     launcher.className = "sac-investigation-launcher";
@@ -2500,12 +2562,13 @@
     launcher.setAttribute("aria-label", "Abrir modo investigação");
     launcher.innerHTML = `<span class="sac-chevron left" aria-hidden="true"></span>`;
     ownerPanel.appendChild(launcher);
-    launcher.addEventListener("click", () => {
+    const toggleDrawer = (forceOpen = false) => {
       const existing = document.querySelector(`.sac-investigation-drawer[data-owner="${cssEscape(ownerPanel.id)}"]`);
       if (existing) {
+        if (forceOpen) return existing;
         existing.remove();
         if (ownerPanel.id === "sac-panel-console") placePidPanel();
-        return;
+        return null;
       }
       const config = ownerPanel.querySelector(".sac-config");
       if (config) {
@@ -2522,8 +2585,10 @@
       drawer.innerHTML = `
         <div class="sac-side-head"><span>Modo investigação</span><button class="sac-drawer-toggle" data-collapse-investigation aria-label="Recolher painel" title="Recolher painel"><span class="sac-chevron right" aria-hidden="true"></span></button></div>
         <div class="sac-side-body">
-          ${controls}
-          <div class="sac-investigation-result"><div class="sac-side-card"><span>Selecione uma análise. Este modo é opcional e não altera o fluxo.</span></div></div>
+          ${hasActions ? controls : ""}
+          <div class="sac-investigation-result" data-investigation-slot="transaction"><div class="sac-side-card"><span>Preparando a análise transacional disponível nesta página...</span></div></div>
+          <div class="sac-investigation-result" data-investigation-slot="cnpj"></div>
+          <div class="sac-investigation-result" data-investigation-slot="help">${investigationHelpOverview(data)}</div>
         </div>`;
       document.body.appendChild(drawer);
       placeSidePanel(ownerPanel, drawer);
@@ -2531,35 +2596,32 @@
         drawer.remove();
         if (ownerPanel.id === "sac-panel-console") placePidPanel();
       });
-      const activateInvestigationAction = (button) => {
-        if (button.classList.contains("active")) {
-          drawer.remove();
-          if (ownerPanel.id === "sac-panel-console") placePidPanel();
-          return false;
+      const runAction = async (button) => {
+        if (!button || button.disabled) return;
+        button.disabled = true;
+        button.classList.add("active");
+        try {
+          if (button.dataset.investigation === "cnpj") await openCounterpartyVerification(data, ownerPanel);
+          if (button.dataset.investigation === "falcon-transaction") await openFalconTransactionAnalysis(data, rows, ownerPanel);
+          if (button.dataset.investigation === "transaction") await openTransactionAnalysis(data, ownerPanel);
+        } finally {
+          button.disabled = false;
+          button.classList.remove("active");
         }
-        drawer.querySelectorAll("[data-investigation]").forEach((item) => item.classList.toggle("active", item === button));
-        return true;
       };
-      drawer.querySelector("[data-investigation='cnpj']")?.addEventListener("click", (event) => {
-        if (!activateInvestigationAction(event.currentTarget)) return;
-        openCounterpartyVerification(data, ownerPanel);
-      });
-      drawer.querySelector("[data-investigation='falcon-transaction']")?.addEventListener("click", (event) => {
-        if (!activateInvestigationAction(event.currentTarget)) return;
-        openFalconTransactionAnalysis(data, rows, ownerPanel);
-      });
-      drawer.querySelector("[data-investigation='transaction']")?.addEventListener("click", (event) => {
-        if (!activateInvestigationAction(event.currentTarget)) return;
-        openTransactionAnalysis(data, ownerPanel);
-      });
-    });
+      drawer.querySelectorAll("[data-investigation]").forEach((button) => button.addEventListener("click", () => runAction(button)));
+      requestAnimationFrame(() => drawer.querySelectorAll("[data-investigation]").forEach((button) => runAction(button)));
+      return drawer;
+    };
+    launcher.addEventListener("click", () => toggleDrawer(false));
+    requestAnimationFrame(() => toggleDrawer(true));
   }
 
   function mediaRequestFor(data) {
     return mediaEngine.createRequest({
       caseNumber: data?.falcon?.caseNumber,
       flow: data?.visualFlow || data?.flow,
-      ...investigationInput(data)
+      holderDocument: data?.cpfCnpj || data?.falcon?.holderDocument
     });
   }
 
@@ -2584,13 +2646,6 @@
       memory.transport.clear("mediaResult");
       applied = true;
     }
-    const pidResult = memory.transport.get("pidResult");
-    if (pidResult && String(pidResult.caseNumber || "") === String(data?.falcon?.caseNumber || "")) {
-      data.pidData = { ...(data.pidData || {}), ...(pidResult.pid || {}) };
-      if (!data.phone && data.pidData.phone) data.phone = data.pidData.phone;
-      memory.transport.clear("pidResult");
-      applied = true;
-    }
     if (applied) {
       memory.transport.clear("mediaRequest");
       await memory.commitCurrentText?.();
@@ -2604,7 +2659,14 @@
     const drawer = all(".sac-investigation-drawer").find((item) => item.dataset.owner === ownerPanel.id);
     if (drawer) {
       drawer.dataset.activeSupportKey = supportKey;
-      const resultHost = drawer.querySelector(".sac-investigation-result");
+      const slotKey = supportKey.includes("CNPJ") ? "cnpj" : supportKey.includes("TRANSACIONAL") ? "transaction" : "help";
+      let resultHost = drawer.querySelector(`[data-investigation-slot="${slotKey}"]`);
+      if (!resultHost) {
+        resultHost = document.createElement("div");
+        resultHost.className = "sac-investigation-result";
+        resultHost.dataset.investigationSlot = slotKey;
+        drawer.querySelector(".sac-side-body")?.appendChild(resultHost);
+      }
       if (resultHost) {
         resultHost.innerHTML = `<div class="sac-side-group"><div class="sac-side-group-title">${escapeHtml(title)}</div>${content}</div>`;
         resultHost.querySelectorAll("[data-close-support]").forEach((button) => button.remove());
@@ -2675,6 +2737,31 @@
     return documentValue || "Documento não identificado";
   }
 
+  function investigationVelocityHtml(metrics = {}) {
+    const buckets = [
+      ["1 minuto", Number(metrics.velocity1m || 0)],
+      ["5 minutos", Number(metrics.velocity5m || 0)],
+      ["10 minutos", Number(metrics.velocity10m || 0)]
+    ];
+    const active = buckets.find(([, count]) => count >= 2);
+    if (!active) return "";
+    return `<div class="sac-side-group"><div class="sac-side-group-title">Velocidade transacional</div><div class="sac-investigation-grid"><div class="sac-side-card sac-grid-full sac-support-summary warning"><strong>Transações em ${escapeHtml(active[0])}</strong><span>${active[1]} transações no menor intervalo identificado</span></div></div></div>`;
+  }
+
+  function investigationCounterpartiesHtml(items = []) {
+    if (!Array.isArray(items) || !items.length) {
+      return `<div class="sac-side-card sac-support-summary warning"><span>Não foi possível identificar a pessoa ou empresa do outro lado nas linhas disponíveis.</span></div>`;
+    }
+    return items.map((item) => {
+      const documentValue = String(item.document || "");
+      const identity = documentValue
+        ? (documentValue.length === 14 ? documentValue.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5") : `CPF final ${documentValue.slice(-4)}`)
+        : clean(item.name, "Identificação não disponível");
+      const name = clean(item.name, "");
+      return `<div class="sac-counterparty-line"><div class="sac-side-card"><strong>CPF/CNPJ ou identificação</strong><span>${escapeHtml(identity)}${name && normalize(name) !== normalize(identity) ? ` · ${escapeHtml(name)}` : ""}</span></div><div class="sac-side-card"><strong>Quantidade e valor total</strong><span>${Number(item.transactionCount || 0)} · ${escapeHtml(investigationCurrency(item.totalAmount))}</span></div></div>`;
+    }).join("");
+  }
+
   async function openFalconTransactionAnalysis(data, rows, ownerPanel) {
     const supportKey = normalize("Análise transacional Falcon");
     const existing = all(".sac-side-panel").find((item) => item.dataset.owner === ownerPanel?.id && item.dataset.supportKey === supportKey);
@@ -2682,7 +2769,10 @@
       existing.remove();
       return;
     }
-    const summary = transactionEngine.summarizeFalconTransactions(rows);
+    const summary = transactionEngine.summarizeFalconTransactions(rows, {
+      issuer: data?.issuer,
+      holderDocument: data?.holderDocument || data?.cpfCnpj
+    });
     const cardFlow = transactionEngine.isCardTransaction({
       flow: data?.flow,
       transactionType: data?.sourceTransactionType || data?.transactionType
@@ -2750,33 +2840,25 @@
     }));
     const counterpartCards = counterparties.length
       ? counterparties.map(({ item, classification }) => {
-          const payer = item.payerNames.length ? item.payerNames.join(" · ") : "Nome não disponível na linha";
-          const classificationLabel = item.cnpj
-            ? (classification?.label || "CNPJ sem classificação disponível")
-            : "Pessoa física";
-          const severity = item.cnpj ? resultSeverityClass(classification) : "neutral";
-          return `
-            <div class="sac-side-group">
-              <div class="sac-side-group-title">${escapeHtml(item.sourceLabel || "Quem enviou ou recebeu")}</div>
-              <div class="sac-side-card sac-support-summary ${severity}"><strong>${escapeHtml(investigationDocument(item))}</strong><span>${escapeHtml(classificationLabel)}</span></div>
-              <div class="sac-investigation-grid">
-                <div class="sac-side-card"><strong>Nome do pagador do crédito</strong><span>${escapeHtml(payer)}</span></div>
-                <div class="sac-side-card"><strong>Movimentações</strong><span>${item.transactionCount} · ${escapeHtml(investigationCurrency(item.totalAmount))}</span></div>
-              </div>
-            </div>`;
+          const payer = item.payerNames.length ? item.payerNames.join(" · ") : "";
+          const identity = investigationDocument(item);
+          const label = item.cnpj ? (classification?.label || "CNPJ sem classificação disponível") : "Pessoa física";
+          return `<div class="sac-counterparty-line"><div class="sac-side-card sac-support-summary ${item.cnpj ? resultSeverityClass(classification) : "neutral"}"><strong>CPF/CNPJ de quem enviou ou recebeu</strong><span>${escapeHtml(identity)}${payer ? ` · ${escapeHtml(payer)}` : ""} · ${escapeHtml(label)}</span></div><div class="sac-side-card"><strong>Quantidade e valor total</strong><span>${item.transactionCount} · ${escapeHtml(investigationCurrency(item.totalAmount))}</span></div></div>`;
         }).join("")
-      : `<div class="sac-side-card sac-support-summary warning"><strong>Não identifiquei quem enviou ou recebeu</strong><span>As linhas foram lidas, mas não há ID compatível com a direção desta transação.</span></div>`;
+      : investigationCounterpartiesHtml([]);
     openSupportPanel(ownerPanel, "Análise transacional Falcon", `<div class="sac-transaction-view">
+      <div class="sac-side-group"><div class="sac-side-group-title">Visão geral</div>
       <div class="sac-investigation-grid">
-        <div class="sac-side-card"><strong>Transações analisadas</strong><span>${summary.transactionCount}</span></div>
-        <div class="sac-side-card"><strong>Pessoas ou empresas diferentes</strong><span>${summary.uniqueCounterpartyCount}</span></div>
-        <div class="sac-side-card"><strong>Valor somado</strong><span>${escapeHtml(investigationCurrency(summary.totalAmount))}</span></div>
-        <div class="sac-side-card sac-support-summary ${summary.p2pDetected ? "success" : "warning"}"><strong>P2P detectado</strong><span>${summary.p2pDetected ? "Sim · sinal favorável a não fraude" : "Não identificado nas linhas analisadas"}</span></div>
-        <div class="sac-side-card sac-grid-full"><strong>Período analisado</strong><span>${escapeHtml(investigationPeriod(summary.periodStart, summary.periodEnd, summary.validDateCount))}</span></div>
-      </div>
-      <div class="sac-side-card"><span>“Quem enviou ou recebeu” é a pessoa ou empresa do outro lado da transação. Todas as linhas visíveis do grid Falcon foram consideradas. O resultado apoia a análise e não escolhe uma decisão.</span></div>
+        <div class="sac-side-card"><strong>Total de transações analisadas</strong><span>${summary.transactionCount}</span></div>
+        <div class="sac-side-card"><strong>Valor total transacionado</strong><span>${escapeHtml(investigationCurrency(summary.totalAmount))}</span></div>
+        <div class="sac-side-card"><strong>Período transacionado</strong><span>${escapeHtml(investigationPeriod(summary.periodStart, summary.periodEnd, summary.validDateCount))}</span></div>
+        <div class="sac-side-card"><strong>Contatos diferentes</strong><span>${summary.uniqueCounterpartyCount}</span></div>
+        <div class="sac-side-card sac-support-summary ${summary.p2pIssuerCount ? "success" : "neutral"}"><strong>P2P Emissor</strong><span>${summary.p2pIssuerCount || 0}</span></div>
+        <div class="sac-side-card sac-support-summary ${summary.p2pPersonalCount ? "success" : "neutral"}"><strong>P2P Pessoal</strong><span>${summary.p2pPersonalCount || 0}</span></div>
+      </div></div>
+      ${investigationVelocityHtml(summary)}
       ${signalCards}
-      ${counterpartCards}
+      <div class="sac-side-group"><div class="sac-side-group-title">Transacionando com</div>${counterpartCards}</div>
     </div>`);
   }
 
@@ -2795,7 +2877,8 @@
       rule: falcon.rule,
       description: falcon.sourceTransactionType,
       counterpartyResult: counterpart,
-      dddAssessment
+      dddAssessment,
+      holderDocument: data?.cpfCnpj || falcon.holderDocument
     });
     const cardFlow = transactionEngine.isCardTransaction({
       flow: data?.flow,
@@ -2811,7 +2894,7 @@
           </div>`).join("")
       : `<div class="sac-side-card"><span class="sac-support-empty">Nenhum sinal cadastrado foi identificado nos dados disponíveis.</span></div>`;
     const profile = result.issuerProfile
-      ? `<div class="sac-side-group"><div class="sac-side-group-title">Perfil ${escapeHtml(result.issuerProfile.name)}</div>
+      ? `<div class="sac-side-group"><div class="sac-side-group-title">Particularidades transacionais do emissor</div>
           ${result.issuerProfile.expected.map((item) => `<div class="sac-side-card sac-support-summary success"><span>${escapeHtml(item)}</span></div>`).join("")}
           ${result.issuerProfile.cautions.map((item) => `<div class="sac-side-card sac-support-summary warning"><span>${escapeHtml(item)}</span></div>`).join("")}
         </div>`
@@ -2826,18 +2909,17 @@
         <div class="sac-side-card"><strong>+${result.favorablePoints}</strong><small>PONTOS FAVORÁVEIS</small></div>
         <div class="sac-side-card"><strong>${result.alertPoints}</strong><small>PONTOS DE ATENÇÃO</small></div>
       </div>
-      ${cardFlow ? "" : `<div class="sac-side-card sac-support-summary ${result.p2pDetected ? "success" : "warning"}">
-        <strong>P2P detectado</strong>
-        <span>${result.p2pDetected ? "Sim · sinal favorável a não fraude" : "Não identificado nas movimentações analisadas"}</span>
-      </div>`}
       ${result.mappingPending ? `<div class="sac-side-card sac-support-summary warning"><strong>Estrutura transacional pronta</strong><span>O adaptador usará diretamente a página transacional do Console assim que o HTML e as regras do book forem mapeados.</span></div>` : ""}
-      ${result.mappingPending ? "" : `<div class="sac-side-group"><div class="sac-side-group-title">Resumo do período</div><div class="sac-investigation-grid">
-        <div class="sac-side-card"><strong>Movimentações</strong><span>${Number(metrics.count || 0)}</span></div>
-        <div class="sac-side-card"><strong>${cardFlow ? "Estabelecimentos diferentes" : "Pessoas ou empresas diferentes"}</strong><span>${Number(cardFlow ? metrics.merchantCount : metrics.uniqueCounterparties || 0)}</span></div>
-        <div class="sac-side-card"><strong>Créditos</strong><span>${escapeHtml(investigationCurrency(metrics.creditAmount))}</span></div>
-        <div class="sac-side-card"><strong>Débitos</strong><span>${escapeHtml(investigationCurrency(metrics.debitAmount))}</span></div>
-        <div class="sac-side-card sac-grid-full"><strong>Período analisado</strong><span>${escapeHtml(investigationPeriod(metrics.periodStart, metrics.periodEnd, metrics.validDateCount))}</span></div>
+      ${result.mappingPending ? "" : `<div class="sac-side-group"><div class="sac-side-group-title">Visão geral</div><div class="sac-investigation-grid">
+        <div class="sac-side-card"><strong>Total de transações analisadas</strong><span>${Number(metrics.count || 0)}</span></div>
+        <div class="sac-side-card"><strong>Valor total transacionado</strong><span>${escapeHtml(investigationCurrency(metrics.totalAmount))}</span></div>
+        <div class="sac-side-card"><strong>Período transacionado</strong><span>${escapeHtml(investigationPeriod(metrics.periodStart, metrics.periodEnd, metrics.validDateCount))}</span></div>
+        <div class="sac-side-card"><strong>Contatos diferentes</strong><span>${Number(cardFlow ? metrics.merchantCount : metrics.uniqueCounterparties || 0)}</span></div>
+        <div class="sac-side-card sac-support-summary ${metrics.p2pIssuerCount ? "success" : "neutral"}"><strong>P2P Emissor</strong><span>${Number(metrics.p2pIssuerCount || 0)}</span></div>
+        <div class="sac-side-card sac-support-summary ${metrics.p2pPersonalCount ? "success" : "neutral"}"><strong>P2P Pessoal</strong><span>${Number(metrics.p2pPersonalCount || 0)}</span></div>
       </div></div>`}
+      ${result.mappingPending ? "" : investigationVelocityHtml(metrics)}
+      ${!cardFlow && !result.mappingPending ? `<div class="sac-side-group"><div class="sac-side-group-title">Transacionando com</div>${investigationCounterpartiesHtml(metrics.counterparties || [])}</div>` : ""}
       ${dddInfo.found ? `<div class="sac-side-group"><div class="sac-side-group-title">DDD</div><div class="sac-investigation-grid"><div class="sac-side-card"><strong>DDD</strong><span>${escapeHtml(dddInfo.ddd)}</span></div><div class="sac-side-card"><strong>UF / Região</strong><span>${escapeHtml(`${dddInfo.uf} · ${dddInfo.region}`)}</span></div></div></div>` : ""}
       ${profile}
       <div class="sac-side-group">
@@ -2850,10 +2932,6 @@
   async function renderBigDataMedia() {
     await memory.hydrateFromClipboard?.();
     byId("sac-panel-bigdata")?.remove();
-    if (!getInvestigationMode()) {
-      showNotice("BigData opcional: ative o modo investigação para coletar PID e mídias.", "info");
-      return;
-    }
     const request = memory.transport.get("mediaRequest");
     if (!request) {
       showNotice("Não há coleta pendente do Falcon para o BigData.", "warn");
@@ -2870,14 +2948,8 @@
     }
     const result = mediaEngine.createResult(request, scan);
     memory.transport.set("mediaResult", result);
-    memory.transport.set("pidResult", {
-      type: "SAC_PID_RESULT",
-      caseNumber: request.caseNumber,
-      pid: scan.pid || {},
-      savedAt: Date.now()
-    });
     await memory.commitCurrentText?.();
-    showNotice("BigData coletado. Os dados de PID e mídia seguirão para o Console.", "success");
+    showNotice("Mídia do CPF do titular coletada para o Console.", "success");
   }
 
   function resultSeverityClass(result) {
@@ -2911,6 +2983,7 @@
           <div class="sac-side-card sac-grid-full"><strong>${escapeHtml(nameLabel)}</strong><span>${escapeHtml(displayName)}</span></div>
           <div class="sac-side-card ${openingClass}"><strong>Abertura</strong><span>${escapeHtml(corporate?.openedAt || "N/A")}</span></div>
           <div class="sac-side-card sac-support-summary ${statusClass}"><strong>Situação</strong><span>${escapeHtml(corporateStatus)}</span></div>
+          <div class="sac-side-card sac-grid-full"><strong>Porte da empresa</strong><span>${escapeHtml(corporate?.companySize || "N/A")}</span></div>
         </div>
       </div>
       <div class="sac-side-card"><span>A classificação apoia a análise e não seleciona uma decisão automaticamente.</span></div>`;
@@ -2930,9 +3003,10 @@
         <div class="sac-side-card"><strong>Direção</strong><span>${escapeHtml(mappedDirection === "ORIGIN" ? "Origem" : mappedDirection === "DESTINATION" ? "Destino" : "Origem ou destino")}</span></div>
       </div>
       <div id="sac-counterparty-result"><div class="sac-side-card"><span>Consultando dados cadastrais automaticamente...</span></div></div>
-      <div class="sac-support-actions" id="sac-counterparty-local-actions" hidden>
-        <button class="sac-main" data-classify-counterparty="TRUSTED">Adicionar confiável</button>
-        <button class="sac-secondary" data-classify-counterparty="REVIEW">Adicionar atenção</button>
+      <div class="sac-support-actions three sac-cnpj-actions" id="sac-counterparty-local-actions" hidden>
+        <button class="sac-classify-safe" data-classify-counterparty="TRUSTED"><i aria-hidden="true">✓</i>Seguro</button>
+        <button class="sac-classify-attention" data-classify-counterparty="REVIEW"><i aria-hidden="true">!</i>Atenção</button>
+        <button class="sac-classify-remove" data-remove-counterparty><i aria-hidden="true">−</i>Excluir</button>
       </div>
     `);
     if (!panel) return;
@@ -2976,6 +3050,18 @@
       }
     };
     panel.querySelector("#sac-counterparty-local-actions")?.addEventListener("click", async (event) => {
+      const removeButton = event.target.closest("[data-remove-counterparty]");
+      if (removeButton) {
+        const removed = counterpartyEngine.removeLocalClassification?.({
+          cnpj: mappedCnpj,
+          issuer: data?.issuer || falcon?.issuer || "GLOBAL",
+          direction: mappedDirection
+        });
+        persistCounterpartyLocalRecords();
+        await verify();
+        showNotice(removed ? "Classificação local do CNPJ excluída." : "Este CNPJ não tinha classificação local para excluir.", removed ? "success" : "warn");
+        return;
+      }
       const button = event.target.closest("[data-classify-counterparty]");
       if (!button) return;
       counterpartyEngine.upsertLocalClassification({
@@ -4665,29 +4751,39 @@
   }
   async function markListDone(id, listType) {
     return enqueueListMutation(async () => {
-      const original = await readListQueue({ waitForPending: false });
+      const original = await readListQueue({ waitForPending: false, hydrateClipboard: false });
       const target = original.find((item) => item.id === id);
       if (!target) return true;
       memory.lists.markDone?.(target, listType);
       const list = memory.lists.all().filter(hasPendingListApplication);
       await writeListQueue(list);
-      const stillPending = (await readListQueue({ waitForPending: false })).some((item) => item.id === id && item.lists?.[listType] && !item.applied?.[listType]);
+      const stillPending = (await readListQueue({ waitForPending: false, hydrateClipboard: false })).some((item) => item.id === id && item.lists?.[listType] && !item.applied?.[listType]);
       return !stillPending;
     });
   }
   async function markListBatchDone(ids, listType) {
     const idSet = new Set(ids);
     return enqueueListMutation(async () => {
-      const original = await readListQueue({ waitForPending: false });
+      const original = await readListQueue({ waitForPending: false, hydrateClipboard: false });
       original.filter((item) => idSet.has(item.id)).forEach((item) => memory.lists.markDone?.(item, listType));
       const remaining = memory.lists.all().filter(hasPendingListApplication);
       await writeListQueue(remaining);
-      const pending = await readListQueue({ waitForPending: false });
+      const pending = await readListQueue({ waitForPending: false, hydrateClipboard: false });
       return !pending.some((item) => idSet.has(item.id) && item.lists?.[listType] && !item.applied?.[listType]);
     });
   }
   async function removeListItem(id, listType) {
     return markListDone(id, listType);
+  }
+  async function removeListIssuerGroup(issuerKey, listType) {
+    return enqueueListMutation(async () => {
+      const queue = await readListQueue({ waitForPending: false, hydrateClipboard: false });
+      const targets = queue.filter((item) => normalize(item.issuer) === issuerKey && item.lists?.[listType] && !item.applied?.[listType]);
+      targets.forEach((item) => memory.lists.markDone?.(item, listType));
+      await writeListQueue(memory.lists.all().filter(hasPendingListApplication));
+      const remaining = await readListQueue({ waitForPending: false, hydrateClipboard: false });
+      return { ok: !remaining.some((item) => targets.some((target) => target.id === item.id) && item.lists?.[listType] && !item.applied?.[listType]), count: targets.length };
+    });
   }
   function listTabFromFalconPage() {
     const dropdown = byId("f33:hotlist_DropDown");
@@ -4767,7 +4863,7 @@
     activeTab = activeTab || listTabFromFalconPage() || storageGet("activeListTab") || "allowlist";
     activeTab = activeTab === "contencao" ? "contencao" : "allowlist";
     storageSet("activeListTab", activeTab);
-    const queue = await readListQueue({ hydrateClipboard: "full" });
+    const queue = await readListQueue({ hydrateClipboard: "fast" });
     const items = await Promise.all(queue.map(async (item) => ({ ...item, issuerId: item.issuerId || await issuerIdForName(item.issuer) })));
     const visible = items
       .filter((item) => item.lists?.[activeTab] && !item.applied?.[activeTab])
@@ -4794,7 +4890,7 @@
       </div>`;
     const groupedHtml = Array.from(groups.entries()).map(([issuerKey, group]) => `
       <div class="sac-list-issuer-group">
-        <div class="sac-list-issuer-head"><strong>${escapeHtml(group.issuer)} · ${group.items.length} caso${group.items.length === 1 ? "" : "s"}</strong><button data-list-apply-issuer="${escapeHtml(issuerKey)}">INSERIR GRUPO</button></div>
+        <div class="sac-list-issuer-head"><strong>${escapeHtml(group.issuer)} · ${group.items.length} caso${group.items.length === 1 ? "" : "s"}</strong><div class="sac-list-group-actions"><button data-list-apply-issuer="${escapeHtml(issuerKey)}">INSERIR GRUPO</button><button data-list-remove-issuer="${escapeHtml(issuerKey)}">EXCLUIR GRUPO</button></div></div>
         ${group.items.map(listItemHtml).join("")}
       </div>`).join("");
     const body = section("Listas", `
@@ -4817,10 +4913,21 @@
     panel.addEventListener("click", async (event) => {
       const tab = event.target.closest("[data-list-tab]");
       if (tab) return renderLists(tab.dataset.listTab);
+      const issuerRemove = event.target.closest("[data-list-remove-issuer]");
+      if (issuerRemove) {
+        issuerRemove.disabled = true;
+        const result = await removeListIssuerGroup(issuerRemove.dataset.listRemoveIssuer, activeTab);
+        if (!result.ok) {
+          showNotice("Não consegui confirmar a exclusão do grupo na memória de LISTAS.", "error", 15000);
+          return renderLists(activeTab);
+        }
+        showNotice(`${result.count} caso${result.count === 1 ? "" : "s"} removido${result.count === 1 ? "" : "s"} deste grupo.`, "warn");
+        return renderLists(activeTab);
+      }
       const issuerBatch = event.target.closest("[data-list-apply-issuer]");
       if (issuerBatch) {
         issuerBatch.disabled = true;
-        const queueNow = await readListQueue({ hydrateClipboard: "full" });
+        const queueNow = await readListQueue({ hydrateClipboard: false });
         const targets = queueNow.filter((item) => normalize(item.issuer) === issuerBatch.dataset.listApplyIssuer && item.lists?.[activeTab] && !item.applied?.[activeTab]);
         const completed = [];
         for (const target of targets) {
@@ -4844,7 +4951,7 @@
       if (!itemEl) return;
       const id = itemEl.dataset.listId;
       const listType = itemEl.dataset.listType;
-      const item = (await readListQueue({ hydrateClipboard: "full" })).find((entry) => entry.id === id);
+      const item = (await readListQueue({ hydrateClipboard: false })).find((entry) => entry.id === id);
       if (!item) return;
       if (event.target.closest("[data-list-remove]")) {
         if (!await removeListItem(id, listType)) {

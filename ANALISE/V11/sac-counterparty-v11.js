@@ -3,7 +3,7 @@
 
   if (window.SACCounterpartyV11) return;
 
-  const ENGINE_VERSION = "1.2.0";
+  const ENGINE_VERSION = "1.3.0";
   const CACHE_KEY = "sac_prevencao_V11:counterparty_registry";
   const CONFIG_KEY = "sac_prevencao_V11:counterparty_config";
   const LOCAL_RECORDS_KEY = "sac_prevencao_V11:counterparty_local_records";
@@ -416,6 +416,18 @@
     return publicRecord(nextRecord);
   }
 
+  function removeLocalClassification(input = {}) {
+    const cnpj = normalizeCnpj(input.cnpj);
+    if (!validateCnpj(cnpj)) throw new Error("COUNTERPARTY_CNPJ_INVALID");
+    const issuer = normalizeText(input.issuer || "GLOBAL") || "GLOBAL";
+    const direction = normalizeDirection(input.direction || "BOTH");
+    const records = localRecords();
+    const kept = records.filter((record) => !(record.cnpj === cnpj && record.issuers.includes(issuer) && record.directions.includes(direction)));
+    writeJson(LOCAL_RECORDS_KEY, kept);
+    emit();
+    return kept.length !== records.length;
+  }
+
   function exportLocalRecords() {
     return localRecords().map((record) => ({
       ...record,
@@ -510,6 +522,7 @@
     classify,
     classifyFromRegistry,
     upsertLocalClassification,
+    removeLocalClassification,
     exportLocalRecords,
     importLocalRecords,
     refresh,

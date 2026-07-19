@@ -97,6 +97,8 @@ const tenCases = Array.from({ length: 10 }, (_, index) => ({
 }));
 memory.lists.replace(tenCases);
 assert.equal(memory.lists.all().length, 10, "dez casos BANKING devem permanecer disponíveis sem atraso");
+for (let index = 0; index < 8; index += 1) memory.lists.all();
+assert.ok(memory.lists.all().every((entry) => !/:allowlist:allowlist$/i.test(entry.id)), "o ID da fila deve permanecer estável após várias leituras");
 
 const removed = memory.lists.all()[4];
 const staleSnapshot = memory.snapshot();

@@ -3,7 +3,7 @@
 
   if (window.SACCorporateV11) return;
 
-  const ENGINE_VERSION = "1.2.0";
+  const ENGINE_VERSION = "1.3.0";
   const CACHE_KEY = "sac_prevencao_V11:rfb_registry";
   const LOOKUP_CACHE_KEY = "sac_prevencao_V11:rfb_lookup_cache";
   const CONFIG_KEY = "sac_prevencao_V11:rfb_config";
@@ -116,6 +116,7 @@
       statusDate: String(record?.statusDate || record?.situacaoCadastral?.data || "").trim(),
       statusReason: String(record?.statusReason || record?.situacaoCadastral?.motivo || "").trim(),
       openedAt: String(record?.openedAt || record?.dataAbertura || "").trim(),
+      companySize: String(record?.companySize || record?.porte || record?.descricaoPorte || record?.descricao_porte || "").trim(),
       primaryCnae: String(record?.primaryCnae?.description || record?.primaryCnae?.descricao || record?.primaryCnae || record?.cnaePrincipal?.descricao || "").trim(),
       primaryCnaeCode: String(record?.primaryCnae?.code || record?.primaryCnae?.codigo || record?.cnaePrincipal?.codigo || "").trim(),
       source: {
@@ -135,6 +136,7 @@
       statusDate: record?.data_situacao_cadastral,
       statusReason: record?.descricao_motivo_situacao_cadastral,
       openedAt: record?.data_inicio_atividade,
+      companySize: record?.descricao_porte || record?.porte,
       primaryCnae: record?.cnae_fiscal_descricao,
       primaryCnaeCode: record?.cnae_fiscal,
       source: {

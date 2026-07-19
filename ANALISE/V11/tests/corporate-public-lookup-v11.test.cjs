@@ -32,6 +32,7 @@ const context = {
           descricao_situacao_cadastral: "ATIVA",
           data_inicio_atividade: "2022-05-18",
           data_situacao_cadastral: "2022-05-18",
+          descricao_porte: "DEMAIS",
           cnae_fiscal: 4930202,
           cnae_fiscal_descricao: "Transporte rodoviário"
         })
@@ -54,6 +55,7 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "sac-corporate-v11.js
   assert.equal(result.tradeName, "GARCIA TRANSPORTES");
   assert.equal(result.openedAt, "2022-05-18");
   assert.equal(result.registrationStatus, "ATIVA");
+  assert.equal(result.companySize, "DEMAIS");
   assert.equal(result.source.label, "BrasilAPI / dados públicos da Receita Federal");
   console.log("OK - consulta cadastral automática V11 validada");
 })().catch((error) => {

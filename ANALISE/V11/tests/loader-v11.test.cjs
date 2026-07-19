@@ -5,6 +5,11 @@ const vm = require("node:vm");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "loader-v11.js"), "utf8");
 const safeFallback = "3ed452de3126df45ca7557a7ac4d43d307ee22eb";
+const release = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "release-v11.json"), "utf8"));
+const bookmarklet = fs.readFileSync(path.join(__dirname, "..", "bookmarklet-v11.txt"), "utf8");
+
+assert.equal(release.build, "11.18");
+assert.match(bookmarklet, new RegExp(`@${release.commit}/ANALISE/V11/loader-v11\\.js\\?v=11\\.18\\.0`));
 
 async function executeLoader(fetchImpl) {
   const loaded = [];

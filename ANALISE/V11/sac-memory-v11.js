@@ -16,6 +16,7 @@
   const TRANSPORT_KEY = "sac_prevencao_V11:transport";
   const WINDOW_NAME_KEY = "__SAC_PREVENCAO_V11_MEMORY__=";
   const TTL_MS = 12 * 60 * 60 * 1000;
+  const TRANSPORT_STAGES = new Set(["falcon", "console", "mediaRequest", "mediaResult"]);
   const MAX_LISTS = 300;
   const MAX_HISTORY = 60;
   const MAX_TOMBSTONES = 800;
@@ -108,7 +109,7 @@
         .filter((line) => !line.startsWith(WINDOW_NAME_KEY))
         .join("\n")
         .replace(/\n+$/, "");
-      const encoded = encodeURIComponent(JSON.stringify(normalizeMemory(value)));
+      const encoded = encodeURIComponent(JSON.stringify(portableMemory(value)));
       window.name = `${cleanName}${cleanName ? "\n" : ""}${WINDOW_NAME_KEY}${encoded}`;
       return true;
     } catch (_error) {
@@ -134,6 +135,13 @@
       }));
   }
 
+  function normalizeTransport(value) {
+    const source = value && typeof value === "object" ? value : {};
+    return Object.fromEntries(Object.entries(source).filter(([stage, item]) => (
+      TRANSPORT_STAGES.has(stage) && validAge(item)
+    )));
+  }
+
   function normalizeTombstones(value) {
     const source = Array.isArray(value) ? value : [];
     return source
@@ -155,7 +163,7 @@
     const history = Array.isArray(source.history)
       ? source.history.filter(validAge).map(sanitizeHistory).slice(0, MAX_HISTORY)
       : [];
-    const transport = source.transport && typeof source.transport === "object" ? source.transport : {};
+    const transport = normalizeTransport(source.transport);
     const settings = normalizeSettings(source.settings);
     return {
       schema: 1,
@@ -272,41 +280,59 @@
 
   const localStore = storageOf("localStorage");
   const sessionStore = storageOf("sessionStorage");
-  const localState = localStore ? readJson(localStore, STATE_KEY, null) : null;
-  const sessionState = sessionStore ? readJson(sessionStore, STATE_SESSION_KEY, null) : null;
-  const localHistory = localStore ? readJson(localStore, HISTORY_KEY, []) : [];
-  const localLists = localStore ? readJson(localStore, LISTS_KEY, []) : [];
-  const localListsVault = localStore ? readJson(localStore, LISTS_VAULT_KEY, []) : [];
-  const sessionListsVault = sessionStore ? readJson(sessionStore, LISTS_VAULT_KEY, []) : [];
-  const localTombstones = localStore ? readJson(localStore, LIST_TOMBSTONES_KEY, []) : [];
-  const localSettings = localStore ? readJson(localStore, SETTINGS_KEY, {}) : {};
+  function readStable(key, fallback) {
+    const localValue = localStore ? readJson(localStore, key, null) : null;
+    if (localValue !== null) return localValue;
+    return sessionStore ? readJson(sessionStore, key, fallback) : fallback;
+  }
+
+  function portableMemory(value) {
+    const normalized = normalizeMemory(value);
+    return { ...normalized, lists: [] };
+  }
+  function writeStable(key, value) {
+    const savedLocally = Boolean(localStore && writeJson(localStore, key, value));
+    if (savedLocally) {
+      try { sessionStore?.removeItem(key); } catch (_error) {}
+      return true;
+    }
+    return Boolean(sessionStore && writeJson(sessionStore, key, value));
+  }
+  const legacyLocalState = localStore ? readJson(localStore, STATE_KEY, null) : null;
+  const legacySessionState = sessionStore ? readJson(sessionStore, STATE_SESSION_KEY, null) : null;
+  const localHistory = readStable(HISTORY_KEY, []);
+  const localLists = readStable(LISTS_KEY, []);
+  const localListsVault = readStable(LISTS_VAULT_KEY, []);
+  const localTombstones = readStable(LIST_TOMBSTONES_KEY, []);
+  const localSettings = readStable(SETTINGS_KEY, {});
   const localTransport = sessionStore ? readJson(sessionStore, TRANSPORT_KEY, {}) : {};
   const bootMemory = window[BOOT_KEY];
   const windowNameMemory = readWindowNameMemory();
-  let memory = normalizeMemory(localState || sessionState || bootMemory);
-  const localStateMemory = normalizeMemory(localState);
-  const sessionStateMemory = normalizeMemory(sessionState);
+  let memory = normalizeMemory(bootMemory || legacyLocalState || legacySessionState);
+  const localStateMemory = normalizeMemory(legacyLocalState);
+  const sessionStateMemory = normalizeMemory(legacySessionState);
   memory.listTombstones = mergeTombstones(memory.listTombstones, localStateMemory.listTombstones, sessionStateMemory.listTombstones, localTombstones, windowNameMemory.listTombstones);
   memory.settings = mergeSettings(localStateMemory.settings, sessionStateMemory.settings, localSettings, windowNameMemory.settings, memory.settings);
   memory.history = mergeHistory(memory.history, localStateMemory.history, sessionStateMemory.history, localHistory, windowNameMemory.history);
-  memory.listsVault = mergeLists(memory.listsVault, localStateMemory.listsVault, localStateMemory.lists, sessionStateMemory.listsVault, sessionStateMemory.lists, localListsVault, sessionListsVault, windowNameMemory.listsVault, localLists, windowNameMemory.lists);
+  memory.listsVault = mergeLists(memory.listsVault, localStateMemory.listsVault, localStateMemory.lists, sessionStateMemory.listsVault, sessionStateMemory.lists, localListsVault, windowNameMemory.listsVault, localLists, windowNameMemory.lists);
   memory.lists = mergeLists(memory.lists, memory.listsVault, localStateMemory.lists, sessionStateMemory.lists, localLists, windowNameMemory.lists);
-  memory.transport = { ...localTransport, ...localStateMemory.transport, ...sessionStateMemory.transport, ...windowNameMemory.transport, ...memory.transport };
+  memory.transport = normalizeTransport({ ...localTransport, ...localStateMemory.transport, ...sessionStateMemory.transport, ...windowNameMemory.transport, ...memory.transport });
   window[BOOT_KEY] = memory;
+
+  // V11.20 migra uma única vez os espelhos completos antigos para chaves menores.
+  try { localStore?.removeItem(STATE_KEY); localStore?.removeItem(LISTS_KEY); } catch (_error) {}
+  try { sessionStore?.removeItem(STATE_SESSION_KEY); sessionStore?.removeItem(LISTS_KEY); sessionStore?.removeItem(LISTS_VAULT_KEY); } catch (_error) {}
 
   function persistMirrors() {
     const stableLists = mergeLists(memory.lists);
     memory.lists = stableLists;
     memory.listsVault = stableLists;
-    if (localStore) writeJson(localStore, HISTORY_KEY, memory.history.map(sanitizeHistory));
-    if (localStore) writeJson(localStore, LISTS_KEY, memory.lists);
-    if (localStore) writeJson(localStore, LISTS_VAULT_KEY, memory.listsVault);
-    if (sessionStore) writeJson(sessionStore, LISTS_VAULT_KEY, memory.listsVault);
-    if (localStore) writeJson(localStore, LIST_TOMBSTONES_KEY, memory.listTombstones);
-    if (localStore) writeJson(localStore, SETTINGS_KEY, memory.settings);
+    memory.transport = normalizeTransport(memory.transport);
+    writeStable(HISTORY_KEY, memory.history.map(sanitizeHistory));
+    writeStable(LISTS_VAULT_KEY, memory.listsVault);
+    writeStable(LIST_TOMBSTONES_KEY, memory.listTombstones);
+    writeStable(SETTINGS_KEY, memory.settings);
     if (sessionStore) writeJson(sessionStore, TRANSPORT_KEY, memory.transport);
-    if (localStore) writeJson(localStore, STATE_KEY, memory);
-    if (sessionStore) writeJson(sessionStore, STATE_SESSION_KEY, memory);
     writeWindowNameMemory(memory);
     window[BOOT_KEY] = memory;
   }
@@ -323,29 +349,25 @@
   }
 
   function mergeCurrentMirrors() {
-    const localHistoryNow = localStore ? readJson(localStore, HISTORY_KEY, []) : [];
-    const localStateNow = localStore ? normalizeMemory(readJson(localStore, STATE_KEY, null)) : normalizeMemory(null);
-    const sessionStateNow = sessionStore ? normalizeMemory(readJson(sessionStore, STATE_SESSION_KEY, null)) : normalizeMemory(null);
-    const localListsNow = localStore ? readJson(localStore, LISTS_KEY, []) : [];
-    const localListsVaultNow = localStore ? readJson(localStore, LISTS_VAULT_KEY, []) : [];
-    const sessionListsVaultNow = sessionStore ? readJson(sessionStore, LISTS_VAULT_KEY, []) : [];
-    const localTombstonesNow = localStore ? readJson(localStore, LIST_TOMBSTONES_KEY, []) : [];
-    const localSettingsNow = localStore ? readJson(localStore, SETTINGS_KEY, {}) : {};
+    const localHistoryNow = readStable(HISTORY_KEY, []);
+    const localListsVaultNow = readStable(LISTS_VAULT_KEY, []);
+    const localTombstonesNow = readStable(LIST_TOMBSTONES_KEY, []);
+    const localSettingsNow = readStable(SETTINGS_KEY, {});
     const localTransportNow = sessionStore ? readJson(sessionStore, TRANSPORT_KEY, {}) : {};
     const windowNameNow = readWindowNameMemory();
-    memory.listTombstones = mergeTombstones(memory.listTombstones, localStateNow.listTombstones, sessionStateNow.listTombstones, localTombstonesNow, windowNameNow.listTombstones);
-    memory.settings = mergeSettings(localStateNow.settings, sessionStateNow.settings, localSettingsNow, windowNameNow.settings, memory.settings);
-    memory.history = mergeHistory(memory.history, localStateNow.history, sessionStateNow.history, localHistoryNow, windowNameNow.history);
-    memory.listsVault = mergeLists(memory.listsVault, localStateNow.listsVault, localStateNow.lists, sessionStateNow.listsVault, sessionStateNow.lists, localListsVaultNow, sessionListsVaultNow, windowNameNow.listsVault, localListsNow, windowNameNow.lists);
-    memory.lists = mergeLists(memory.lists, memory.listsVault, localStateNow.lists, sessionStateNow.lists, localListsNow, windowNameNow.lists);
-    memory.transport = { ...localTransportNow, ...localStateNow.transport, ...sessionStateNow.transport, ...windowNameNow.transport, ...memory.transport };
+    memory.listTombstones = mergeTombstones(memory.listTombstones, localTombstonesNow, windowNameNow.listTombstones);
+    memory.settings = mergeSettings(localSettingsNow, windowNameNow.settings, memory.settings);
+    memory.history = mergeHistory(memory.history, localHistoryNow, windowNameNow.history);
+    memory.listsVault = mergeLists(memory.listsVault, localListsVaultNow, windowNameNow.listsVault, windowNameNow.lists);
+    memory.lists = mergeLists(memory.lists, memory.listsVault, windowNameNow.lists);
+    memory.transport = normalizeTransport({ ...localTransportNow, ...windowNameNow.transport, ...memory.transport });
     memory.savedAt = now();
     persistMirrors();
     return snapshot();
   }
 
   function encodeMemoryPayload(value = memory) {
-    return encodeURIComponent(JSON.stringify(normalizeMemory(value)));
+    return encodeURIComponent(JSON.stringify(portableMemory(value)));
   }
 
   function htmlClipboardPayload(text = "") {
@@ -382,6 +404,7 @@
 
   function mergeIncomingMemory(incoming) {
     const next = normalizeMemory(incoming);
+    const incomingIsNewer = Number(next.savedAt || 0) >= Number(memory.savedAt || 0);
     next.listTombstones = mergeTombstones(next.listTombstones, memory.listTombstones);
     next.settings = mergeSettings(memory.settings, next.settings);
     next.history = mergeHistory(next.history, memory.history);
@@ -389,7 +412,9 @@
     memory.settings = next.settings;
     next.listsVault = mergeLists(next.listsVault, next.lists, memory.listsVault, memory.lists);
     next.lists = mergeLists(next.lists, next.listsVault, memory.lists, memory.listsVault);
-    next.transport = { ...memory.transport, ...next.transport };
+    next.transport = incomingIsNewer
+      ? normalizeTransport(next.transport)
+      : normalizeTransport({ ...next.transport, ...memory.transport });
     return setSnapshot(next);
   }
 
@@ -453,9 +478,12 @@
   const transport = {
     get(stage) {
       const item = memory.transport?.[stage];
-      return validAge(item) ? item : null;
+      if (validAge(item)) return item;
+      if (item) this.clear(stage);
+      return null;
     },
     set(stage, value) {
+      if (!TRANSPORT_STAGES.has(stage)) return null;
       memory.transport = { ...memory.transport, [stage]: value };
       memory.savedAt = now();
       persistMirrors();
@@ -466,15 +494,18 @@
       delete next[stage];
       memory.transport = next;
       persistMirrors();
+    },
+    clearAll() {
+      memory.transport = {};
+      memory.savedAt = now();
+      persistMirrors();
     }
   };
 
   const lists = {
     all() {
-      mergeCurrentMirrors();
-      memory.lists = mergeLists(memory.lists);
+      memory.lists = mergeLists(memory.lists, memory.listsVault);
       memory.listsVault = memory.lists;
-      persistMirrors();
       return memory.lists.map((item) => ({ ...item }));
     },
     key(item, listType = "") {
@@ -534,7 +565,6 @@
 
   const settings = {
     get(name) {
-      mergeCurrentMirrors();
       return String(memory.settings?.[name]?.value ?? "");
     },
     set(name, value) {
@@ -552,7 +582,6 @@
       return true;
     },
     all() {
-      mergeCurrentMirrors();
       return Object.fromEntries(Object.entries(memory.settings || {}).map(([name, entry]) => [name, String(entry.value ?? "")]));
     }
   };
@@ -560,7 +589,6 @@
   const history = {
     all() {
       memory.history = mergeHistory(memory.history);
-      persistMirrors();
       return memory.history.map((item) => ({ ...item }));
     },
     replace(items) {

@@ -3,7 +3,7 @@
 
   if (window.SACCounterpartyV11) return;
 
-  const ENGINE_VERSION = "1.3.1";
+  const ENGINE_VERSION = "1.4.0";
   const CACHE_KEY = "sac_prevencao_V11:counterparty_registry";
   const CONFIG_KEY = "sac_prevencao_V11:counterparty_config";
   const LOCAL_RECORDS_KEY = "sac_prevencao_V11:counterparty_local_records";
@@ -15,6 +15,7 @@
   const listeners = new Set();
   let provider = null;
   let providerUnsubscribe = null;
+  let sessionGeneration = 0;
   let state = {
     registry: null,
     loadedAt: 0,
@@ -360,14 +361,17 @@
   async function refresh(options = {}) {
     const force = Boolean(options.force);
     if (!force && state.registry && Date.now() - state.loadedAt < state.config.ttlMs) return getState();
+    const generation = sessionGeneration;
     try {
       const raw = await (provider || defaultProvider()).load({ endpoint: state.config.endpoint });
+      if (generation !== sessionGeneration) return getState();
       const registry = normalizeRegistry(raw);
       state = { ...state, registry, loadedAt: Date.now(), source: "remote", stale: false, error: "" };
       writeJson(CACHE_KEY, { savedAt: state.loadedAt, registry });
       emit();
       return getState();
     } catch (error) {
+      if (generation !== sessionGeneration) return getState();
       const cached = loadCachedRegistry();
       state = {
         ...state,
@@ -383,7 +387,9 @@
   }
 
   async function classify(input, options = {}) {
+    const generation = sessionGeneration;
     if (options.refresh !== false) await refresh({ force: Boolean(options.forceRefresh) });
+    if (generation !== sessionGeneration) return classifyFromRegistry(input, emptyRegistry());
     return classifyFromRegistry(input);
   }
 
@@ -512,9 +518,12 @@
     };
   }
 
-  const cached = loadCachedRegistry();
-  if (cached) {
-    state = { ...state, registry: cached.registry, loadedAt: cached.savedAt, source: "cache", stale: true };
+  function releaseSession() {
+    sessionGeneration += 1;
+    disconnectProvider();
+    provider = null;
+    listeners.clear();
+    state = { ...state, registry: null, loadedAt: 0, source: "empty", stale: true, error: "" };
   }
 
   window.SACCounterpartyV11 = Object.freeze({
@@ -535,6 +544,7 @@
     useProvider,
     disconnectProvider,
     subscribe,
-    getState
+    getState,
+    releaseSession
   });
 })();

@@ -52,5 +52,7 @@ assert.equal(engine.cross(inapt, { label: "CONFIÁVEL", severity: "success" }).s
 const missing = engine.lookupFromRegistry("12345678000195");
 assert.equal(missing.found, false);
 assert.equal(engine.cross(missing, { label: "CONFIÁVEL", severity: "success" }).severity, "warning");
+engine.releaseSession();
+assert.equal(engine.getState().recordCount, 0, "a consulta cadastral precisa liberar a base carregada ao encerrar");
 
 console.log("OK - motor cadastral Receita V11 validado");

@@ -174,5 +174,7 @@ assert.equal(engine.classifyFromRegistry({ cnpj, issuer: "Emissor Teste", direct
 assert.match(engine.exportLocalRecords()[0].reason, /lista de suspeitos/i);
 assert.equal(engine.removeLocalClassification({ cnpj, issuer: "Emissor Teste", direction: "origem" }), true);
 assert.equal(engine.exportLocalRecords().length, 0);
+engine.releaseSession();
+assert.equal(engine.getState().recordCount, 0, "a base carregada em memória deve ser liberada ao encerrar a investigação");
 
 console.log("OK - motor de contrapartes V11 validado");

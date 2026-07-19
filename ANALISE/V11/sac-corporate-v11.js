@@ -3,9 +3,8 @@
 
   if (window.SACCorporateV11) return;
 
-  const ENGINE_VERSION = "1.3.1";
+  const ENGINE_VERSION = "1.4.0";
   const CACHE_KEY = "sac_prevencao_V11:rfb_registry";
-  const LOOKUP_CACHE_KEY = "sac_prevencao_V11:rfb_lookup_cache";
   const CONFIG_KEY = "sac_prevencao_V11:rfb_config";
   const DEFAULT_ENDPOINT = "https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/ANALISE/V11/rfb-cnpj-registry-v11.json";
   const DEFAULT_TTL_MS = 15 * 60 * 1000;
@@ -15,6 +14,8 @@
   const VALID_STATUS = new Set(["ATIVA", "SUSPENSA", "INAPTA", "BAIXADA", "NULA"]);
 
   let provider = null;
+  let sessionGeneration = 0;
+  const lookupCache = new Map();
   let state = {
     registry: null,
     loadedAt: 0,
@@ -228,12 +229,15 @@
 
   async function refresh(options = {}) {
     if (!options.force && state.registry && Date.now() - state.loadedAt < state.config.ttlMs) return getState();
+    const generation = sessionGeneration;
     try {
       const raw = await (provider || defaultProvider()).load({ endpoint: state.config.endpoint });
+      if (generation !== sessionGeneration) return getState();
       const registry = normalizeRegistry(raw);
       state = { ...state, registry, loadedAt: Date.now(), source: "remote", stale: false, error: "" };
       writeJson(CACHE_KEY, { savedAt: state.loadedAt, registry });
     } catch (error) {
+      if (generation !== sessionGeneration) return getState();
       const cached = loadCachedRegistry();
       state = { ...state, registry: cached?.registry || state.registry || emptyRegistry(), loadedAt: cached?.savedAt || state.loadedAt || Date.now(), source: cached ? "cache" : "empty", stale: true, error: String(error?.message || error || "RFB_LOAD_FAILED") };
     }
@@ -241,28 +245,29 @@
   }
 
   async function lookup(cnpj, options = {}) {
+    const generation = sessionGeneration;
     if (options.refresh !== false) await refresh({ force: Boolean(options.forceRefresh) });
+    if (generation !== sessionGeneration) return lookupFromRegistry(cnpj);
     const synchronized = lookupFromRegistry(cnpj);
     if (synchronized.found || options.publicFallback === false) return synchronized;
     return lookupFromPublicData(cnpj, options);
   }
 
   function cachedLookup(cnpj) {
-    const cache = readJson(LOOKUP_CACHE_KEY, {});
-    const entry = cache?.[cnpj];
+    const entry = lookupCache.get(cnpj);
     return entry && Date.now() - Number(entry.savedAt || 0) < LOOKUP_TTL_MS ? entry.result : null;
   }
 
   function storeLookup(cnpj, result) {
-    const cache = readJson(LOOKUP_CACHE_KEY, {});
-    cache[cnpj] = { savedAt: Date.now(), result };
-    const retained = Object.fromEntries(Object.entries(cache)
-      .filter(([, entry]) => Date.now() - Number(entry?.savedAt || 0) < LOOKUP_TTL_MS)
-      .slice(-100));
-    writeJson(LOOKUP_CACHE_KEY, retained);
+    lookupCache.set(cnpj, { savedAt: Date.now(), result });
+    Array.from(lookupCache.entries()).forEach(([key, entry]) => {
+      if (Date.now() - Number(entry?.savedAt || 0) >= LOOKUP_TTL_MS) lookupCache.delete(key);
+    });
+    while (lookupCache.size > 20) lookupCache.delete(lookupCache.keys().next().value);
   }
 
   async function lookupFromPublicData(cnpj, options = {}) {
+    const generation = sessionGeneration;
     const normalized = normalizeCnpj(cnpj);
     if (!validCnpj(normalized)) return lookupFromRegistry(normalized);
     if (!/^\d{14}$/.test(normalized)) {
@@ -282,6 +287,7 @@
       });
       if (!response.ok) throw new Error(`BRASIL_API_HTTP_${response.status}`);
       const record = normalizeBrasilApiRecord(await response.json());
+      if (generation !== sessionGeneration) return lookupFromRegistry(normalized);
       const presentation = statusPresentation(record.registrationStatus);
       const result = {
         found: true,
@@ -348,8 +354,13 @@
     };
   }
 
-  const cached = loadCachedRegistry();
-  if (cached) state = { ...state, registry: cached.registry, loadedAt: cached.savedAt, source: "cache", stale: true };
+  function releaseSession() {
+    sessionGeneration += 1;
+    lookupCache.clear();
+    state = { ...state, registry: null, loadedAt: 0, source: "empty", stale: true, error: "" };
+  }
+
+  try { storage()?.removeItem("sac_prevencao_V11:rfb_lookup_cache"); } catch (_error) {}
 
   window.SACCorporateV11 = Object.freeze({
     version: ENGINE_VERSION,
@@ -365,6 +376,7 @@
     loadSnapshot,
     configure,
     useProvider,
-    getState
+    getState,
+    releaseSession
   });
 })();

@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V11_20260715";
   const BUILD = "ANALISE/V11";
   const BUILD_FAMILY = "11";
-  const BUILD_VERSION = "11.19";
+  const BUILD_VERSION = "11.20";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -115,6 +115,32 @@
   await memory.hydrateFromClipboard({ timeoutMs: 450 });
 
   const counterpartySessionResults = new Map();
+  const INVESTIGATION_RESULT_FIELDS = ["counterpartyResult", "corporateResult", "mediaInvestigation", "transactionInvestigation"];
+
+  function clearInvestigationFields(data) {
+    if (!data || typeof data !== "object") return data;
+    INVESTIGATION_RESULT_FIELDS.forEach((field) => { try { delete data[field]; } catch (_error) {} });
+    if (data.falcon && data.falcon !== data) clearInvestigationFields(data.falcon);
+    return data;
+  }
+
+  function releaseInvestigationSession(data = null) {
+    counterpartySessionResults.clear();
+    clearInvestigationFields(data);
+    try { counterpartyEngine.releaseSession?.(); } catch (_error) {}
+    try { corporateEngine.releaseSession?.(); } catch (_error) {}
+  }
+
+  function transferableCaseData(data) {
+    const source = data && typeof data === "object" ? data : {};
+    const copy = { ...source };
+    INVESTIGATION_RESULT_FIELDS.forEach((field) => { delete copy[field]; });
+    if (source.falcon && source.falcon !== source) {
+      copy.falcon = { ...source.falcon };
+      INVESTIGATION_RESULT_FIELDS.forEach((field) => { delete copy.falcon[field]; });
+    }
+    return copy;
+  }
 
   const all = (selector, root = document) => Array.from(root?.querySelectorAll?.(selector) || []);
   const byId = (id) => document.getElementById(id);
@@ -170,38 +196,24 @@
     document.querySelectorAll("[id^='sac-style'],.sac-panel,.sac-history-panel,.sac-choice-popover,.sac-side-panel,.sac-pid-panel,#sac-notices")
       .forEach((node) => node.remove());
   }
+  registerRuntimeCleanup(() => releaseInvestigationSession());
   window[RUNTIME_SLOT] = Object.freeze({ build: BUILD_VERSION, dispose: disposeRuntime });
 
-  const SETTINGS_WINDOW_NAME_KEY = "__SAC_PREVENCAO_V11_SETTINGS__=";
   const SHARED_SETTING_NAMES = new Set([
-    "activeBuild", "activeBuildFamily", "theme", "safeMode", "investigationMode", "fontScale", "signatureName", "signatureSector", "counterpartyLocalRecords",
+    "theme", "safeMode", "investigationMode", "fontScale", "signatureName", "signatureSector", "counterpartyLocalRecords",
     "flowTone:banking", "flowTone:card", "flowTone:hold"
   ]);
+  const MEMORY_SETTINGS_STORAGE_KEY = "sac_prevencao_V11:settings";
   const key = (name) => `${APP}:${name}`;
-  function readSharedSettings() {
-    try {
-      const name = String(window.name || "");
-      const index = name.indexOf(SETTINGS_WINDOW_NAME_KEY);
-      if (index < 0) return {};
-      return JSON.parse(decodeURIComponent(name.slice(index + SETTINGS_WINDOW_NAME_KEY.length).split("\n")[0])) || {};
-    } catch (_err) {
-      return {};
-    }
+  let settingsSyncTimer = 0;
+  function scheduleSettingsEnvelopeSync() {
+    clearTimeout(settingsSyncTimer);
+    settingsSyncTimer = setTimeout(() => {
+      settingsSyncTimer = 0;
+      memory.commitCurrentText?.();
+    }, 220);
   }
-  function writeSharedSettings(settings) {
-    try {
-      const cleanName = String(window.name || "")
-        .split("\n")
-        .filter((line) => !line.startsWith(SETTINGS_WINDOW_NAME_KEY))
-        .join("\n")
-        .replace(/\n+$/, "");
-      const encoded = encodeURIComponent(JSON.stringify(settings || {}));
-      window.name = `${cleanName}${cleanName ? "\n" : ""}${SETTINGS_WINDOW_NAME_KEY}${encoded}`;
-      return true;
-    } catch (_err) {
-      return false;
-    }
-  }
+  registerRuntimeCleanup(() => clearTimeout(settingsSyncTimer));
   const storageGet = (name) => {
     if (SHARED_SETTING_NAMES.has(name)) {
       try {
@@ -213,18 +225,16 @@
       const persisted = localStorage.getItem(key(name)) || sessionStorage.getItem(key(name)) || "";
       if (persisted) return persisted;
     } catch (_err) {}
-    const shared = SHARED_SETTING_NAMES.has(name) ? readSharedSettings()[name] : "";
-    return typeof shared === "string" ? shared : "";
+    return "";
   };
   const storageSet = (name, value) => {
     if (SHARED_SETTING_NAMES.has(name)) {
-      const settings = readSharedSettings();
-      settings[name] = String(value ?? "");
-      writeSharedSettings(settings);
       try {
         memory.settings?.set?.(name, value);
-        if (!["activeBuild", "activeBuildFamily"].includes(name)) memory.commitCurrentText?.();
+        scheduleSettingsEnvelopeSync();
       } catch (_err) {}
+      try { localStorage.removeItem(key(name)); sessionStorage.removeItem(key(name)); } catch (_err) {}
+      return;
     }
     try { localStorage.setItem(key(name), value); }
     catch (_err) {
@@ -233,9 +243,6 @@
   };
   const storageRemove = (name) => {
     if (SHARED_SETTING_NAMES.has(name)) {
-      const settings = readSharedSettings();
-      delete settings[name];
-      writeSharedSettings(settings);
       try {
         memory.settings?.remove?.(name);
         memory.commitCurrentText?.();
@@ -247,11 +254,14 @@
     try { return JSON.parse(storageGet(name) || "null"); } catch (_err) { return null; }
   };
   const writeJson = (name, value) => storageSet(name, JSON.stringify(value));
+  let counterpartyRecordsHydrated = false;
   function hydrateCounterpartyLocalRecords() {
+    if (counterpartyRecordsHydrated) return;
     try {
       const records = JSON.parse(storageGet("counterpartyLocalRecords") || "[]");
       if (Array.isArray(records) && records.length) counterpartyEngine.importLocalRecords?.(records);
     } catch (_err) {}
+    counterpartyRecordsHydrated = true;
   }
   function persistCounterpartyLocalRecords() {
     try {
@@ -262,7 +272,7 @@
       return [];
     }
   }
-  hydrateCounterpartyLocalRecords();
+  if (storageGet("investigationMode") === "on") hydrateCounterpartyLocalRecords();
   function packageMemorySnapshot() {
     const snap = memory.state?.get?.() || memory.mergeCurrentMirrors?.() || memory.snapshot?.() || {};
     return {
@@ -271,7 +281,6 @@
       settings: snap.settings || {},
       listTombstones: snap.listTombstones || [],
       listsVault: snap.listsVault || snap.lists || [],
-      lists: snap.lists || [],
       history: snap.history || []
     };
   }
@@ -285,6 +294,7 @@
   }
   storageSet("activeBuildFamily", BUILD_FAMILY);
   storageSet("activeBuild", BUILD_VERSION);
+  storageRemove("activeListTab");
   function clearPreviousRuntime() {
     all("[id^='sac-style'],.sac-panel,.sac-history-panel,.sac-choice-popover,.sac-side-panel,#sac-notices").forEach((node) => node.remove());
     Object.keys(window)
@@ -569,14 +579,37 @@
     all("[data-action='theme']").forEach((node) => { node.textContent = theme === "dark" ? "☀ Tema claro" : "☾ Tema escuro"; });
     all("[data-action='investigation-mode']").forEach((node) => {
       const enabled = getInvestigationMode();
+      if (enabled) hydrateCounterpartyLocalRecords();
+      else releaseInvestigationSession();
       node.classList.toggle("on", enabled);
       node.setAttribute("aria-pressed", enabled ? "true" : "false");
       const state = node.querySelector("b");
       if (state) state.textContent = enabled ? "Ligado" : "Desligado";
     });
+    all("[data-action='safe-mode']").forEach((node) => {
+      const enabled = getSafeMode();
+      node.classList.toggle("on", enabled);
+      node.setAttribute("aria-pressed", enabled ? "true" : "false");
+      const state = node.querySelector("b");
+      if (state) state.textContent = enabled ? "Ligado" : "Desligado";
+    });
+    all("[data-flow-color-choice]").forEach((node) => {
+      node.classList.toggle("active", node.dataset.color === getFlowTone(node.dataset.flowColorChoice));
+    });
+    const sector = getSignatureSector();
+    all("[data-signature-name]").forEach((node) => { node.value = getSignatureName(); });
+    all("[data-signature-sector]").forEach((node) => {
+      node.value = SIGNATURE_SECTORS.includes(sector) ? sector : "custom";
+    });
+    all("[data-signature-custom]").forEach((node) => {
+      const custom = !SIGNATURE_SECTORS.includes(sector);
+      node.hidden = !custom;
+      node.value = custom ? sector : "";
+    });
   }
   addRuntimeEvent(window, "storage", (event) => {
-    if (!event.key || !event.key.startsWith(key(""))) return;
+    if (!event.key || (event.key !== MEMORY_SETTINGS_STORAGE_KEY && !event.key.startsWith(key("")))) return;
+    memory.mergeCurrentMirrors?.();
     syncLiveSettings();
   });
   const getSignatureName = () => String(storageGet("signatureName") || "").trim();
@@ -988,7 +1021,9 @@
   function renderPanel({ id, stage, flow = "banking", subtitle = "", body = "", footer = "", onEnter, onSignature }) {
     ensureStyles();
     ensureAutomationButtonGuard();
-    byId(id)?.remove();
+    const previousPanel = byId(id);
+    previousPanel?.__sacDragDispose?.();
+    previousPanel?.remove();
     const cfg = flowConfig(flow);
     const panel = document.createElement("div");
     panel.id = id;
@@ -1091,6 +1126,8 @@
       if (id === "sac-panel-console" || id === "sac-panel-tabulador") closePidPanel();
       closeAuxiliaryPanels(id);
       closeSidePanels(id);
+      releaseInvestigationSession();
+      panel.__sacDragDispose?.();
       if (id === "sac-panel-tabulador") {
         unlockTabulatorFieldLock();
         stopTabulatorWriting(panel);
@@ -1167,6 +1204,8 @@
     panel.querySelector("[data-action='investigation-mode']")?.addEventListener("click", (event) => {
       const next = !getInvestigationMode();
       setInvestigationMode(next);
+      if (next) hydrateCounterpartyLocalRecords();
+      else releaseInvestigationSession();
       event.currentTarget.classList.toggle("on", next);
       event.currentTarget.setAttribute("aria-pressed", next ? "true" : "false");
       const state = event.currentTarget.querySelector("b");
@@ -1484,26 +1523,35 @@
       dragging = false;
       document.body.style.userSelect = previousUserSelect;
       try { handle.releasePointerCapture?.(event?.pointerId); } catch (_err) {}
+      document.removeEventListener("mousemove", move, true);
+      document.removeEventListener("mouseup", stop, true);
+      document.removeEventListener("touchmove", move, false);
+      document.removeEventListener("touchend", stop, true);
+      document.removeEventListener("touchcancel", stop, true);
     };
-    registerRuntimeCleanup(() => {
-      armed = false;
-      dragging = false;
-      document.body.style.userSelect = previousUserSelect;
-    });
+    panel.__sacDragDispose = stop;
     if (window.PointerEvent) {
       handle.addEventListener("pointerdown", start);
-      addRuntimeEvent(document, "pointermove", move, true);
-      addRuntimeEvent(document, "pointerup", stop, true);
-      addRuntimeEvent(document, "pointercancel", stop, true);
+      handle.addEventListener("pointermove", move);
+      handle.addEventListener("pointerup", stop);
+      handle.addEventListener("pointercancel", stop);
     } else {
-      handle.addEventListener("mousedown", start);
-      addRuntimeEvent(document, "mousemove", move, true);
-      addRuntimeEvent(document, "mouseup", stop, true);
-      handle.addEventListener("touchstart", start, { passive: false });
-      addRuntimeEvent(document, "touchmove", move, { passive: false });
-      addRuntimeEvent(document, "touchend", stop, true);
+      handle.addEventListener("mousedown", (event) => {
+        start(event);
+        if (!armed) return;
+        document.addEventListener("mousemove", move, true);
+        document.addEventListener("mouseup", stop, true);
+      });
+      handle.addEventListener("touchstart", (event) => {
+        start(event);
+        if (!armed) return;
+        document.addEventListener("touchmove", move, { passive: false });
+        document.addEventListener("touchend", stop, true);
+        document.addEventListener("touchcancel", stop, true);
+      }, { passive: false });
     }
   }
+  registerRuntimeCleanup(() => all(".sac-panel,.sac-history-panel").forEach((panel) => panel.__sacDragDispose?.()));
 
   function extractHistoryCode(value) {
     const text = String(value ?? "");
@@ -2184,6 +2232,7 @@
       documentComparable,
       documentMatches
     };
+    return data;
   }
   function looksLikeAccountStatus(value) {
     const status = normalize(value);
@@ -2382,10 +2431,12 @@
       data.holdActionFound = holdAction.found;
       data.holdActionSelected = holdAction.selected;
     }
-    const falconTransactions = transactionEngine.collectFalconTransactions({
-      root: document,
-      transactionType: data.sourceTransactionType || data.transactionType
-    });
+    const falconTransactions = getInvestigationMode()
+      ? transactionEngine.collectFalconTransactions({
+          root: document,
+          transactionType: data.sourceTransactionType || data.transactionType
+        })
+      : [];
     const missing = requiredFalcon(data);
     if (!data.orangeFound) {
       showNotice("Ainda não encontrei a linha laranja do Falcon. Selecione a transação para eu coletar tudo certinho.", "error");
@@ -2399,12 +2450,13 @@
         showNotice(`Atenção: faltam dados (${missing.join(", ")}), mas o modo seguro está desligado.`, "warn");
       }
       if (getInvestigationMode()) await storeMediaRequest({ falcon: data, visualFlow: data.visualFlow, flow: data.flow });
-      const packageData = { ...data, buildFamily: BUILD_FAMILY, buildVersion: BUILD_VERSION, savedAt: Date.now(), sharedMemory: packageMemorySnapshot() };
+      const packageData = { ...transferableCaseData(data), buildFamily: BUILD_FAMILY, buildVersion: BUILD_VERSION, savedAt: Date.now(), sharedMemory: packageMemorySnapshot() };
       writeJson("lastFalcon", packageData);
       storageRemove("lastConsole");
       memory.transport.set("falcon", packageData);
       memory.transport.clear("console");
       await copyText(`${EXPORT_FALCON}::${JSON.stringify(packageData)}`);
+      releaseInvestigationSession(data);
       showNotice("Falcon finalizado. Abra o Console para continuar.", "success");
       closeAuxiliaryPanels("sac-panel-falcon");
       closeSidePanels("sac-panel-falcon");
@@ -2559,6 +2611,7 @@
       if (existing) {
         if (forceOpen) return existing;
         existing.remove();
+        releaseInvestigationSession(data);
         if (ownerPanel.id === "sac-panel-console") placePidPanel();
         return null;
       }
@@ -2586,6 +2639,7 @@
       placeSidePanel(ownerPanel, drawer);
       drawer.querySelector("[data-collapse-investigation]")?.addEventListener("click", () => {
         drawer.remove();
+        releaseInvestigationSession(data);
         if (ownerPanel.id === "sac-panel-console") placePidPanel();
       });
       const runAction = async (button) => {
@@ -2754,6 +2808,10 @@
     }).join("");
   }
 
+  function investigationDrawerActive(ownerPanel) {
+    return Boolean(ownerPanel?.isConnected && document.querySelector(`.sac-investigation-drawer[data-owner="${cssEscape(ownerPanel.id)}"]`));
+  }
+
   async function openFalconTransactionAnalysis(data, rows, ownerPanel) {
     const supportKey = normalize("Análise transacional Falcon");
     const existing = all(".sac-side-panel").find((item) => item.dataset.owner === ownerPanel?.id && item.dataset.supportKey === supportKey);
@@ -2799,6 +2857,7 @@
             </div>`;
           }).join("")
         : `<div class="sac-side-card sac-support-summary warning"><strong>Estabelecimento não identificado</strong><span>As linhas foram lidas, mas o campo mapeado de estabelecimento não estava disponível.</span></div>`;
+      if (!investigationDrawerActive(ownerPanel)) return;
       openSupportPanel(ownerPanel, "Análise transacional de cartão", `
         <div class="sac-transaction-view">
           <div class="sac-side-card sac-transaction-hero"><strong>Leitura por estabelecimento e modo de entrada</strong><span>Chip e senha é um sinal favorável. Repetições por aproximação, digitado manual ou e-commerce no mesmo estabelecimento exigem atenção.</span></div>
@@ -2838,6 +2897,7 @@
           return `<div class="sac-counterparty-line"><div class="sac-side-card sac-support-summary ${item.cnpj ? resultSeverityClass(classification) : "neutral"}"><strong>CPF/CNPJ de quem enviou ou recebeu</strong><span>${escapeHtml(identity)}${payer ? ` · ${escapeHtml(payer)}` : ""} · ${escapeHtml(label)}</span></div><div class="sac-side-card"><strong>Quantidade e valor total</strong><span>${item.transactionCount} · ${escapeHtml(investigationCurrency(item.totalAmount))}</span></div></div>`;
         }).join("")
       : investigationCounterpartiesHtml([]);
+    if (!investigationDrawerActive(ownerPanel)) return;
     openSupportPanel(ownerPanel, "Análise transacional Falcon", `<div class="sac-transaction-view">
       <div class="sac-side-group"><div class="sac-side-group-title">Visão geral</div>
       <div class="sac-investigation-grid">
@@ -2856,7 +2916,7 @@
 
   async function openTransactionAnalysis(data, ownerPanel) {
     const falcon = data?.falcon || {};
-    const counterpart = counterpartySessionResults.get(counterpartySessionKey(data)) || falcon.counterpartyResult || null;
+    const counterpart = counterpartySessionResults.get(counterpartySessionKey(data)) || null;
     const dddInfo = dddEngine.lookup(data?.phone || data?.pidData?.phone || "");
     const dddAssessment = normalize(data?.issuer).includes("BEMOL")
       ? dddEngine.bemolAssessment(data?.phone || data?.pidData?.phone || "")
@@ -2892,6 +2952,7 @@
         </div>`
       : "";
     const metrics = result.metrics || {};
+    if (!investigationDrawerActive(ownerPanel)) return;
     openSupportPanel(ownerPanel, cardFlow ? "Análise transacional de cartão" : "Análise transacional", `<div class="sac-transaction-view">
       <div class="sac-side-card sac-support-summary ${summaryClass}">
         <strong>${escapeHtml(result.label)}</strong>
@@ -3014,6 +3075,7 @@
           }),
           corporateEngine.lookup(cnpj)
         ]);
+        if (!panel.isConnected || !investigationDrawerActive(ownerPanel)) return;
         const crossed = corporateEngine.cross(corporate, counterparty);
         counterpartySessionResults.set(counterpartySessionKey(data), counterparty);
         data.counterpartyResult = counterparty;
@@ -3117,10 +3179,13 @@
         }
         showNotice(`Atenção: faltam dados (${missing.join(", ")}), mas o modo seguro está desligado.`, "warn");
       }
-      const packageData = { ...data, buildFamily: BUILD_FAMILY, buildVersion: BUILD_VERSION, savedAt: Date.now(), sharedMemory: packageMemorySnapshot() };
+      const packageData = { ...transferableCaseData(data), buildFamily: BUILD_FAMILY, buildVersion: BUILD_VERSION, savedAt: Date.now(), sharedMemory: packageMemorySnapshot() };
       writeJson("lastConsole", packageData);
       memory.transport.set("console", packageData);
+      memory.transport.clear("mediaRequest");
+      memory.transport.clear("mediaResult");
       await copyText(`${EXPORT_CONSOLE}::${JSON.stringify(packageData)}`);
+      releaseInvestigationSession(data);
       showNotice("Console finalizado. Abra o Tabulador para continuar.", "success");
       closePidPanel();
       closeAuxiliaryPanels("sac-panel-console");
@@ -3545,6 +3610,7 @@
         return;
       }
       const history = addHistory(data, decision, text);
+      clearCompletedCaseState(data);
       await copyText(text, queue, history);
       if ((queue.length || history.length) && !clipboardEnvelopeReady) {
         showNotice("Tabulação copiada. LISTAS e Histórico foram mantidos na memória local da V11.", "warn", 11000);
@@ -3577,6 +3643,13 @@
     button.dataset.ready = ready ? "true" : "false";
     button.disabled = !ready;
     button.textContent = ready ? "Copiar" : "Aguarde...";
+  }
+  function clearCompletedCaseState(data) {
+    storageRemove("lastFalcon");
+    storageRemove("lastConsole");
+    if (typeof memory.transport.clearAll === "function") memory.transport.clearAll();
+    else ["falcon", "console", "mediaRequest", "mediaResult"].forEach((stage) => memory.transport.clear(stage));
+    releaseInvestigationSession(data);
   }
   function buildTabulation(data, decision) {
     const f = data.falcon || {};
@@ -4362,6 +4435,7 @@
 
   let listMutationChain = Promise.resolve();
   let listMutationDepth = 0;
+  let activeListTabSession = "allowlist";
   function enqueueListMutation(task) {
     const run = listMutationChain.catch(() => undefined).then(async () => {
       listMutationDepth += 1;
@@ -4767,6 +4841,7 @@
   async function removeListItem(id, listType) {
     return markListDone(id, listType);
   }
+
   async function removeListIssuerGroup(issuerKey, listType) {
     return enqueueListMutation(async () => {
       const queue = await readListQueue({ waitForPending: false, hydrateClipboard: false });
@@ -4852,9 +4927,9 @@
   async function renderLists(activeTab = "") {
     closePidPanel();
     closeSidePanels();
-    activeTab = activeTab || listTabFromFalconPage() || storageGet("activeListTab") || "allowlist";
+    activeTab = activeTab || listTabFromFalconPage() || activeListTabSession;
     activeTab = activeTab === "contencao" ? "contencao" : "allowlist";
-    storageSet("activeListTab", activeTab);
+    activeListTabSession = activeTab;
     const queue = await readListQueue({ hydrateClipboard: "fast" });
     const items = await Promise.all(queue.map(async (item) => ({ ...item, issuerId: item.issuerId || await issuerIdForName(item.issuer) })));
     const visible = items
@@ -4994,7 +5069,9 @@
     ensureStyles();
     await memory.hydrateFromClipboard();
     closeSidePanels();
-    byId("sac-history-panel")?.remove();
+    const previousHistory = byId("sac-history-panel");
+    previousHistory?.__sacDragDispose?.();
+    previousHistory?.remove();
     const panel = document.createElement("div");
     panel.id = "sac-history-panel";
     panel.className = `sac-history-panel sac-${getTheme()}`;
@@ -5057,7 +5134,10 @@
       showHistoryDetail(items[0]);
     };
     refreshList();
-    panel.querySelector("[data-close]")?.addEventListener("click", () => panel.remove());
+    panel.querySelector("[data-close]")?.addEventListener("click", () => {
+      panel.__sacDragDispose?.();
+      panel.remove();
+    });
     queryEl?.addEventListener("input", refreshList);
     flowEl?.addEventListener("change", refreshList);
     panel.querySelector(".sac-history-list")?.addEventListener("click", (event) => {

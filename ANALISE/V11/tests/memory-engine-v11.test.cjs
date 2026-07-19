@@ -8,7 +8,8 @@ function storageMock() {
   return {
     getItem: (key) => values.has(key) ? values.get(key) : null,
     setItem: (key, value) => values.set(key, String(value)),
-    removeItem: (key) => values.delete(key)
+    removeItem: (key) => values.delete(key),
+    has: (key) => values.has(key)
   };
 }
 
@@ -64,6 +65,18 @@ assert.deepEqual(
   "configurações precisam compartilhar a mesma memória entre as etapas"
 );
 assert.equal(memory.snapshot().settings.investigationMode.value, "on");
+assert.equal(context.window.localStorage.has("sac_prevencao_V11:state"), false, "estado completo não deve duplicar a memória local");
+assert.equal(context.window.sessionStorage.has("sac_prevencao_V11:state_session"), false, "estado completo não deve duplicar a sessão");
+
+memory.transport.set("falcon", { type: "SAC_FALCON", savedAt: Date.now() });
+assert.equal(memory.transport.get("falcon").type, "SAC_FALCON");
+assert.equal(memory.transport.set("consultaTemporaria", { savedAt: Date.now() }), null, "o transporte deve aceitar somente etapas mapeadas");
+memory.transport.clearAll();
+assert.equal(memory.transport.get("falcon"), null, "o caso concluído precisa liberar o transporte temporário");
+memory.transport.set("console", { type: "SAC_CONSOLE", savedAt: Date.now() });
+const completedEnvelope = { ...memory.snapshot(), savedAt: Date.now() + 10, transport: {} };
+memory.mergeSnapshot(completedEnvelope);
+assert.equal(memory.transport.get("console"), null, "um envelope de finalização mais novo deve limpar pacotes antigos em outra etapa");
 
 const base = {
   id: "case-49373570",
@@ -124,6 +137,31 @@ memory.lists.replace([
 ]);
 assert.equal(memory.lists.all().length, 2, "valores ausentes não podem colidir com uma identidade válida");
 
+memory.history.upsert({ id: "history-1", caseNumber: "49373570", account: "ACC-100", tabulation: "Tabulação", savedAt: Date.now() });
+const reloadContext = {
+  console,
+  Date,
+  JSON,
+  encodeURIComponent,
+  decodeURIComponent,
+  setTimeout,
+  clearTimeout,
+  document: documentMock,
+  navigator: { clipboard: {} },
+  window: {
+    name: context.window.name,
+    localStorage: context.window.localStorage,
+    sessionStorage: context.window.sessionStorage
+  }
+};
+reloadContext.window.window = reloadContext.window;
+reloadContext.window.navigator = reloadContext.navigator;
+vm.createContext(reloadContext);
+vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "sac-memory-v11.js"), "utf8"), reloadContext, { filename: "sac-memory-v11-reload.js" });
+assert.equal(reloadContext.window.SACMemoryV11.settings.get("theme"), "light", "configuração deve sobreviver à troca de etapa");
+assert.equal(reloadContext.window.SACMemoryV11.lists.all().length, 2, "LISTAS devem sobreviver à troca de etapa");
+assert.equal(reloadContext.window.SACMemoryV11.history.all().length, 1, "Histórico deve sobreviver à troca de etapa");
+
 (async () => {
   context.navigator.clipboard.read = () => new Promise(() => {});
   const startedAt = Date.now();
@@ -135,6 +173,10 @@ assert.equal(memory.lists.all().length, 2, "valores ausentes não podem colidir 
   assert.equal(result.method, "copy-event");
   assert.equal(copiedTypes.get("text/plain"), "Tabulação pronta");
   assert.match(copiedTypes.get("text/html"), /SAC_PREVENCAO_MEMORY_V11/);
+  const encoded = copiedTypes.get("text/html").match(/SAC_PREVENCAO_MEMORY_V11:([^]+?)-->/)?.[1];
+  const portable = JSON.parse(decodeURIComponent(encoded));
+  assert.deepEqual(portable.lists, [], "o envelope não deve duplicar LISTAS e cofre no mesmo payload");
+  assert.ok(portable.listsVault.length > 0, "o cofre compacto deve continuar transportando pendências de LISTAS");
   console.log("OK - memória unificada de LISTAS V11 validada");
 })().catch((error) => {
   console.error(error);

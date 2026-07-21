@@ -34,7 +34,8 @@ assert.match(runtime, /memory\.settings\?\.set/);
 assert.match(runtime, /sharedMemory: packageMemorySnapshot\(\)/);
 assert.match(runtime, /return data;\s*}\s*function looksLikeAccountStatus/);
 assert.match(runtime, /memory\.transport\.clearAll/);
-assert.match(runtime, /getInvestigationMode\(\)\s*\? transactionEngine\.collectFalconTransactions/);
+assert.doesNotMatch(runtime, /getInvestigationMode\(\)\s*\? transactionEngine\.collectFalconTransactions/);
+assert.match(runtime, /attachInvestigationLauncher\(panel, "FALCON", data, \(\) => transactionEngine\.collectFalconTransactions/);
 
 assert.doesNotMatch(corporate, /openOfficialQuery|OFFICIAL_QUERY_URL|window\.open/);
 assert.match(corporate, /lookupFromPublicData/);

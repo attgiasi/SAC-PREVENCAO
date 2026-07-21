@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 19/07/2026. Build `11.22`.
+Versão de testes revisada em 21/07/2026. Build `11.23`.
 
 ## Estrutura
 
@@ -23,7 +23,7 @@ A V11 fica organizada em blocos claros:
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.22 mantém `Investigação e ajuda` desligado por padrão. Ajuda e investigação usam uma única configuração compartilhada, sem estado paralelo. Quando ativada em qualquer etapa, a mesma preferência é refletida no fluxo e o painel lateral abre automaticamente com as análises disponíveis. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu; a análise transacional aparece quando houver linhas mapeadas. O painel reúne consulta cadastral, transacional, orientações de regra/emissor e um roteiro curto fundamentado no book, sem alterar a decisão do analista. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
+A V11.23 mantém `Investigação e ajuda` desligado por padrão. A preferência é compartilhada entre todas as etapas. Quando ativada, apenas um botão discreto `Investigar` aparece à esquerda das janelas Falcon e Console; o painel e suas consultas só são criados depois do clique. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu. O painel reúne consulta cadastral, análise transacional, conferência Falcon/Console e orientações curtas de regra/emissor, sem alterar a decisão do analista. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
 
 O PID usa botões de chave próprios, sem depender do comportamento de labels da página do Console. Seus dados aparecem em duas colunas e, quando a investigação também estiver aberta, o posicionador tenta usar o lado oposto da janela do Console para evitar sobreposição. A reexecução encerra listeners e janelas da instância anterior antes de criar a nova, e o PID possui ciclo independente dos popovers auxiliares.
 
@@ -46,13 +46,13 @@ O painel de investigação usa grids compactos com título na borda. A visão ge
 - `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
 - `HISTÓRICO`: grava a tabulação sem CPF/CNPJ visível e deve abrir igual em qualquer etapa.
 
-## Pente fino da build 11.22
+## Pente fino da build 11.23
 
 - `FALCON e CONSOLE`: seletores mapeados e fallbacks contextuais foram mantidos porque atendem variações reais das páginas; não existem funções ou constantes internas sem consumidor.
 - `TABULADOR`: o módulo auxiliar permanece restrito ao seletor de opções reais. O caminho de mapas que nunca era executado foi removido; a aplicação direta estável e a espera exclusiva do Motivo Status foram preservadas.
 - `MEMÓRIA`: leituras deixaram de regravar o estado inteiro. Os espelhos completos antigos foram migrados para chaves dedicadas e compactas.
 - `CNPJ`: a função que abria o site da Receita em outra janela foi removida. A consulta continua automática pela base cadastrada e pelo serviço público configurado.
-- `INVESTIGAÇÃO`: ajuda e investigação usam uma única preferência. O painel lateral usa trilho recolhível, cabeçalho neutro contextual, grids com dimensões estáveis e classificação local `Favorável` ou `Suspeito`.
+- `INVESTIGAÇÃO`: ajuda e investigação usam uma única preferência. O botão lateral abre e fecha o painel sob demanda; a coleta das transações visíveis só começa depois do clique. Os resultados começam por um resumo direto de sinais favoráveis e pontos de atenção.
 - `CONFIGURAÇÕES`: tema, modo seguro, investigação, fonte, assinatura e cores são gravados no estado compartilhado e transportados nos pacotes Falcon/Console.
 - `LISTAS e HISTÓRICO`: o índice de baixas de LISTAS é calculado uma vez por mesclagem, e o arraste do Histórico libera seus eventos ao fechar. As confirmações múltiplas de persistência foram mantidas por serem proteção operacional entre páginas, não duplicação descartável.
 - `VALIDAÇÃO`: corrigido o retorno da conferência FALCON → Console para que ID da conta, CPF/CNPJ ou final do cartão sejam efetivamente comparados.
@@ -141,7 +141,7 @@ O complemento padrão é `SAC Prevenção`. Também existem `Dock Teck Prevenç�
 
 ## Investigação, Ajuda E BigData
 
-O modo `Investigação e ajuda` é compartilhado entre as etapas e fica desligado por padrão. Ao ser ativado, abre automaticamente ao lado da janela atual. O fluxo operacional permanece:
+O modo `Investigação e ajuda` é compartilhado entre as etapas e fica desligado por padrão. Ao ser ativado, exibe o botão discreto `Investigar` à esquerda da janela. O painel só abre e executa suas consultas após esse botão ser clicado. O fluxo operacional permanece:
 
 `FALCON > CONSOLE > TABULADOR`
 
@@ -170,6 +170,8 @@ O documento do titular usa o lado da transação definido para conferência:
 
 - `Depósito bancário de varejo`: titular em `CREDIT_CUSTOMER_XID_VALUE`.
 - `Pagamento bancário de varejo`: titular em `DEBIT_CUSTOMER_XID_VALUE` (origem).
+- se o campo obrigatório desse lado não estiver disponível, o código não substitui pelo documento do lado oposto;
+- somente um titular identificado como CPF é enviado para a busca de mídia no BigData;
 - a conta do mesmo lado é usada como confirmação auxiliar.
 - no fluxo CARTÃO essa regra não é usada; a ligação Falcon/Console é feita pelo número/final do cartão.
 
@@ -186,7 +188,7 @@ Com o modo seguro desligado, o clique simples no grid não copia o dado. Isso ev
 
 O modo unificado fica desligado por padrão.
 
-Quando ativado, o painel abre automaticamente e os grids de `Regra` e `Emissor` exibem ícone de informação somente quando houver orientação real cadastrada. Grids de status também podem exibir ajuda quando o valor for `bloqueio preventivo falcon 254`. Ao passar o mouse sobre o ícone, cada orientação ocupa um grid separado na área de ajuda do mesmo painel.
+Quando ativado, aparece o botão `Investigar` à esquerda do Falcon e do Console. O painel só abre após o clique. Os grids de `Regra` e `Emissor` exibem ícone de informação somente quando houver orientação real cadastrada; essa ajuda ocupa grids separados dentro do painel já aberto. Grids de status também podem exibir ajuda quando o valor for `bloqueio preventivo falcon 254`.
 
 As mensagens do modo ajuda foram consolidadas a partir do `BOOK PREVENÇÃO FALCON` e do resumo de regras enviado, sem repetir o nome da regra/emissor dentro dos cards. Os textos são curtos, objetivos e focados no que ajuda a decidir.
 

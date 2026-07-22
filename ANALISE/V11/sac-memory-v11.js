@@ -435,13 +435,16 @@
     if (!navigator.clipboard?.read) return snapshot();
     const timeoutMs = Math.max(50, Number(options.timeoutMs) || 1200);
     let items = [];
+    let timeout = 0;
     try {
       items = await Promise.race([
         navigator.clipboard.read(),
-        new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs))
+        new Promise((resolve) => { timeout = setTimeout(() => resolve(null), timeoutMs); })
       ]);
     } catch (_error) {
       return snapshot();
+    } finally {
+      clearTimeout(timeout);
     }
     if (!Array.isArray(items)) return snapshot();
     for (const item of items) {

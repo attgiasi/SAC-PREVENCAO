@@ -70,7 +70,7 @@
   <script>
     (() => {
       "use strict";
-      const BUILD_VERSION="11.25";
+      const BUILD_VERSION="11.26";
       const FLOW_COLOR_OPTIONS=[["#111827","preto"],["#22c55e","verde secundário"],["#7c3aed","violeta secundário"],["#ff2d00","laranja alerta"],["#ef4444","vermelho"],["#ff5a1f","laranja vibrante"],["#f59e0b","amarelo"],["#14b8a6","turquesa"],["#2563eb","azul"]];
       const STATUS_OPTIONS=["normal","ativo","bloqueado","bloqueio preventivo falcon 254","cancelada","spd 1","spd 2","spd 8","spd 15","spd 17","spd 21","spd 25","spd 33","outro"];
       const MEDIA_OPTIONS=["não","sim","sem acesso"];
@@ -228,7 +228,6 @@
         const swatch=event.target.closest("[data-flow-color]");if(swatch){const flowName=swatch.dataset.flowColor,color=swatch.dataset.color;if(Object.entries(state.data).some(([name,item])=>name!==flowName&&item.tone===color)){toast("Essa cor já está em outro fluxo. Escolha uma cor diferente.","warn");return}state.data[flowName].tone=color;render();return}
         if(action?.dataset.action==="signature"){win.querySelector(".signature").classList.toggle("open");return}
         if(action?.dataset.action==="save-signature"){const name=win.querySelector("[data-preview-signature-name]")?.value.trim()||"";const sector=win.querySelector("[data-preview-signature-sector]")?.value||"SAC Prevenção";if(!name){toast("Informe seu nome para salvar a assinatura.","warn");return}state.signatureName=name;state.signatureSector=sector;toast("Assinatura salva.","ok");render();return}
-        if(action?.dataset.action==="history"){openHistory();return}
         const investigationLauncher=event.target.closest("[data-investigation-launcher]");if(investigationLauncher){openInvestigationMenu(investigationLauncher.dataset.investigationLauncher);return}
         const investigation=event.target.closest("[data-investigation]");if(investigation){const wasActive=investigation.classList.contains("active"),menu=investigation.closest(".side-help");menu?.querySelectorAll("[data-investigation]").forEach(button=>button.classList.toggle("active",button===investigation));if(wasActive){closeSideHelp();return}if(investigation.dataset.investigation==="cnpj")openCnpjPreview();if(investigation.dataset.investigation==="transaction")openTransactionPreview();if(investigation.dataset.investigation==="falcon-transaction")openFalconTransactionPreview();return}
         const pidReload=event.target.closest("[data-pid-reload]");if(pidReload){const card=pidReload.closest(".pid-card");pidReload.textContent="…";setTimeout(()=>{card.classList.add("loaded");card.querySelector("span").textContent+= " · coletado no Console";toast("Dado do PID atualizado.","ok")},320);return}
@@ -241,7 +240,6 @@
         if(event.target.closest("[data-side-close]")){closeSideHelp();return}
         if(event.target.closest("[data-choice-close]")){event.target.closest(".choice")?.remove();return}
         if(event.target.closest("[data-choice-apply]")){event.target.closest(".choice")?.remove();toast("Detalhes salvos para a tabulação.","ok");return}
-        if(event.target.id==="listsButton"){openLists();return}
         if(event.target.closest("[data-list-close]")){document.querySelector(".lists")?.remove();return}
         const tab=event.target.closest("[data-list-tab]");if(tab){openLists(tab.dataset.listTab);return}
         const listGroup=event.target.closest("[data-list-group]");if(listGroup){const issuer=listGroup.dataset.listGroup;state.lists=state.lists.filter(item=>norm(item.issuer)!==issuer);openLists(document.querySelector(".lists")?.dataset.listType||"allowlist");toast("Grupo do emissor inserido e removido da memória.","ok");return}
@@ -251,6 +249,7 @@
         const historyGrid=event.target.closest("#historyIdentifiers .kv");if(historyGrid){copyGrid(historyGrid);return}
         const historyCase=event.target.closest("[data-history-case]");if(historyCase){document.querySelectorAll("[data-history-case]").forEach(button=>button.classList.remove("active"));historyCase.classList.add("active");const row=state.history.find(item=>item.caseNumber===historyCase.dataset.historyCase);showHistoryDetail(row)}
       });
+      document.getElementById("listsButton")?.addEventListener("click",()=>openLists());
       treatment.addEventListener("change",()=>{if(state.pendingFinal||state.applyingDecision){treatment.value=state.treatment;toast("Aguarde a aplicação ou finalize em Copiar.","warn");return}state.treatment=treatment.value;render()});
       themeButton.addEventListener("click",()=>{document.body.dataset.theme=document.body.dataset.theme==="dark"?"light":"dark";themeButton.textContent=document.body.dataset.theme==="dark"?"☀":"☾";if(!state.pendingFinal&&!state.applyingDecision)render()});
       historySearch.addEventListener("input",renderHistory);historyFilter.addEventListener("change",renderHistory);

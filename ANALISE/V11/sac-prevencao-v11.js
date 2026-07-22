@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V11_20260715";
   const BUILD = "ANALISE/V11";
   const BUILD_FAMILY = "11";
-  const BUILD_VERSION = "11.25";
+  const BUILD_VERSION = "11.26";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -160,13 +160,16 @@
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   async function readClipboardText(timeoutMs = 450) {
     if (!navigator.clipboard?.readText) return "";
+    let timeout = 0;
     try {
       return await Promise.race([
         navigator.clipboard.readText(),
-        new Promise((resolve) => setTimeout(() => resolve(""), Math.max(50, Number(timeoutMs) || 450)))
+        new Promise((resolve) => { timeout = setTimeout(() => resolve(""), Math.max(50, Number(timeoutMs) || 450)); })
       ]);
     } catch (_err) {
       return "";
+    } finally {
+      clearTimeout(timeout);
     }
   }
   const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -432,26 +435,20 @@
     }, true);
   }
 
+  const TABULATOR_NAVIGATION_GUARD_SLOT = "__SAC_TABULATOR_NAVIGATION_GUARD_V2__";
+  const tabulatorNavigationState = window[TABULATOR_NAVIGATION_GUARD_SLOT] || { active: false, until: 0 };
+  window[TABULATOR_NAVIGATION_GUARD_SLOT] = tabulatorNavigationState;
   let tabulatorNavigationGuardInstalled = false;
-  let tabulatorNavigationGuardActive = false;
-  let tabulatorNavigationGuardUntil = 0;
-  let lastNavigationBlockNotice = 0;
   function isTabulatorNavigationGuardActive() {
-    return tabulatorNavigationGuardActive
+    return tabulatorNavigationState.active
       || Boolean(window.__SAC_TABULATOR_DECISION_WRITE_ACTIVE__)
-      || Date.now() < tabulatorNavigationGuardUntil;
-  }
-  function notifyNavigationBlocked() {
-    if (Date.now() - lastNavigationBlockNotice < 4000) return;
-    lastNavigationBlockNotice = Date.now();
-    showNotice("Atualização da página bloqueada durante a aplicação no Tabulador.", "info", 6000);
+      || Date.now() < tabulatorNavigationState.until;
   }
   function blockTabulatorNavigation(event) {
     if (!isTabulatorNavigationGuardActive()) return false;
     event?.preventDefault?.();
     event?.stopImmediatePropagation?.();
     event?.stopPropagation?.();
-    notifyNavigationBlocked();
     return true;
   }
   function ensureTabulatorNavigationGuard() {
@@ -467,14 +464,16 @@
       if (submitter) blockTabulatorNavigation(event);
     }, true);
     const proto = window.HTMLFormElement?.prototype;
-    if (!proto || proto.__sacSubmitGuardInstalled) return;
+    if (!proto) return;
+    tabulatorNavigationState.isActive = isTabulatorNavigationGuardActive;
+    if (proto.__sacSubmitGuardVersion === 2) return;
     const nativeSubmit = proto.submit;
     const nativeRequestSubmit = proto.requestSubmit;
-    Object.defineProperty(proto, "__sacSubmitGuardInstalled", { value: true, configurable: true });
+    Object.defineProperty(proto, "__sacSubmitGuardVersion", { value: 2, configurable: true });
     if (typeof nativeSubmit === "function") {
       proto.submit = function sacGuardedSubmit(...args) {
-        if (isTabulatorNavigationGuardActive()) {
-          notifyNavigationBlocked();
+        const state = window[TABULATOR_NAVIGATION_GUARD_SLOT];
+        if (state?.isActive?.()) {
           return undefined;
         }
         return nativeSubmit.apply(this, args);
@@ -482,8 +481,8 @@
     }
     if (typeof nativeRequestSubmit === "function") {
       proto.requestSubmit = function sacGuardedRequestSubmit(...args) {
-        if (isTabulatorNavigationGuardActive()) {
-          notifyNavigationBlocked();
+        const state = window[TABULATOR_NAVIGATION_GUARD_SLOT];
+        if (state?.isActive?.()) {
           return undefined;
         }
         return nativeRequestSubmit.apply(this, args);
@@ -492,16 +491,16 @@
   }
   function startTabulatorNavigationGuard() {
     ensureTabulatorNavigationGuard();
-    tabulatorNavigationGuardActive = true;
-    tabulatorNavigationGuardUntil = Date.now() + 60000;
+    tabulatorNavigationState.active = true;
+    tabulatorNavigationState.until = Date.now() + 60000;
   }
   function releaseTabulatorNavigationGuard(cooldownMs = 20000) {
-    tabulatorNavigationGuardActive = false;
-    tabulatorNavigationGuardUntil = Date.now() + cooldownMs;
+    tabulatorNavigationState.active = false;
+    tabulatorNavigationState.until = Date.now() + cooldownMs;
   }
   registerRuntimeCleanup(() => {
-    tabulatorNavigationGuardActive = false;
-    tabulatorNavigationGuardUntil = 0;
+    tabulatorNavigationState.active = false;
+    tabulatorNavigationState.until = 0;
   });
 
   // ========================= CONFIGURAÇÕES ==========================
@@ -714,7 +713,7 @@
   }
   function closeAuxiliaryPanels(ownerId = "") {
     const scoped = ownerId ? `[data-owner="${cssEscape(ownerId)}"]` : "";
-    all(`.sac-side-panel${scoped},.sac-choice-popover${scoped}:not(.sac-pid-panel)`).forEach((panel) => panel.remove());
+    all(`.sac-choice-popover${scoped}:not(.sac-pid-panel)`).forEach((panel) => panel.remove());
   }
   function placeAuxiliaryPanel(ownerPanel, auxPanel) {
     if (!ownerPanel || !auxPanel) return;
@@ -1109,7 +1108,7 @@
     const config = panel.querySelector(".sac-config");
     const close = () => {
       if (panel.dataset.decisionApplying === "true") {
-        showNotice("Aguarde a aplicação da decisão no Tabulador terminar.", "info", 9000);
+        showNotice("Aguarde a aplicação da decisão no Tabulador terminar.", "warn", 9000);
         return false;
       }
       if (panel.dataset.finalLocked === "true") {
@@ -1391,12 +1390,10 @@
       if (!cell || cell.querySelector("input")) return;
       if (!getSafeMode()) return;
       const value = textOf(cell.querySelector(".sac-kv-value"));
-      const label = textOf(cell.querySelector(".sac-kv-label")) || "Dado";
       if (!value) return;
       await copyText(value);
       cell.classList.add("sac-copied");
       setTimeout(() => cell.classList.remove("sac-copied"), 650);
-      showNotice(`${label} copiado.`, "info", 2600);
     });
   }
   function enableManualGridEditing(panel, data) {
@@ -3368,9 +3365,6 @@
     });
     syncCallToggles();
     enableManualGridEditing(panel, data);
-    if (data.cardDataOptional) {
-      showNotice("Global Backoffice sem dados de cartão: os campos foram preenchidos como ausência de dados e o fluxo pode continuar.", "info", 11000);
-    }
     if (!falcon) showNotice("Sem pacote salvo do Falcon. Alguns campos podem ficar N/A.", "warn");
   }
   function consoleGrid(data, options = {}) {
@@ -3622,7 +3616,6 @@
       stopTabulatorWriting(panel);
       return;
     }
-    showNotice("Decisão copiada. Aplicando os campos no Tabulador.", "info", 9000);
     setDecisionProgress(panel, "Campos aplicados. Aguardando apenas Motivo Status.");
     const applied = await application;
     if (applied.cancelled || !isCurrentRun()) {
@@ -3670,7 +3663,7 @@
     neutralizeAutomationButtons(panel);
     byId("sac-copy-final")?.addEventListener("click", async (event) => {
       if (event.currentTarget.dataset.ready !== "true") {
-        showNotice("Ainda estou confirmando Fila, Decisão e Motivo Status no Tabulador.", "info");
+        showNotice("Ainda estou confirmando Fila, Decisão e Motivo Status no Tabulador.", "warn");
         return;
       }
       event.currentTarget.disabled = true;
@@ -4464,22 +4457,14 @@
   }
 
   let listMutationChain = Promise.resolve();
-  let listMutationDepth = 0;
   let activeListTabSession = "allowlist";
   function enqueueListMutation(task) {
-    const run = listMutationChain.catch(() => undefined).then(async () => {
-      listMutationDepth += 1;
-      try {
-        return await task();
-      } finally {
-        listMutationDepth = Math.max(0, listMutationDepth - 1);
-      }
-    });
+    const run = listMutationChain.catch(() => undefined).then(task);
     listMutationChain = run.catch(() => undefined);
     return run;
   }
   async function waitForListMutations() {
-    if (listMutationDepth === 0) await listMutationChain.catch(() => undefined);
+    await listMutationChain.catch(() => undefined);
   }
   function listItemKey(item, listType = "") {
     const type = listType || (item?.lists?.contencao ? "contencao" : "allowlist");
@@ -4520,10 +4505,7 @@
   async function hydrateListClipboardFast(hasLocalItems, mode = "fast") {
     if (!memory.hydrateFromClipboard) return;
     const timeout = mode === "full" ? 3200 : hasLocalItems ? 260 : 1200;
-    await Promise.race([
-      memory.hydrateFromClipboard().catch(() => null),
-      wait(timeout)
-    ]);
+    await memory.hydrateFromClipboard({ timeoutMs: timeout }).catch(() => null);
   }
   async function readListQueue(options = {}) {
     if (options.waitForPending !== false) await waitForListMutations();
@@ -4575,14 +4557,17 @@
     const withoutCurrentCase = queue.filter((item) => !sameCaseIdentity(item, data));
     return writeListQueue(withoutCurrentCase);
   }
+  function nextListRevision(queue = []) {
+    const tombstones = memory.lists.tombstones?.() || [];
+    const latestItem = queue.reduce((latest, item) => Math.max(latest, Number(item?.updatedAt || item?.savedAt || 0)), 0);
+    const latestRemoval = tombstones.reduce((latest, item) => Math.max(latest, Number(item?.removedAt || 0)), 0);
+    return Math.max(Date.now(), latestItem, latestRemoval) + 1;
+  }
   async function updateListsForFinalDecision(data, decision) {
     return enqueueListMutation(async () => {
       const queue = await readListQueue({ waitForPending: false, hydrateClipboard: false });
       const withoutCurrentCase = queue.filter((item) => !sameCaseIdentity(item, data));
       if (!isNoFraudDecision(decision)) {
-        if (withoutCurrentCase.length !== queue.length) {
-          showNotice("O caso foi retirado de LISTAS porque a decisão final não é NÃO FRAUDE.", "info");
-        }
         return retireCurrentCaseFromLists(queue, data);
       }
       const lists = listTypesFor(data);
@@ -4591,7 +4576,7 @@
       }
       const issuerId = data.issuerId || issuerIdOverride(data.issuer) || digitsOnly(data.issuer) || "";
       if ((issuerId === "155" || normalize(data.issuer).includes("CONTA SIMPLES")) && isRecentRegistration(data.registrationDate)) {
-        showNotice("Conta Simples 155 com cadastro menor que 3 meses não foi enviada para LISTAS.", "info", 10000);
+        showNotice("Conta Simples 155 com cadastro menor que 3 meses não foi enviada para LISTAS.", "warn", 10000);
         return retireCurrentCaseFromLists(queue, data);
       }
       const account = clean(data.account, "");
@@ -4602,7 +4587,7 @@
         if (entry.lists?.allowlist) memory.lists.markDone?.(entry, "allowlist");
         if (entry.lists?.contencao) memory.lists.markDone?.(entry, "contencao");
       });
-      const savedAt = Date.now() + 1;
+      const savedAt = nextListRevision(queue);
       const baseItem = {
         caseNumber: data.falcon?.caseNumber || "N/A",
         issuer: clean(data.issuer, "N/A"),
@@ -4629,7 +4614,6 @@
           applied: { allowlist: true, contencao: false }
         }] : [])
       ];
-      showNotice(lists.contencao ? "Caso finalizado e guardado em LISTAS com CPF/CNPJ." : "Caso finalizado e guardado em LISTAS com ID da conta.", "info");
       const next = [...listItems, ...withoutCurrentCase];
       listItems.forEach((item) => memory.lists.upsert?.(item));
       let persisted = await writeListQueue(next);

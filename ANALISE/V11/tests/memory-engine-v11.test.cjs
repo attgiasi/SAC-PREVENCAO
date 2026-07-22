@@ -131,6 +131,15 @@ memory.mergeSnapshot(staleSnapshot);
 assert.equal(memory.lists.all().length, 9, "um registro removido não pode reaparecer por uma cópia antiga");
 assert.equal(memory.lists.all().some((entry) => entry.caseNumber === removed.caseNumber), false);
 
+const latestRemoval = Math.max(...memory.lists.tombstones().map((item) => Number(item.removedAt || 0)));
+memory.lists.upsert({
+  ...removed,
+  savedAt: latestRemoval + 1,
+  updatedAt: latestRemoval + 1,
+  applied: { allowlist: false, contencao: true }
+});
+assert.equal(memory.lists.all().some((entry) => entry.caseNumber === removed.caseNumber), true, "uma nova decisão NÃO FRAUDE posterior à baixa deve recolocar o caso em LISTAS");
+
 memory.lists.replace([
   { ...base, id: "missing-a", caseNumber: "N/A", account: "N/A", issuer: "BEMOL", savedAt: Date.now() + 300 },
   { ...base, id: "missing-b", caseNumber: "N/A", account: "ACC-VALIDA", issuer: "BEMOL", savedAt: Date.now() + 301 }

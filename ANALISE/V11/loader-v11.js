@@ -44,8 +44,12 @@
 
   function fetchJson(url, options = {}) {
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("Tempo excedido ao consultar a versão.")), 4500);
-      fetch(url, { cache: "no-store", ...options })
+      const controller = typeof AbortController === "function" ? new AbortController() : null;
+      const timer = setTimeout(() => {
+        controller?.abort();
+        reject(new Error("Tempo excedido ao consultar a versão."));
+      }, 4500);
+      fetch(url, { cache: "no-store", ...options, ...(controller ? { signal: controller.signal } : {}) })
         .then((response) => {
           if (!response.ok) throw new Error(`Consulta de versão falhou (${response.status}).`);
           return response.json();

@@ -146,7 +146,12 @@ memory.lists.replace([
 ]);
 assert.equal(memory.lists.all().length, 2, "valores ausentes não podem colidir com uma identidade válida");
 
-memory.history.upsert({ id: "history-1", caseNumber: "49373570", account: "ACC-100", tabulation: "Tabulação", savedAt: Date.now() });
+const historySavedAt = Date.now();
+memory.history.upsert({ id: "history-1", caseNumber: "49373570", account: "ACC-100", issuer: "BEMOL", tabulation: "Tabulação", savedAt: historySavedAt });
+memory.history.upsert({ id: "history-1", caseNumber: "49373570", account: "ACC-100", issuer: "BEMOL ATUALIZADO", tabulation: "Tabulação atualizada", savedAt: historySavedAt + 1 });
+assert.equal(memory.history.all().length, 1, "o mesmo caso deve atualizar o Histórico em vez de criar uma duplicata por mudança de emissor");
+assert.equal(memory.history.all()[0].issuer, "BEMOL ATUALIZADO");
+assert.ok(context.window.localStorage.getItem("sac_prevencao_V11:history"), "o Histórico deve permanecer disponível no espelho estável");
 const reloadContext = {
   console,
   Date,
@@ -186,6 +191,7 @@ assert.equal(reloadContext.window.SACMemoryV11.history.all().length, 1, "Histór
   const portable = JSON.parse(decodeURIComponent(encoded));
   assert.deepEqual(portable.lists, [], "o envelope não deve duplicar LISTAS e cofre no mesmo payload");
   assert.ok(portable.listsVault.length > 0, "o cofre compacto deve continuar transportando pendências de LISTAS");
+  assert.equal(portable.history.length, 1, "o commit deve transportar o Histórico já persistido sem exigir uma segunda gravação");
   console.log("OK - memória unificada de LISTAS V11 validada");
 })().catch((error) => {
   console.error(error);

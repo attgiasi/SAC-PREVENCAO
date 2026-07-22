@@ -72,7 +72,7 @@ const currentFalcon = {
   type: "SAC_FALCON",
   packageSchema: 1,
   buildFamily: "11",
-  buildVersion: "11.26",
+  buildVersion: "11.27",
   savedAt: now,
   caseNumber: "49373570",
   rule: "TETO_PIX_PF_CCSB",
@@ -115,7 +115,7 @@ const destination = memoryContext({
   const functionStart = runtimeSource.indexOf("  function isCurrentPackage(");
   const functionEnd = runtimeSource.indexOf("\n  function falconCaseTabSelected", functionStart);
   assert.ok(functionStart >= 0 && functionEnd > functionStart, "validador de pacote não encontrado");
-  const packageContext = { Date, BUILD_FAMILY: "11", BUILD_VERSION: "11.26", PACKAGE_SCHEMA: 1, PACKAGE_TTL_MS: 12 * 60 * 60 * 1000 };
+  const packageContext = { Date, BUILD_FAMILY: "11", BUILD_VERSION: "11.27", PACKAGE_SCHEMA: 1, PACKAGE_TTL_MS: 12 * 60 * 60 * 1000 };
   vm.createContext(packageContext);
   vm.runInContext(`${runtimeSource.slice(functionStart, functionEnd)}\nthis.isCurrentPackage = isCurrentPackage;`, packageContext);
   assert.equal(packageContext.isCurrentPackage(currentFalcon, "SAC_FALCON"), true, "a build atual deve ser aceita");

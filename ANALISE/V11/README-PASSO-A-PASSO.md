@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 21/07/2026. Build `11.26`.
+Versão de testes revisada em 22/07/2026. Build `11.27`.
 
 ## Estrutura
 
@@ -23,7 +23,7 @@ A V11 fica organizada em blocos claros:
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.26 mantém `Investigação e ajuda` desligado por padrão. A preferência é compartilhada entre todas as etapas. Quando ativada, o mesmo botão discreto `Investigar` aparece à esquerda das janelas Falcon, Console e Tabulador; o painel e suas consultas só são criados depois do clique. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu. O painel reúne consulta cadastral, análise transacional, conferência Falcon/Console e orientações curtas de regra/emissor, sem alterar a decisão do analista. No Tabulador, ele apresenta somente os dados e orientações já transportados: não repete a conferência Falcon x Console e não executa uma coleta fora da página correta. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
+A V11.27 mantém `Investigação e ajuda` desligado por padrão. A preferência é compartilhada entre todas as etapas. Quando ativada, o mesmo botão discreto `Investigar` aparece à esquerda das janelas Falcon, Console e Tabulador; o painel e suas consultas só são criados depois do clique. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu. O painel reúne consulta cadastral, análise transacional, conferência Falcon/Console e orientações curtas de regra/emissor, sem alterar a decisão do analista. No Tabulador, ele apresenta somente os dados e orientações já transportados: não repete a conferência Falcon x Console e não executa uma coleta fora da página correta. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
 
 O PID usa botões de chave próprios, sem depender do comportamento de labels da página do Console. Seus dados aparecem em duas colunas e, quando a investigação também estiver aberta, o posicionador tenta usar o lado oposto da janela do Console para evitar sobreposição. A reexecução encerra listeners e janelas da instância anterior antes de criar a nova, e o PID possui ciclo independente dos popovers auxiliares.
 
@@ -46,13 +46,14 @@ O painel de investigação usa grids compactos com título na borda. A visão ge
 - `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
 - `HISTÓRICO`: grava a tabulação sem CPF/CNPJ visível e deve abrir igual em qualquer etapa.
 
-## Pente fino da build 11.26
+## Pente fino da build 11.27
 
-- `LISTAS`: a hidratação compartilhada agora é concluída dentro do tempo configurado antes de a fila ser exibida; não fica uma leitura atrasada executando em segundo plano e fazendo casos aparecerem somente numa etapa futura.
-- `LISTAS`: todas as alterações são serializadas pela mesma fila. Uma nova decisão NÃO FRAUDE recebe revisão posterior às baixas existentes, enquanto snapshots antigos continuam impedidos de restaurar itens inseridos ou removidos.
-- `TABULADOR`: a proteção contra envio e recarga do formulário usa estado global versionado. Reexecutar o favorito na mesma página não deixa o novo runtime dependente da função fechada da execução anterior.
-- `CARREGADOR E MEMÓRIA`: requisições vencidas são abortadas e temporizadores de clipboard são cancelados quando a leitura termina, reduzindo trabalho pendente no Chrome.
-- `LIMPEZA`: chamadas de notificação informativa que eram intencionalmente invisíveis foram removidas; avisos que realmente exigem ação continuam visíveis.
+- `FALCON E CONSOLE`: os seletores foram conferidos contra os HTMLs reais de BANKING, HOLD, CARTÃO e GLOBAL. O Console agora conclui a montagem dos dados do PID antes de retornar o pacote; o trecho antes inalcançável foi corrigido.
+- `TABULADOR`: ao descartar ou recarregar a execução, as flags globais de escrita e da janela de decisão são liberadas explicitamente. Isso evita que uma instância anterior mantenha bloqueios sobre a próxima.
+- `LISTAS`: a edição manual recebe uma revisão posterior a qualquer baixa existente e renova o prazo do item. Assim, o item editado não é suprimido pelo próprio tombstone criado durante a alteração.
+- `HISTÓRICO`: a identidade estável do caso passou a ser a chave principal de atualização. O motor também funde os espelhos atuais antes de ler ou inserir, impedindo duplicação por mudança de emissor e perda de casos concluídos em outra aba.
+- `CARREGADOR`: cada script temporário é retirado do DOM assim que termina de carregar, reduzindo resíduos em reexecuções sucessivas.
+- `DESEMPENHO`: foram removidas persistências repetidas no encerramento do Tabulador e na fila de LISTAS. As gravações necessárias continuam confirmadas antes de a etapa finalizar.
 - As regras de coleta do Falcon, os campos do Console, os mapeamentos de dropdown, Fila, Decisão e Motivo Status do Tabulador não foram alterados neste pente fino.
 
 ## Base funcional preservada

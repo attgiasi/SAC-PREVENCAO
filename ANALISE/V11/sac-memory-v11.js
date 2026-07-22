@@ -218,7 +218,7 @@
   function mergeHistory(...groups) {
     const byIdentity = new Map();
     groups.flat().filter(validAge).map(sanitizeHistory).forEach((item) => {
-      const key = identity(item) || item.id;
+      const key = normalizeText(item.id) || identity(item);
       const previous = byIdentity.get(key);
       if (!previous || Number(item.savedAt || 0) > Number(previous.savedAt || 0)) {
         byIdentity.set(key, item);
@@ -603,7 +603,7 @@
 
   const history = {
     all() {
-      memory.history = mergeHistory(memory.history);
+      mergeCurrentMirrors();
       return memory.history.map((item) => ({ ...item }));
     },
     replace(items) {
@@ -612,6 +612,7 @@
       return this.all();
     },
     upsert(item) {
+      mergeCurrentMirrors();
       memory.history = mergeHistory([sanitizeHistory(item)], memory.history);
       persistMirrors();
       return this.all();

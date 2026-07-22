@@ -14,11 +14,12 @@ assert.match(bookmarklet, new RegExp(`@${release.commit}/ANALISE/V11/loader-v11\
 async function executeLoader(fetchImpl) {
   const loaded = [];
   let disposedRuntimes = 0;
+  let removedRuntimeScripts = 0;
   const window = { __SAC_PREVENCAO_V11_RUNTIME__: { dispose() { disposedRuntimes += 1; } } };
   const document = {
     querySelectorAll: () => [],
     getElementById: () => null,
-    createElement: () => ({ dataset: {}, style: {}, remove() {} }),
+    createElement: () => ({ dataset: {}, style: {}, remove() { removedRuntimeScripts += 1; } }),
     documentElement: {
       appendChild(script) {
         loaded.push(script.src);
@@ -41,7 +42,7 @@ async function executeLoader(fetchImpl) {
   for (let attempt = 0; attempt < 40 && loaded.length < 8; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 5));
   }
-  return { loaded, state: window.__SAC_PREVENCAO_V11_LOADER__, disposedRuntimes };
+  return { loaded, state: window.__SAC_PREVENCAO_V11_LOADER__, disposedRuntimes, removedRuntimeScripts };
 }
 
 function response(payload, ok = true, status = 200) {
@@ -52,6 +53,7 @@ function response(payload, ok = true, status = 200) {
   const apiCommit = "a".repeat(40);
   const viaApi = await executeLoader(async () => response({ sha: apiCommit }));
   assert.equal(viaApi.loaded.length, 8);
+  assert.equal(viaApi.removedRuntimeScripts, 8, "scripts temporários devem sair do DOM após o carregamento");
   assert.equal(viaApi.disposedRuntimes, 1);
   assert.ok(viaApi.loaded.every((url) => url.includes(`@${apiCommit}/ANALISE/V11/`)));
   assert.equal(viaApi.state.ref, apiCommit);

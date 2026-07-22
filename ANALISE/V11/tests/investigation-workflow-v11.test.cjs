@@ -6,7 +6,7 @@ const root = path.join(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "sac-prevencao-v11.js"), "utf8");
 const media = fs.readFileSync(path.join(root, "sac-media-v11.js"), "utf8");
 
-assert.match(source, /const BUILD_VERSION = "11\.26"/);
+assert.match(source, /const BUILD_VERSION = "11\.27"/);
 assert.match(source, />Investigação e ajuda</);
 assert.doesNotMatch(source, /data-action="help-mode"/);
 assert.doesNotMatch(source, /helpMode|getHelpMode/);

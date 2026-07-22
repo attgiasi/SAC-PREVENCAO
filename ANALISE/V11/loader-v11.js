@@ -96,7 +96,10 @@
       script.dataset.sacV11Runtime = LOADER_VERSION;
       script.src = source;
       script.async = false;
-      script.onload = resolve;
+      script.onload = () => {
+        script.remove();
+        resolve();
+      };
       script.onerror = () => {
         script.remove();
         reject(new Error(`Falha ao carregar ${file}.`));

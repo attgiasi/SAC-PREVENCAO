@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V11_20260715";
   const BUILD = "ANALISE/V11";
   const BUILD_FAMILY = "11";
-  const BUILD_VERSION = "11.26";
+  const BUILD_VERSION = "11.27";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -201,6 +201,10 @@
       .forEach((node) => node.remove());
   }
   registerRuntimeCleanup(() => releaseInvestigationSession());
+  registerRuntimeCleanup(() => {
+    window.__SAC_TABULATOR_DECISION_WRITE_ACTIVE__ = false;
+    window.__SAC_TABULATOR_DECISION_PANEL_ACTIVE__ = false;
+  });
   window[RUNTIME_SLOT] = Object.freeze({ build: BUILD_VERSION, dispose: disposeRuntime });
 
   const SHARED_SETTING_NAMES = new Set([
@@ -639,9 +643,7 @@
   }
 
   let clipboardEnvelopeReady = true;
-  async function copyText(text, lists = null, history = null) {
-    if (Array.isArray(lists)) memory.lists.replace(lists);
-    if (Array.isArray(history)) memory.history.replace(history);
+  async function copyText(text) {
     const result = await memory.commit(text);
     clipboardEnvelopeReady = result.memoryCopied;
     if (result.textCopied) return true;
@@ -728,11 +730,13 @@
   function placeConfigPanel(ownerPanel, configPanel) {
     if (!ownerPanel || !configPanel || configPanel.hidden) return;
     const rect = ownerPanel.getBoundingClientRect();
-    const width = 292;
+    const width = configPanel.offsetWidth || 360;
     const preferredLeft = rect.left - width - 8;
     const rightFallback = Math.min(window.innerWidth - width - 8, rect.right + 8);
+    const top = Math.max(8, rect.top);
     configPanel.style.left = `${preferredLeft >= 8 ? preferredLeft : Math.max(8, rightFallback)}px`;
-    configPanel.style.top = `${Math.max(8, rect.top)}px`;
+    configPanel.style.top = `${top}px`;
+    configPanel.style.maxHeight = `${Math.max(180, window.innerHeight - top - 8)}px`;
     if (ownerPanel.id === "sac-panel-console") placePidPanel();
   }
   function placePidPanel() {
@@ -872,6 +876,7 @@
       .sac-panel,.sac-panel *{box-sizing:border-box!important}.sac-panel .sac-body,.sac-panel .sac-section,.sac-panel .sac-grid,.sac-panel .sac-field-grid,.sac-panel .sac-decision-grid,.sac-panel .sac-final-actions,.sac-panel textarea{min-width:0!important;max-width:100%!important}
       .sac-panel.sac-listas-panel{--sac-panel-width:min(720px,calc(100vw - 16px));left:8px;right:auto;top:8px;max-height:calc(100vh - 16px)}
       .sac-dark{--sac-bg:#121a26;--sac-panel:#1b2635;--sac-card:#111927;--sac-border:#465a73;--sac-text:#edf3fb;--sac-muted:#b9c7d9;--sac-input:#0f1724}.sac-light{--sac-bg:#fff;--sac-panel:#f3f6fa;--sac-card:#fff;--sac-border:#c9d6e6;--sac-text:#172033;--sac-muted:#5b697f;--sac-input:#fff}
+      .sac-config{max-height:calc(100vh - 16px);overflow-y:auto;overscroll-behavior:contain}
       .sac-head{position:relative;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 8px;background:var(--sac-primary);color:#fff;cursor:grab;user-select:none;touch-action:none;text-shadow:0 1px 1px rgba(0,0,0,.55),0 0 1px rgba(0,0,0,.72)}.sac-head:active,.sac-history-head:active{cursor:grabbing}.sac-panel.sac-minimized .sac-body,.sac-panel.sac-minimized .sac-config{display:none!important}.sac-title{display:flex;align-items:center;gap:6px;font-size:calc(12px * var(--sac-font-scale));font-weight:950;line-height:1.1}.sac-flow-dot{width:10px;height:10px;border-radius:999px;background:var(--sac-primary);border:2px solid rgba(255,255,255,.72);box-shadow:0 0 0 1px rgba(0,0,0,.2)}.sac-subtitle{font-size:calc(9px * var(--sac-font-scale));opacity:.9;font-weight:800;max-width:260px;line-height:1.15}
       .sac-actions{display:flex;gap:4px}.sac-icon{width:28px;height:28px;border:1px solid rgba(255,255,255,.38);border-radius:5px;background:rgba(255,255,255,.15);color:#fff;cursor:pointer;font-size:15px;line-height:1;font-weight:950;display:grid;place-items:center;padding:0;text-shadow:0 1px 1px rgba(0,0,0,.55),0 0 1px rgba(0,0,0,.72)}.sac-icon.sac-emoji-icon{font-family:"Segoe UI Emoji","Apple Color Emoji",sans-serif;font-size:17px}.sac-icon.sac-emoji-icon span{display:grid;place-items:center;width:100%;height:100%;line-height:1}.sac-icon.close{background:#dc2626;border-color:#fecaca;color:#fff}
       .sac-config{position:fixed;left:auto;top:8px;width:360px;max-width:calc(100vw - 16px);z-index:2147483647;display:none;gap:7px;padding:8px;border:1px solid var(--sac-border);border-radius:8px;background:var(--sac-bg);box-shadow:0 14px 34px rgba(0,0,0,.28)}.sac-config.open{display:grid}.sac-config-title{font-size:11px;font-weight:950;color:var(--sac-muted);text-transform:uppercase}.sac-config-preview{border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-card);padding:7px;color:var(--sac-text);font-size:11px;font-weight:900;overflow-wrap:anywhere}.sac-config input,.sac-config select,.sac-config button{width:100%;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);padding:7px;font-weight:850}.sac-config input:hover,.sac-config select:hover,.sac-config button:hover,.sac-config input:focus,.sac-config select:focus,.sac-config button:focus{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.22);outline:none;filter:brightness(1.08)}.sac-light .sac-config input:hover,.sac-light .sac-config select:hover,.sac-light .sac-config button:hover,.sac-light .sac-config input:focus,.sac-light .sac-config select:focus,.sac-light .sac-config button:focus{background:#eef7ff;color:#172033}.sac-font-block{display:grid;gap:4px}.sac-font-label{color:var(--sac-muted);font-size:10px;font-weight:950;text-transform:uppercase}.sac-config-row{display:grid;grid-template-columns:54px minmax(0,1fr) 54px;gap:0;align-items:stretch;border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-card);overflow:hidden}.sac-config-row button{min-height:36px;border:0!important;border-radius:0!important;background:var(--sac-input);font-size:16px;font-weight:950;padding:6px 4px;box-shadow:none!important}.sac-config-row button+*{border-left:1px solid var(--sac-border)}.sac-config-row button:hover,.sac-config-row button:focus{background:#12314a!important;color:#fff!important;filter:none!important}.sac-light .sac-config-row button:hover,.sac-light .sac-config-row button:focus{background:#e0f2fe!important;color:#172033!important}.sac-font-value{display:grid;place-items:center;background:var(--sac-card);color:var(--sac-text);font-size:12px;font-weight:950;padding:0 8px}.sac-flow-legend{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}.sac-flow-legend span{display:flex;align-items:center;gap:4px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 4px;font-size:9px;font-weight:950;color:var(--sac-muted)}.sac-flow-legend i{width:10px;height:10px;border-radius:999px;display:inline-block}.sac-signature-editor,.sac-color-editor{display:none;gap:6px}.sac-signature-editor.open,.sac-color-editor.open{display:grid}.sac-color-row{display:grid;grid-template-columns:62px minmax(0,1fr);gap:6px;align-items:center}.sac-color-row strong{font-size:10px;color:var(--sac-muted);font-weight:950}.sac-color-swatches{display:flex;gap:5px;flex-wrap:nowrap;align-items:center}.sac-color-swatch{width:20px!important;height:20px!important;min-width:20px;border-radius:999px!important;padding:0!important;border:2px solid var(--sac-border)!important;background:var(--swatch)!important;cursor:pointer}.sac-color-swatch.active{border-color:#fff!important;box-shadow:0 0 0 2px var(--swatch)}.sac-light .sac-color-swatch.active{border-color:#172033!important}.sac-signature-custom[hidden]{display:none!important}.sac-toggle{display:grid!important;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;justify-items:start;gap:7px;text-align:left}.sac-toggle span:not(.sac-switch),.sac-toggle b{justify-self:start;text-align:left}.sac-toggle b{font-size:10px;color:var(--sac-muted)}.sac-switch{position:relative;width:32px;height:18px;border-radius:999px;background:#64748b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}.sac-switch:after{content:"";position:absolute;left:3px;top:3px;width:12px;height:12px;border-radius:999px;background:#fff;transition:.15s}.sac-toggle.on .sac-switch{background:#16a34a}.sac-toggle.on .sac-switch:after{left:17px}.sac-toggle.on b{color:#86efac}
@@ -2498,7 +2503,7 @@
     const card = globalCardWithoutData
       ? { cardId: "ausência de dados", cardNumber: "ausência de dados", cardLast4: "ausência de dados", cardType: "ausência de dados", cardStatus: "ausência de dados", matched: true }
       : collectedCard;
-    return {
+    const data = {
       type: EXPORT_CONSOLE,
       flow,
       visualFlow: falcon?.visualFlow || flow,
@@ -3677,7 +3682,7 @@
       }
       const history = addHistory(data, decision, text);
       clearCompletedCaseState(data);
-      await copyText(text, queue, history);
+      await copyText(text);
       if ((queue.length || history.length) && !clipboardEnvelopeReady) {
         showNotice("Tabulação copiada. LISTAS e Histórico foram mantidos na memória local da V11.", "warn", 11000);
       }
@@ -4513,7 +4518,6 @@
     let merged = validPendingListItems(memory.lists.all());
     if (options.hydrateClipboard !== false) {
       await hydrateListClipboardFast(Boolean(merged.length), options.hydrateClipboard === "full" ? "full" : "fast");
-      memory.state?.get?.() || memory.mergeCurrentMirrors?.();
       merged = validPendingListItems([...merged, ...memory.lists.all()]);
     }
     memory.lists.replace(validPendingListItems(merged));
@@ -4525,7 +4529,6 @@
     return Boolean(pendingAllowlist || pendingContencao);
   }
   async function writeListQueue(list) {
-    memory.state?.get?.() || memory.mergeCurrentMirrors?.();
     memory.lists.replace(validPendingListItems(list));
     return validPendingListItems(memory.lists.all());
   }
@@ -4615,14 +4618,12 @@
         }] : [])
       ];
       const next = [...listItems, ...withoutCurrentCase];
-      listItems.forEach((item) => memory.lists.upsert?.(item));
       let persisted = await writeListQueue(next);
       const fullyPending = listItems.every((item) => {
         const listType = item.lists.contencao ? "contencao" : "allowlist";
         return persisted.some((entry) => sameCompositeListIdentity(entry, data, listType) && entry.lists?.[listType] && !entry.applied?.[listType]);
       });
       if (!fullyPending) {
-        listItems.forEach((item) => memory.lists.upsert?.(item));
         persisted = await writeListQueue([...listItems, ...persisted]);
       }
       const confirmed = listItems.every((item) => {
@@ -4883,10 +4884,11 @@
     return "";
   }
   function editedListItem(item, listType, field, value) {
-    const updatedAt = Date.now() + 1;
+    const updatedAt = nextListRevision([item]);
     const next = {
       ...item,
       [field]: field === "documentValue" ? alnumOnly(value) : clean(value, ""),
+      savedAt: updatedAt,
       updatedAt
     };
     if (field === "issuer") next.issuerId = "";

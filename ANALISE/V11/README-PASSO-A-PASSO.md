@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 22/07/2026. Build `11.27`.
+Versão de testes revisada em 22/07/2026. Build `11.28`.
 
 ## Estrutura
 
@@ -23,9 +23,9 @@ A V11 fica organizada em blocos claros:
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.27 mantém `Investigação e ajuda` desligado por padrão. A preferência é compartilhada entre todas as etapas. Quando ativada, o mesmo botão discreto `Investigar` aparece à esquerda das janelas Falcon, Console e Tabulador; o painel e suas consultas só são criados depois do clique. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu. O painel reúne consulta cadastral, análise transacional, conferência Falcon/Console e orientações curtas de regra/emissor, sem alterar a decisão do analista. No Tabulador, ele apresenta somente os dados e orientações já transportados: não repete a conferência Falcon x Console e não executa uma coleta fora da página correta. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
+A V11.28 mantém `Investigação e ajuda` desligado por padrão. A preferência é compartilhada entre todas as etapas. Quando ativada, o mesmo botão discreto `Investigar` aparece à esquerda das janelas Falcon, Console e Tabulador; o painel e suas consultas só são criados depois do clique. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu. O painel reúne consulta cadastral, análise transacional, conferência Falcon/Console e orientações curtas de regra/emissor, sem alterar a decisão do analista. No Tabulador, ele apresenta somente os dados e orientações já transportados: não repete a conferência Falcon x Console e não executa uma coleta fora da página correta. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
 
-O PID usa botões de chave próprios, sem depender do comportamento de labels da página do Console. Seus dados aparecem em duas colunas e, quando a investigação também estiver aberta, o posicionador tenta usar o lado oposto da janela do Console para evitar sobreposição. A reexecução encerra listeners e janelas da instância anterior antes de criar a nova, e o PID possui ciclo independente dos popovers auxiliares.
+O PID usa botões de chave próprios, sem depender do comportamento de labels da página do Console. Seus dados aparecem em uma única coluna e, quando a investigação também estiver aberta, o posicionador tenta usar o lado oposto da janela do Console para evitar sobreposição. A reexecução encerra listeners e janelas da instância anterior antes de criar a nova, e o PID possui ciclo independente dos popovers auxiliares.
 
 O carregador V11 resolve a revisão mais recente pela API do GitHub e, se necessário, pelo manifesto de lançamento. Se ambas as consultas estiverem indisponíveis, usa uma revisão imutável que já contém a abertura corrigida do PID. Isso impede que o cache de `@main` recupere uma implementação antiga.
 
@@ -55,6 +55,14 @@ O painel de investigação usa grids compactos com título na borda. A visão ge
 - `CARREGADOR`: cada script temporário é retirado do DOM assim que termina de carregar, reduzindo resíduos em reexecuções sucessivas.
 - `DESEMPENHO`: foram removidas persistências repetidas no encerramento do Tabulador e na fila de LISTAS. As gravações necessárias continuam confirmadas antes de a etapa finalizar.
 - As regras de coleta do Falcon, os campos do Console, os mapeamentos de dropdown, Fila, Decisão e Motivo Status do Tabulador não foram alterados neste pente fino.
+
+## Pente fino da build 11.28
+
+- `PID`: os dados obrigatórios e complementares agora usam uma única coluna no runtime e na prévia interativa. Os grids de investigação permanecem em duas colunas e não foram alterados.
+- `RESPONSIVIDADE`: removida a regra móvel redundante que reaplicava uma coluna ao PID, pois o componente agora mantém esse formato em qualquer largura.
+- `CICLO DE VIDA`: listeners, observadores, intervalos, timers e painéis auxiliares foram conferidos; todos os recursos persistentes possuem encerramento explícito na reexecução ou no fechamento correspondente.
+- `HIGIENE`: não foram encontrados IDs estáticos duplicados, funções globais duplicadas, depuração esquecida, recarregamento da página, `alert`, `confirm` ou `prompt` no caminho executável.
+- `PRESERVAÇÃO`: coleta Falcon, transferência para Console, dropdowns e aplicação do Tabulador, LISTAS, Histórico, investigação e configurações não tiveram suas regras funcionais modificadas.
 
 ## Base funcional preservada
 

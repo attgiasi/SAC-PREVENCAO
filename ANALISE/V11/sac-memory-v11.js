@@ -189,6 +189,19 @@
     return merged;
   }
 
+  function mergeTransport(...groups) {
+    const merged = {};
+    groups.forEach((group) => {
+      Object.entries(normalizeTransport(group)).forEach(([stage, item]) => {
+        const previous = merged[stage];
+        if (!previous || Number(item.savedAt || 0) >= Number(previous.savedAt || 0)) {
+          merged[stage] = item;
+        }
+      });
+    });
+    return normalizeTransport(merged);
+  }
+
   function mergeTombstones(...groups) {
     const byKey = new Map();
     groups.flatMap(normalizeTombstones).forEach((item) => {
@@ -317,7 +330,7 @@
   memory.history = mergeHistory(memory.history, localStateMemory.history, sessionStateMemory.history, localHistory, windowNameMemory.history);
   memory.listsVault = mergeLists(memory.listsVault, localStateMemory.listsVault, localStateMemory.lists, sessionStateMemory.listsVault, sessionStateMemory.lists, localListsVault, windowNameMemory.listsVault, localLists, windowNameMemory.lists);
   memory.lists = mergeLists(memory.lists, memory.listsVault, localStateMemory.lists, sessionStateMemory.lists, localLists, windowNameMemory.lists);
-  memory.transport = normalizeTransport({ ...localTransport, ...localStateMemory.transport, ...sessionStateMemory.transport, ...windowNameMemory.transport, ...memory.transport });
+  memory.transport = mergeTransport(localTransport, localStateMemory.transport, sessionStateMemory.transport, windowNameMemory.transport, memory.transport);
   window[BOOT_KEY] = memory;
 
   // V11.20 migra uma única vez os espelhos completos antigos para chaves menores.
@@ -361,9 +374,7 @@
     memory.history = mergeHistory(memory.history, localHistoryNow, windowNameNow.history);
     memory.listsVault = mergeLists(memory.listsVault, localListsVaultNow, windowNameNow.listsVault, windowNameNow.lists);
     memory.lists = mergeLists(memory.lists, memory.listsVault, windowNameNow.lists);
-    memory.transport = normalizeTransport({ ...localTransportNow, ...windowNameNow.transport, ...memory.transport });
-    memory.savedAt = now();
-    persistMirrors();
+    memory.transport = mergeTransport(localTransportNow, windowNameNow.transport, memory.transport);
     return snapshot();
   }
 
@@ -415,7 +426,7 @@
     next.lists = mergeLists(next.lists, next.listsVault, memory.lists, memory.listsVault);
     next.transport = incomingIsNewer
       ? normalizeTransport(next.transport)
-      : normalizeTransport({ ...next.transport, ...memory.transport });
+      : mergeTransport(memory.transport, next.transport);
     return setSnapshot(next);
   }
 

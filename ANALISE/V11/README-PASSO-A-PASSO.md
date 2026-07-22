@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 21/07/2026. Build `11.23`.
+Versão de testes revisada em 21/07/2026. Build `11.24`.
 
 ## Estrutura
 
@@ -23,7 +23,7 @@ A V11 fica organizada em blocos claros:
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.23 mantém `Investigação e ajuda` desligado por padrão. A preferência é compartilhada entre todas as etapas. Quando ativada, apenas um botão discreto `Investigar` aparece à esquerda das janelas Falcon e Console; o painel e suas consultas só são criados depois do clique. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu. O painel reúne consulta cadastral, análise transacional, conferência Falcon/Console e orientações curtas de regra/emissor, sem alterar a decisão do analista. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
+A V11.24 mantém `Investigação e ajuda` desligado por padrão. A preferência é compartilhada entre todas as etapas. Quando ativada, apenas um botão discreto `Investigar` aparece à esquerda das janelas Falcon e Console; o painel e suas consultas só são criados depois do clique. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu. O painel reúne consulta cadastral, análise transacional, conferência Falcon/Console e orientações curtas de regra/emissor, sem alterar a decisão do analista. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
 
 O PID usa botões de chave próprios, sem depender do comportamento de labels da página do Console. Seus dados aparecem em duas colunas e, quando a investigação também estiver aberta, o posicionador tenta usar o lado oposto da janela do Console para evitar sobreposição. A reexecução encerra listeners e janelas da instância anterior antes de criar a nova, e o PID possui ciclo independente dos popovers auxiliares.
 
@@ -46,7 +46,7 @@ O painel de investigação usa grids compactos com título na borda. A visão ge
 - `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
 - `HISTÓRICO`: grava a tabulação sem CPF/CNPJ visível e deve abrir igual em qualquer etapa.
 
-## Pente fino da build 11.23
+## Pente fino da build 11.24
 
 - `FALCON e CONSOLE`: seletores mapeados e fallbacks contextuais foram mantidos porque atendem variações reais das páginas; não existem funções ou constantes internas sem consumidor.
 - `TABULADOR`: o módulo auxiliar permanece restrito ao seletor de opções reais. O caminho de mapas que nunca era executado foi removido; a aplicação direta estável e a espera exclusiva do Motivo Status foram preservadas.
@@ -56,6 +56,7 @@ O painel de investigação usa grids compactos com título na borda. A visão ge
 - `CONFIGURAÇÕES`: tema, modo seguro, investigação, fonte, assinatura e cores são gravados no estado compartilhado e transportados nos pacotes Falcon/Console.
 - `LISTAS e HISTÓRICO`: o índice de baixas de LISTAS é calculado uma vez por mesclagem, e o arraste do Histórico libera seus eventos ao fechar. As confirmações múltiplas de persistência foram mantidas por serem proteção operacional entre páginas, não duplicação descartável.
 - `VALIDAÇÃO`: corrigido o retorno da conferência FALCON → Console para que ID da conta, CPF/CNPJ ou final do cartão sejam efetivamente comparados.
+- `TRANSFERÊNCIA FALCON → CONSOLE`: os pacotes são mesclados pelo horário da própria etapa, não pelo horário global da memória. Uma leitura não altera mais o relógio do estado, builds compatíveis da família V11 continuam o mesmo caso e a janela só fecha após confirmar a cópia do pacote.
 - `CICLO DE VIDA`: a proteção de escrita da página agora só é instalada no Tabulador. Arraste, observadores, temporizadores e investigação são liberados junto com a janela correspondente.
 - `DESEMPENHO`: aliases de dropdown, tipos de mídia e baixas de LISTAS são indexados uma vez, evitando reconstruções durante cada seleção ou leitura.
 - `INTERFACE`: declarações duplicadas do PID e da investigação foram consolidadas na execução e na prévia, preservando as dimensões finais sem cascatas contraditórias.
@@ -78,7 +79,7 @@ O bloco `FALCON` usa leitura contextual da linha laranja. A coleta prioriza os c
 
 Na V11, o bloco `CONSOLE` mantém a coleta mapeada. BANKING/HOLD validam `ID da conta + CPF/CNPJ`; CARTÃO valida o número pelo final do cartão coletado no Falcon. Com modo seguro ligado, divergência bloqueia a etapa; com modo seguro desligado, a mensagem `CASO DIVERGENTE, CONFIRA O FALCON NOVAMENTE` aparece, mas o fluxo pode continuar.
 
-O Tabulador usa o mapa fixo da V11 e aceita somente pacotes Falcon/Console da build atual, evitando mistura com dados de versões anteriores.
+O Tabulador usa o mapa fixo da V11 e aceita pacotes Falcon/Console com o schema atual da família V11. Assim, uma atualização de correção entre as etapas não perde o caso, enquanto famílias e schemas incompatíveis continuam bloqueados.
 
 ## Fluxos
 

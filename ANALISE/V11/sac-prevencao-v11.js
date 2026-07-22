@@ -4,10 +4,11 @@
   const APP = "sac_prevencao_V11_20260715";
   const BUILD = "ANALISE/V11";
   const BUILD_FAMILY = "11";
-  const BUILD_VERSION = "11.23";
+  const BUILD_VERSION = "11.24";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
+  const PACKAGE_SCHEMA = 1;
   const EXPORT_FALCON = "SAC_FALCON";
   const EXPORT_CONSOLE = "SAC_CONSOLE";
   const DEFAULT_SIGNATURE_SECTOR = "SAC Prevenção";
@@ -2339,9 +2340,9 @@
   }
   function isCurrentPackage(data, type) {
     if (!data || data.type !== type) return false;
+    if (Number(data.packageSchema || 1) !== PACKAGE_SCHEMA) return false;
     const packageFamily = String(data.buildFamily || data.buildVersion || "").split(".")[0];
     if (packageFamily !== BUILD_FAMILY) return false;
-    if (String(data.buildVersion || "") !== BUILD_VERSION) return false;
     const age = Date.now() - Number(data.savedAt || 0);
     return age >= 0 && age < PACKAGE_TTL_MS;
   }
@@ -2429,13 +2430,17 @@
         }
         showNotice(`Atenção: faltam dados (${missing.join(", ")}), mas o modo seguro está desligado.`, "warn");
       }
-      if (getInvestigationMode()) await storeMediaRequest({ falcon: data, visualFlow: data.visualFlow, flow: data.flow });
-      const packageData = { ...transferableCaseData(data), buildFamily: BUILD_FAMILY, buildVersion: BUILD_VERSION, savedAt: Date.now(), sharedMemory: packageMemorySnapshot() };
+      if (getInvestigationMode()) storeMediaRequest({ falcon: data, visualFlow: data.visualFlow, flow: data.flow });
+      const packageData = { ...transferableCaseData(data), packageSchema: PACKAGE_SCHEMA, buildFamily: BUILD_FAMILY, buildVersion: BUILD_VERSION, savedAt: Date.now(), sharedMemory: packageMemorySnapshot() };
       writeJson("lastFalcon", packageData);
       storageRemove("lastConsole");
       memory.transport.set("falcon", packageData);
       memory.transport.clear("console");
-      await copyText(`${EXPORT_FALCON}::${JSON.stringify(packageData)}`);
+      const copied = await copyText(`${EXPORT_FALCON}::${JSON.stringify(packageData)}`);
+      if (!copied) {
+        showNotice("Não consegui transferir os dados do Falcon. A janela foi mantida aberta; clique em Finalizar etapa novamente.", "error", 15000);
+        return;
+      }
       releaseInvestigationSession(data);
       showNotice("Falcon finalizado. Abra o Console para continuar.", "success");
       closeAuxiliaryPanels("sac-panel-falcon");
@@ -2693,11 +2698,10 @@
     });
   }
 
-  async function storeMediaRequest(data) {
+  function storeMediaRequest(data) {
     const request = mediaRequestFor(data);
     if (!request.parties.length) return null;
     memory.transport.set("mediaRequest", request);
-    await memory.commitCurrentText?.();
     return request;
   }
 
@@ -3184,8 +3188,24 @@
   // ========================= CONSOLE: JANELA ========================
   async function renderConsole() {
     const falcon = await loadFalconPackage();
+    if (!falcon) {
+      showNotice("Não recebi os dados do Falcon. Volte ao Falcon, finalize a etapa e tente novamente.", "error", 15000);
+      const panel = renderPanel({
+        id: "sac-panel-console",
+        stage: "CONSOLE",
+        flow: "banking",
+        subtitle: "Transferência Falcon → Console",
+        body: section("Atenção", `<div class="sac-grid">${kv("Dados do Falcon", "DADOS DO FALCON NÃO RECEBIDOS", "sac-missing sac-single-alert")}</div>`, "ação necessária"),
+        footer: `<button class="sac-main" id="sac-retry-falcon-transfer">Tentar novamente</button>`
+      });
+      panel.querySelector("#sac-retry-falcon-transfer")?.addEventListener("click", () => {
+        panel.remove();
+        renderConsole();
+      });
+      return;
+    }
     if (falcon?.flow === "card") await ensureCardGridOpen();
-    const data = collectConsoleData(falcon || emptyFalconData());
+    const data = collectConsoleData(falcon);
     await applyPendingMediaResult(data);
     data.accountValidation = compareFalconConsoleAccount(data.falcon, data.account, data.cpfCnpj, data.cardNumber || data.cardLast4);
     const isCard = data.flow === "card";
@@ -3227,12 +3247,16 @@
         }
         showNotice(`Atenção: faltam dados (${missing.join(", ")}), mas o modo seguro está desligado.`, "warn");
       }
-      const packageData = { ...transferableCaseData(data), buildFamily: BUILD_FAMILY, buildVersion: BUILD_VERSION, savedAt: Date.now(), sharedMemory: packageMemorySnapshot() };
+      const packageData = { ...transferableCaseData(data), packageSchema: PACKAGE_SCHEMA, buildFamily: BUILD_FAMILY, buildVersion: BUILD_VERSION, savedAt: Date.now(), sharedMemory: packageMemorySnapshot() };
       writeJson("lastConsole", packageData);
       memory.transport.set("console", packageData);
       memory.transport.clear("mediaRequest");
       memory.transport.clear("mediaResult");
-      await copyText(`${EXPORT_CONSOLE}::${JSON.stringify(packageData)}`);
+      const copied = await copyText(`${EXPORT_CONSOLE}::${JSON.stringify(packageData)}`);
+      if (!copied) {
+        showNotice("Não consegui transferir os dados do Console. A janela foi mantida aberta; clique em Finalizar etapa novamente.", "error", 15000);
+        return;
+      }
       releaseInvestigationSession(data);
       showNotice("Console finalizado. Abra o Tabulador para continuar.", "success");
       closePidPanel();

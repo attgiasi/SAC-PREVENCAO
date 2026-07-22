@@ -13,6 +13,11 @@ assert.match(source, /pid\.birthDate/);
 assert.match(source, /pid\.address/);
 assert.match(source, /pid\.phone/);
 assert.match(source, /data-pid-reload/);
+assert.match(source, /class="sac-pid-reload sac-pid-reload-control"/);
+assert.match(source, /data-tooltip="Atualizar dado"/);
+assert.match(source, /aria-busy="false"/);
+assert.match(source, /button\.classList\.add\("error"\)/);
+assert.match(source, /Não encontrado\. Tentar novamente/);
 assert.match(source, /collectConsolePidField/);
 assert.doesNotMatch(source, /Vencimento da fatura/);
 assert.match(source, /const pasted = await readClipboardText\(\);/);
@@ -46,6 +51,9 @@ assert.match(preview, /if\(norm\(data\.fields\.callMode\)==="COM CHAMADA"\)openP
 assert.match(preview, /\.pid-grid\{[^}]*grid-template-columns:minmax\(0,1fr\)/);
 assert.doesNotMatch(preview, /\.pid-grid\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
 assert.doesNotMatch(preview, /\.pid\{[^}]*width:360px/);
+assert.match(preview, /class="pid-reload-control"/);
+assert.match(preview, /pid-reload-icon/);
+assert.match(preview, /Dado do PID atualizado/);
 
 const functionStart = source.indexOf("  function openPidPanel(data, options = {}) {");
 const functionEnd = source.indexOf("  function ensureStyles()", functionStart);

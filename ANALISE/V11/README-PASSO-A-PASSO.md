@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 22/07/2026. Build `11.28`.
+Versão de testes revisada em 22/07/2026. Build `11.29`.
 
 ## Estrutura
 
@@ -23,7 +23,7 @@ A V11 fica organizada em blocos claros:
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.28 mantém `Investigação e ajuda` desligado por padrão. A preferência é compartilhada entre todas as etapas. Quando ativada, o mesmo botão discreto `Investigar` aparece à esquerda das janelas Falcon, Console e Tabulador; o painel e suas consultas só são criados depois do clique. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu. O painel reúne consulta cadastral, análise transacional, conferência Falcon/Console e orientações curtas de regra/emissor, sem alterar a decisão do analista. No Tabulador, ele apresenta somente os dados e orientações já transportados: não repete a conferência Falcon x Console e não executa uma coleta fora da página correta. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
+A V11.29 mantém `Investigação e ajuda` desligado por padrão. A preferência é compartilhada entre todas as etapas. Quando ativada, o mesmo botão discreto `Investigar` aparece à esquerda das janelas Falcon, Console e Tabulador; o painel e suas consultas só são criados depois do clique. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu. O painel reúne consulta cadastral, análise transacional, conferência Falcon/Console e orientações curtas de regra/emissor, sem alterar a decisão do analista. No Tabulador, ele apresenta somente os dados e orientações já transportados: não repete a conferência Falcon x Console e não executa uma coleta fora da página correta. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
 
 O PID usa botões de chave próprios, sem depender do comportamento de labels da página do Console. Seus dados aparecem em uma única coluna e, quando a investigação também estiver aberta, o posicionador tenta usar o lado oposto da janela do Console para evitar sobreposição. A reexecução encerra listeners e janelas da instância anterior antes de criar a nova, e o PID possui ciclo independente dos popovers auxiliares.
 
@@ -63,6 +63,14 @@ O painel de investigação usa grids compactos com título na borda. A visão ge
 - `CICLO DE VIDA`: listeners, observadores, intervalos, timers e painéis auxiliares foram conferidos; todos os recursos persistentes possuem encerramento explícito na reexecução ou no fechamento correspondente.
 - `HIGIENE`: não foram encontrados IDs estáticos duplicados, funções globais duplicadas, depuração esquecida, recarregamento da página, `alert`, `confirm` ou `prompt` no caminho executável.
 - `PRESERVAÇÃO`: coleta Falcon, transferência para Console, dropdowns e aplicação do Tabulador, LISTAS, Histórico, investigação e configurações não tiveram suas regras funcionais modificadas.
+
+## Pente fino da build 11.29
+
+- `PID`: o botão de recarregar usa o símbolo `⟳`, foco visível, destaque no hover e uma identificação curta do que será atualizado.
+- `ESTADOS`: durante a busca, o botão informa que está ocupado; no sucesso, o card recebe o check verde; na falha, o botão fica vermelho e passa a oferecer uma nova tentativa claramente identificada.
+- `DESEMPENHO`: a coleta continua síncrona e direta na página do Console. Nenhum timer, observador ou armazenamento permanente foi acrescentado ao runtime do PID.
+- `HIGIENE`: removido o `async` sem `await` do listener de recarga. A prévia e o teste do PID foram atualizados para reproduzir o mesmo ciclo visual.
+- `PRESERVAÇÃO`: coleta de dados, PID específico de AMIGOZ, regras dos fluxos, Tabulador, LISTAS, Histórico, investigação e configurações permaneceram inalterados.
 
 ## Base funcional preservada
 

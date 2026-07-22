@@ -8,8 +8,8 @@ const safeFallback = "638d3258c304cbb91aa17a859b93e4af9002b2b1";
 const release = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "release-v11.json"), "utf8"));
 const bookmarklet = fs.readFileSync(path.join(__dirname, "..", "bookmarklet-v11.txt"), "utf8");
 
-assert.equal(release.build, "11.27");
-assert.match(bookmarklet, new RegExp(`@${release.commit}/ANALISE/V11/loader-v11\\.js\\?v=11\\.27\\.0`));
+assert.equal(release.build, "11.28");
+assert.match(bookmarklet, new RegExp(`@${release.commit}/ANALISE/V11/loader-v11\\.js\\?v=11\\.28\\.0`));
 
 async function executeLoader(fetchImpl) {
   const loaded = [];

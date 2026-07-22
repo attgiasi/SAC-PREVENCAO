@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 21/07/2026. Build `11.24`.
+Versão de testes revisada em 21/07/2026. Build `11.25`.
 
 ## Estrutura
 
@@ -23,7 +23,7 @@ A V11 fica organizada em blocos claros:
 
 Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
 
-A V11.24 mantém `Investigação e ajuda` desligado por padrão. A preferência é compartilhada entre todas as etapas. Quando ativada, apenas um botão discreto `Investigar` aparece à esquerda das janelas Falcon e Console; o painel e suas consultas só são criados depois do clique. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu. O painel reúne consulta cadastral, análise transacional, conferência Falcon/Console e orientações curtas de regra/emissor, sem alterar a decisão do analista. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
+A V11.25 mantém `Investigação e ajuda` desligado por padrão. A preferência é compartilhada entre todas as etapas. Quando ativada, o mesmo botão discreto `Investigar` aparece à esquerda das janelas Falcon, Console e Tabulador; o painel e suas consultas só são criados depois do clique. `Verificar CNPJ` aparece no Falcon somente para CNPJ válido de quem enviou ou recebeu. O painel reúne consulta cadastral, análise transacional, conferência Falcon/Console e orientações curtas de regra/emissor, sem alterar a decisão do analista. No Tabulador, ele apresenta somente os dados e orientações já transportados: não repete a conferência Falcon x Console e não executa uma coleta fora da página correta. O BigData não abre janela de análise e participa somente da mídia desabonadora do CPF titular.
 
 O PID usa botões de chave próprios, sem depender do comportamento de labels da página do Console. Seus dados aparecem em duas colunas e, quando a investigação também estiver aberta, o posicionador tenta usar o lado oposto da janela do Console para evitar sobreposição. A reexecução encerra listeners e janelas da instância anterior antes de criar a nova, e o PID possui ciclo independente dos popovers auxiliares.
 
@@ -46,7 +46,7 @@ O painel de investigação usa grids compactos com título na borda. A visão ge
 - `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
 - `HISTÓRICO`: grava a tabulação sem CPF/CNPJ visível e deve abrir igual em qualquer etapa.
 
-## Pente fino da build 11.24
+## Pente fino da build 11.25
 
 - `FALCON e CONSOLE`: seletores mapeados e fallbacks contextuais foram mantidos porque atendem variações reais das páginas; não existem funções ou constantes internas sem consumidor.
 - `TABULADOR`: o módulo auxiliar permanece restrito ao seletor de opções reais. O caminho de mapas que nunca era executado foi removido; a aplicação direta estável e a espera exclusiva do Motivo Status foram preservadas.
@@ -77,7 +77,7 @@ Também foi feito pente fino no caminho ativo da V11: funções internas não ut
 
 O bloco `FALCON` usa leitura contextual da linha laranja. A coleta prioriza os campos mapeados do grid (`RULESTEXT`, `TRANSACTION_DTTM`, `TRANSACTION_AMT`, `USER_DATA_20`, `MERCHANT_NAME`, `FALCON_DECISION_CODE` e `TRANSACTION_POSTING_ENTRY_XFLG`) e não usa busca global ampla para histórico de infrações.
 
-Na V11, o bloco `CONSOLE` mantém a coleta mapeada. BANKING/HOLD validam `ID da conta + CPF/CNPJ`; CARTÃO valida o número pelo final do cartão coletado no Falcon. Com modo seguro ligado, divergência bloqueia a etapa; com modo seguro desligado, a mensagem `CASO DIVERGENTE, CONFIRA O FALCON NOVAMENTE` aparece, mas o fluxo pode continuar.
+Na V11, o bloco `CONSOLE` mantém a coleta mapeada. BANKING/HOLD validam `ID da conta + CPF/CNPJ`; CARTÃO valida o número pelo final do cartão coletado no Falcon. Com modo seguro ligado, divergência bloqueia a etapa; com modo seguro desligado, a mensagem `INFORMAÇÕES DIVERGENTES, VERIFIQUE O CASO NOVAMENTE` aparece, mas o fluxo pode continuar.
 
 O Tabulador usa o mapa fixo da V11 e aceita pacotes Falcon/Console com o schema atual da família V11. Assim, uma atualização de correção entre as etapas não perde o caso, enquanto famílias e schemas incompatíveis continuam bloqueados.
 
@@ -142,9 +142,16 @@ O complemento padrão é `SAC Prevenção`. Também existem `Dock Teck Prevenç�
 
 ## Investigação, Ajuda E BigData
 
-O modo `Investigação e ajuda` é compartilhado entre as etapas e fica desligado por padrão. Ao ser ativado, exibe o botão discreto `Investigar` à esquerda da janela. O painel só abre e executa suas consultas após esse botão ser clicado. O fluxo operacional permanece:
+O modo `Investigação e ajuda` é compartilhado entre as etapas e fica desligado por padrão. Ao ser ativado, exibe o botão discreto `Investigar` à esquerda da janela. O painel só abre e executa suas consultas após esse botão ser clicado. O fluxo operacional principal permanece:
 
 `FALCON > CONSOLE > TABULADOR`
+
+Quando a consulta de mídia for necessária, o BigData pode ser usado em qualquer uma destas duas posições:
+
+- `FALCON > BIGDATA > CONSOLE > TABULADOR`;
+- `FALCON > CONSOLE > BIGDATA > TABULADOR`.
+
+A solicitação fica vinculada ao número do caso e ao CPF titular até ser consumida. Finalizar o Console não a apaga. O resultado é aplicado no primeiro estágio seguinte compatível: Console, quando o BigData foi consultado antes dele; ou Tabulador, quando a consulta ocorreu depois do Console.
 
 O BigData é uma consulta opcional e separada apenas para mídia desabonadora. No Falcon e no Console, o painel unificado mostra somente as ações compatíveis com a página:
 
@@ -189,7 +196,7 @@ Com o modo seguro desligado, o clique simples no grid não copia o dado. Isso ev
 
 O modo unificado fica desligado por padrão.
 
-Quando ativado, aparece o botão `Investigar` à esquerda do Falcon e do Console. O painel só abre após o clique. Os grids de `Regra` e `Emissor` exibem ícone de informação somente quando houver orientação real cadastrada; essa ajuda ocupa grids separados dentro do painel já aberto. Grids de status também podem exibir ajuda quando o valor for `bloqueio preventivo falcon 254`.
+Quando ativado, o mesmo botão `Investigar` aparece à esquerda do Falcon, Console e Tabulador. O painel só abre após o clique. Os grids de `Regra` e `Emissor` exibem ícone de informação somente quando houver orientação real cadastrada; essa ajuda ocupa grids separados dentro do painel já aberto. Grids de status também podem exibir ajuda quando o valor for `bloqueio preventivo falcon 254`.
 
 As mensagens do modo ajuda foram consolidadas a partir do `BOOK PREVENÇÃO FALCON` e do resumo de regras enviado, sem repetir o nome da regra/emissor dentro dos cards. Os textos são curtos, objetivos e focados no que ajuda a decidir.
 

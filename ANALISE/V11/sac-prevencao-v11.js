@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V11_20260715";
   const BUILD = "ANALISE/V11";
   const BUILD_FAMILY = "11";
-  const BUILD_VERSION = "11.24";
+  const BUILD_VERSION = "11.25";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -2563,7 +2563,7 @@
     return `<div class="sac-investigation-controls ${controls.length === 1 ? "single" : ""}">${controls.join("")}</div>`;
   }
 
-  function investigationHelpOverview(data) {
+  function investigationHelpOverview(data, stage = "") {
     const issuer = clean(data?.issuer || data?.falcon?.issuer, "");
     const rule = clean(data?.rule || data?.falcon?.rule, "");
     const issuerHelp = issuer ? contextHelpGroups("issuer", issuer) : "";
@@ -2577,13 +2577,13 @@
       </div>` : "";
     const flow = data?.visualFlow || data?.flow || data?.falcon?.flow || "banking";
     const isCard = flow === "card";
-    const validation = data?.accountValidation;
+    const validation = stage === "CONSOLE" ? data?.accountValidation : null;
     const validationCard = validation
       ? `<div class="sac-side-group">
           <div class="sac-side-group-title">Conferência Falcon x Console</div>
           <div class="sac-side-card sac-support-summary ${validation.comparable ? (validation.matches ? "success" : "danger sac-investigation-alert") : "warning"}">
-            <strong>${validation.comparable ? (validation.matches ? "MESMO CASO CONFIRMADO" : "CASO DIVERGENTE") : "CONFERÊNCIA INCOMPLETA"}</strong>
-            <span>${validation.comparable ? (validation.matches ? "Conta e CPF/CNPJ, ou final do cartão, correspondem entre as páginas." : "CASO DIVERGENTE, CONFIRA O FALCON NOVAMENTE") : "Não há identificadores suficientes para comparar as páginas."}</span>
+            <strong>${validation.comparable ? (validation.matches ? "MESMO CASO CONFIRMADO" : "INFORMAÇÕES DIVERGENTES") : "CONFERÊNCIA INCOMPLETA"}</strong>
+            <span>${validation.comparable ? (validation.matches ? "Conta e CPF/CNPJ, ou final do cartão, correspondem entre as páginas." : "INFORMAÇÕES DIVERGENTES, VERIFIQUE O CASO NOVAMENTE") : "Não há identificadores suficientes para comparar as páginas."}</span>
           </div>
         </div>`
       : "";
@@ -2609,7 +2609,7 @@
   }
 
   function attachInvestigationLauncher(ownerPanel, stage, data, rowsSource = []) {
-    if (!ownerPanel || !getInvestigationMode() || !["FALCON", "CONSOLE"].includes(stage)) return;
+    if (!ownerPanel || !getInvestigationMode() || !["FALCON", "CONSOLE", "TABULADOR"].includes(stage)) return;
     ownerPanel.querySelector(".sac-investigation-launcher")?.remove();
     const launcher = document.createElement("button");
     launcher.className = "sac-investigation-launcher";
@@ -2652,9 +2652,9 @@
         </div>
         <div class="sac-side-body">
           ${hasActions ? controls : ""}
-          <div class="sac-investigation-result" data-investigation-slot="transaction"><div class="sac-side-card"><span>Preparando a análise transacional disponível nesta página...</span></div></div>
+          <div class="sac-investigation-result" data-investigation-slot="transaction">${stage === "TABULADOR" ? "" : `<div class="sac-side-card"><span>Preparando a análise transacional disponível nesta página...</span></div>`}</div>
           <div class="sac-investigation-result" data-investigation-slot="cnpj"></div>
-          <div class="sac-investigation-result" data-investigation-slot="help">${investigationHelpOverview(data)}</div>
+          <div class="sac-investigation-result" data-investigation-slot="help">${investigationHelpOverview(data, stage)}</div>
         </div>`;
       document.body.appendChild(drawer);
       placeSidePanel(ownerPanel, drawer);
@@ -3212,7 +3212,7 @@
     const fields = isCard ? cardFields(data) : bankingFields(data);
     const divergentCase = data.accountValidation.comparable && !data.accountValidation.matches;
     if (divergentCase) {
-      showNotice("CASO DIVERGENTE, CONFIRA O FALCON NOVAMENTE", "error", 15000);
+      showNotice("INFORMAÇÕES DIVERGENTES, VERIFIQUE O CASO NOVAMENTE", "error", 15000);
       if (getSafeMode()) {
         const panel = renderPanel({
           id: "sac-panel-console",
@@ -3220,7 +3220,7 @@
           flow: data.visualFlow,
           subtitle: "Validação Falcon → Console",
           body: section("Dados do Falcon", falconGrid(data.falcon), "recebidos")
-            + section("Validação", `<div class="sac-grid">${kv("Conferência", "CASO DIVERGENTE, CONFIRA O FALCON NOVAMENTE", "sac-missing sac-single-alert")}</div>`, "ação necessária"),
+            + section("Validação", `<div class="sac-grid">${kv("Conferência", "INFORMAÇÕES DIVERGENTES, VERIFIQUE O CASO NOVAMENTE", "sac-missing sac-single-alert")}</div>`, "ação necessária"),
           footer: `<button class="sac-main" id="sac-retry-console-account">Tentar novamente</button>`
         });
         panel.querySelector("#sac-retry-console-account")?.addEventListener("click", () => {
@@ -3250,8 +3250,6 @@
       const packageData = { ...transferableCaseData(data), packageSchema: PACKAGE_SCHEMA, buildFamily: BUILD_FAMILY, buildVersion: BUILD_VERSION, savedAt: Date.now(), sharedMemory: packageMemorySnapshot() };
       writeJson("lastConsole", packageData);
       memory.transport.set("console", packageData);
-      memory.transport.clear("mediaRequest");
-      memory.transport.clear("mediaResult");
       const copied = await copyText(`${EXPORT_CONSOLE}::${JSON.stringify(packageData)}`);
       if (!copied) {
         showNotice("Não consegui transferir os dados do Console. A janela foi mantida aberta; clique em Finalizar etapa novamente.", "error", 15000);
@@ -3470,6 +3468,7 @@
     stopTabulatorWriting();
     const storedConsole = existingData ? null : await loadConsolePackage();
     const data = existingData || storedConsole || collectConsoleData(await loadFalconPackage() || emptyFalconData());
+    await applyPendingMediaResult(data);
     loadIssuerDirectory();
     const missing = requiredWorkflow(data);
     const decisionButtons = DECISIONS.map((decision, index) => {
@@ -3489,6 +3488,7 @@
       body,
       onEnter: () => showNotice("Escolha uma decisão para continuar.", "warn")
     });
+    attachInvestigationLauncher(panel, "TABULADOR", data);
     if (!getSignatureName()) {
       panel.__sacKeys.openConfig?.();
       panel.querySelector(".sac-signature-editor")?.classList.add("open");

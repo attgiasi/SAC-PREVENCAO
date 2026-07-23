@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V11_20260715";
   const BUILD = "ANALISE/V11";
   const BUILD_FAMILY = "11";
-  const BUILD_VERSION = "11.29";
+  const BUILD_VERSION = "11.30";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -208,7 +208,7 @@
   window[RUNTIME_SLOT] = Object.freeze({ build: BUILD_VERSION, dispose: disposeRuntime });
 
   const SHARED_SETTING_NAMES = new Set([
-    "theme", "safeMode", "investigationMode", "fontScale", "signatureName", "signatureSector", "counterpartyLocalRecords",
+    "theme", "safeMode", "investigationMode", "helpMode", "fontScale", "signatureName", "signatureSector", "counterpartyLocalRecords",
     "flowTone:banking", "flowTone:card", "flowTone:hold"
   ]);
   const MEMORY_SETTINGS_STORAGE_KEY = "sac_prevencao_V11:settings";
@@ -513,6 +513,8 @@
   const setSafeMode = (enabled) => storageSet("safeMode", enabled ? "on" : "off");
   const getInvestigationMode = () => storageGet("investigationMode") === "on";
   const setInvestigationMode = (enabled) => storageSet("investigationMode", enabled ? "on" : "off");
+  const getHelpMode = () => storageGet("helpMode") === "on";
+  const setHelpMode = (enabled) => storageSet("helpMode", enabled ? "on" : "off");
   const setTheme = (theme) => {
     storageSet("theme", theme === "light" ? "light" : "dark");
     all(".sac-panel,.sac-history-panel").forEach((panel) => {
@@ -583,6 +585,13 @@
       const enabled = getInvestigationMode();
       if (enabled) hydrateCounterpartyLocalRecords();
       else releaseInvestigationSession();
+      node.classList.toggle("on", enabled);
+      node.setAttribute("aria-pressed", enabled ? "true" : "false");
+      const state = node.querySelector("b");
+      if (state) state.textContent = enabled ? "Ligado" : "Desligado";
+    });
+    all("[data-action='help-mode']").forEach((node) => {
+      const enabled = getHelpMode();
       node.classList.toggle("on", enabled);
       node.setAttribute("aria-pressed", enabled ? "true" : "false");
       const state = node.querySelector("b");
@@ -787,6 +796,7 @@
     ensureStyles();
     const host = byId("sac-panel-console");
     if (!host?.isConnected) return null;
+    if (typeof closeSidePanels === "function") closeSidePanels(host.id);
     const existing = byId("sac-pid-panel");
     const pidKey = normalize(`${data?.falcon?.caseNumber || data?.caseNumber || ""}|${data?.issuer || data?.falcon?.issuer || ""}`);
     if (existing?.dataset.pidKey === pidKey && !options.rebuild) {
@@ -902,13 +912,14 @@
       .sac-history-panel{--sac-history-tone:#64748b;position:fixed;left:10px;top:10px;z-index:2147483647;width:min(780px,calc(100vw - 20px));max-height:min(720px,calc(100vh - 20px));border:1px solid var(--sac-border);border-top:3px solid var(--sac-history-tone);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);font-family:Inter,Segoe UI,Arial,sans-serif;box-shadow:0 18px 44px rgba(0,0,0,.30);overflow:hidden}.sac-history-head{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--sac-history-tone);color:#fff;padding:8px;font-weight:950;cursor:grab;user-select:none;touch-action:none}.sac-history-tools{display:grid;grid-template-columns:1fr 126px;gap:6px;padding:7px;border-bottom:1px solid var(--sac-border);background:var(--sac-panel)}.sac-history-tools input,.sac-history-tools select{min-width:0;height:34px;border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-input);color:var(--sac-text);padding:7px 9px;font-weight:900;outline:none}.sac-history-tools input:hover,.sac-history-tools select:hover,.sac-history-tools input:focus,.sac-history-tools select:focus{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.18)}.sac-light .sac-history-tools input:hover,.sac-light .sac-history-tools select:hover,.sac-light .sac-history-tools input:focus,.sac-light .sac-history-tools select:focus{background:#eef7ff;color:#172033}.sac-history-body{display:grid;grid-template-columns:236px 1fr;gap:6px;padding:6px}.sac-history-list{display:grid;gap:4px;align-content:start;max-height:560px;overflow:auto;padding-right:3px}.sac-history-list button{text-align:left;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:7px;font-weight:900;line-height:1.1;cursor:pointer}.sac-history-list button:hover,.sac-history-list button.active{border-color:#38bdf8;background:#10263a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.12);transform:translateY(-1px)}.sac-light .sac-history-list button:hover,.sac-light .sac-history-list button.active{background:#eef7ff;color:#172033}.sac-history-list small{display:block;color:var(--sac-muted);font-size:10px;margin-top:2px}.sac-history-empty{color:var(--sac-muted);font-weight:850;padding:8px}.sac-history-identifiers{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:6px}.sac-history-detail textarea{height:472px;overflow:auto;resize:none}.sac-list-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px}.sac-list-tabs button{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:8px 6px;font-size:11px;font-weight:950;cursor:pointer}.sac-list-tabs button:hover,.sac-list-tabs button.active{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-light .sac-list-tabs button:hover,.sac-light .sac-list-tabs button.active{background:#eef7ff;color:#172033}.sac-allowlist-list{display:grid;gap:7px;max-height:min(560px,calc(100vh - 210px));overflow:auto;padding-right:3px}.sac-list-issuer-group{display:grid;gap:5px}.sac-list-issuer-head{display:flex;align-items:center;justify-content:space-between;gap:8px;border-left:4px solid var(--sac-primary);border-radius:5px;background:var(--sac-panel);padding:6px 7px}.sac-list-issuer-head strong{min-width:0;overflow-wrap:break-word;font-size:11px}.sac-list-issuer-head button{flex:0 0 auto;border:1px solid #86efac;border-radius:5px;background:#166534;color:#fff;padding:5px 7px;font-size:9px;font-weight:950;cursor:pointer}.sac-allowlist-item{border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-card);padding:6px;display:grid;grid-template-columns:1fr 72px;gap:6px;align-items:stretch}.sac-allowlist-item:hover{border-color:#38bdf8;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-allowlist-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px}.sac-allowlist-actions{display:grid;grid-template-rows:1fr 1fr;gap:4px}.sac-allowlist-actions button{border:0;border-radius:6px;color:#fff;font-size:10px;font-weight:950;cursor:pointer}.sac-allowlist-actions [data-list-apply]{background:#16a34a}.sac-allowlist-actions [data-list-remove]{background:#dc2626}
       .sac-help-btn{position:absolute;top:3px;right:3px;width:18px;height:18px;border:1px solid #fde68a;border-radius:999px;background:#d4af37;color:#1f1600;font-size:11px;font-weight:950;line-height:1;display:grid;place-items:center;padding:0;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.16)}.sac-help-btn:hover{filter:brightness(1.12);box-shadow:0 0 0 2px rgba(250,204,21,.32)}
       .sac-pid-reload-control{position:relative;transition:transform .14s ease,filter .14s ease,box-shadow .14s ease}.sac-pid-reload-control:hover:not(:disabled){filter:brightness(1.18);transform:scale(1.08);box-shadow:0 0 0 2px rgba(56,189,248,.22)}.sac-pid-reload-control:focus-visible{outline:2px solid #67e8f9;outline-offset:2px}.sac-pid-reload-control.error{border-color:#fca5a5!important;background:#b91c1c!important;color:#fff!important;animation:none}.sac-pid-reload-control:before{content:attr(data-tooltip);position:absolute;right:calc(100% + 7px);top:50%;z-index:2;min-width:max-content;max-width:180px;transform:translateY(-50%) scale(.98);border:1px solid var(--sac-border);border-radius:5px;background:var(--sac-bg);color:var(--sac-text);padding:4px 6px;box-shadow:0 8px 18px rgba(0,0,0,.28);font-size:9px;font-weight:900;line-height:1;opacity:0;pointer-events:none;transition:opacity .12s ease,transform .12s ease}.sac-pid-reload-control:hover:before,.sac-pid-reload-control:focus-visible:before{opacity:1;transform:translateY(-50%) scale(1)}.sac-pid-reload-control.loading:before{display:none}.sac-pid-reload-icon{display:grid;place-items:center;width:100%;height:100%;font-size:14px;line-height:1}
-      .sac-side-panel{position:fixed;z-index:2147483647;width:320px;max-height:calc(100vh - 16px);overflow:hidden;border:1px solid var(--sac-border);border-top:3px solid var(--sac-primary);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);box-shadow:0 18px 44px rgba(0,0,0,.32);font-family:Inter,Segoe UI,Arial,sans-serif;text-align:left}.sac-side-panel,.sac-side-panel *{box-sizing:border-box!important}.sac-side-panel.sac-minimized{display:none!important}.sac-side-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 8px;background:var(--sac-primary);color:#fff;font-size:12px;font-weight:950;text-align:left;text-shadow:0 1px 1px rgba(0,0,0,.58),0 0 1px rgba(0,0,0,.72)}.sac-side-body{display:grid;gap:5px;padding:7px;max-height:calc(100vh - 55px);overflow-y:auto;overflow-x:hidden;text-align:left;scrollbar-width:thin}.sac-side-group{display:grid;gap:4px;min-width:0;text-align:left}.sac-side-group-title{border-left:3px solid var(--sac-primary);padding-left:6px;color:var(--sac-text);font-size:10px;font-weight:950;text-transform:uppercase;line-height:1.1;text-align:left}.sac-side-card{display:block;width:100%;min-width:0;max-width:100%;min-height:32px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 6px;text-align:left;overflow:hidden}.sac-side-card span{display:block;max-width:100%;font-size:10px;line-height:1.18;color:var(--sac-muted);font-weight:800;white-space:normal;word-break:normal;overflow-wrap:break-word;text-align:left}
+      .sac-side-panel{position:fixed;z-index:2147483647;width:320px;max-height:calc(100vh - 16px);overflow:hidden;border:1px solid var(--sac-border);border-top:3px solid var(--sac-primary);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);box-shadow:0 18px 44px rgba(0,0,0,.32);font-family:Inter,Segoe UI,Arial,sans-serif;text-align:left}.sac-side-panel,.sac-side-panel *{box-sizing:border-box!important}.sac-side-panel.sac-minimized{display:none!important}.sac-side-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 8px;background:var(--sac-primary);color:#fff;font-size:12px;font-weight:950;text-align:left;text-shadow:0 1px 1px rgba(0,0,0,.58),0 0 1px rgba(0,0,0,.72)}.sac-side-body{display:grid;gap:5px;padding:7px;overflow:hidden;text-align:left}.sac-investigation-drawer .sac-side-body,.sac-help-drawer .sac-side-body,.sac-context-drawer .sac-side-body{max-height:calc(100vh - 64px);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin}.sac-side-group{display:grid;gap:4px;min-width:0;text-align:left}.sac-side-group-title{border-left:3px solid var(--sac-primary);padding-left:6px;color:var(--sac-text);font-size:10px;font-weight:950;text-transform:uppercase;line-height:1.1;text-align:left}.sac-side-card{display:block;width:100%;min-width:0;max-width:100%;min-height:32px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 6px;text-align:left;overflow:hidden}.sac-side-card span{display:block;max-width:100%;font-size:10px;line-height:1.18;color:var(--sac-muted);font-weight:800;white-space:normal;word-break:normal;overflow-wrap:break-word;text-align:left}.sac-side-card[data-cnpj-copy]{cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}.sac-side-card[data-cnpj-copy]:hover{border-color:#38bdf8;background:#10263a;box-shadow:0 0 0 2px rgba(56,189,248,.12)}.sac-light .sac-side-card[data-cnpj-copy]:hover{background:#eef7ff;color:#172033}.sac-side-card[data-cnpj-copy].sac-copied{border-color:#22c55e!important;box-shadow:0 0 0 2px rgba(34,197,94,.28)!important}
       .sac-support-panel{width:312px;max-width:calc(100vw - 16px)}.sac-support-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px}.sac-support-actions[hidden]{display:none!important}.sac-support-actions.three{grid-template-columns:repeat(3,minmax(0,1fr))}.sac-support-actions.three button{font-size:9.5px;padding:7px 3px}.sac-support-summary{border-left:3px solid var(--sac-primary)}.sac-support-summary.success{border-color:#16a34a;background:#052e1a}.sac-support-summary.warning{border-color:#d97706;background:#3a230b}.sac-support-summary.danger{border-color:#dc2626;background:#3a0d0d}.sac-support-summary.neutral{border-color:#64748b}.sac-light .sac-support-summary.success{background:#ecfdf5}.sac-light .sac-support-summary.warning{background:#fff7ed}.sac-light .sac-support-summary.danger{background:#fef2f2}.sac-investigation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.sac-investigation-grid{align-items:stretch}.sac-investigation-grid>.sac-grid-full{grid-column:1/-1}.sac-support-empty{color:var(--sac-muted);font-size:10px;font-weight:850}.sac-investigation-grid .sac-side-card{position:relative;width:100%;min-height:35px;margin-top:7px;display:flex;flex-direction:column;justify-content:center;text-align:left;padding:8px 5px 4px!important;overflow:visible}.sac-investigation-grid .sac-side-card strong{display:block;font-size:9.5px;line-height:1.08;color:var(--sac-text);overflow-wrap:break-word;text-align:left}.sac-investigation-alert{border:1px solid #ef4444!important;background:#3a0d0d!important;animation:sacPulseInvestigationRed 1.05s ease-in-out infinite}.sac-support-summary.sac-investigation-alert{border-left-width:1px!important}.sac-light .sac-investigation-alert{background:#fef2f2!important}@keyframes sacPulseInvestigationRed{0%,100%{box-shadow:inset 0 0 0 0 rgba(239,68,68,.15),0 0 0 rgba(239,68,68,0)}50%{box-shadow:inset 0 0 0 1px rgba(239,68,68,.82),0 0 8px rgba(239,68,68,.46)}}
       .sac-cnpj-card{position:relative;padding-right:30px!important}.sac-cnpj-indicator{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:grid;width:19px;height:19px;place-items:center;border:1px solid var(--sac-border);border-radius:999px;background:transparent;color:var(--sac-muted);font-size:11px;font-weight:950}.sac-cnpj-card.is-success{border-color:#16a34a;background:#052e1a}.sac-cnpj-card.is-warning{border-color:#d97706;background:#3a230b}.sac-cnpj-card.is-danger{border-color:#dc2626;background:#3a0d0d}.sac-cnpj-indicator.is-success{border-color:#22c55e;background:#16a34a;color:#fff}.sac-cnpj-indicator.is-warning{border-color:#f59e0b;background:#d97706;color:#fff}.sac-cnpj-indicator.is-danger{border-color:#ef4444;background:#dc2626;color:#fff}.sac-light .sac-cnpj-card.is-success{background:#ecfdf5}.sac-light .sac-cnpj-card.is-warning{background:#fff7ed}.sac-light .sac-cnpj-card.is-danger{background:#fef2f2}
-      .sac-panel.sac-minimized .sac-investigation-launcher{display:none}.sac-chevron{display:grid;place-items:center;width:18px;height:18px;font:950 24px/1 "Segoe UI Symbol","Segoe UI",Arial,sans-serif;transform:translateY(-1px);text-shadow:0 1px 1px rgba(0,0,0,.48)}.sac-drawer-toggle{width:30px;height:28px;border:1px solid rgba(255,255,255,.52);border-radius:7px;background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center;padding:0;cursor:pointer;transition:background .15s,transform .15s,box-shadow .15s}.sac-drawer-toggle:hover,.sac-drawer-toggle:focus-visible{background:rgba(255,255,255,.28);transform:translateX(1px);box-shadow:0 0 0 2px rgba(255,255,255,.20);outline:none}.sac-investigation-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.sac-investigation-controls button{min-width:0;min-height:32px;display:flex;align-items:center;justify-content:center;gap:5px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:4px 5px;text-align:center;font-size:9.3px;font-weight:950;line-height:1.08;cursor:pointer}.sac-investigation-controls button:hover,.sac-investigation-controls button:focus,.sac-investigation-controls button.active{border-color:#38bdf8;background:#10263a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.14);outline:none}.sac-light .sac-investigation-controls button:hover,.sac-light .sac-investigation-controls button:focus,.sac-light .sac-investigation-controls button.active{background:#eef7ff;color:#172033}.sac-investigation-controls button span{display:grid;place-items:center;width:17px;height:17px;border-radius:5px;background:var(--sac-primary);color:#fff;font-size:9px}.sac-investigation-controls .sac-investigation-cnpj{font-size:8.9px;background:transparent}.sac-investigation-controls.single{grid-template-columns:minmax(0,1fr)}.sac-investigation-result{display:grid;gap:5px;margin-top:5px}
-      .sac-side-panel,.sac-config.open,.sac-pid-panel{animation:sacPanelEnter .18s cubic-bezier(.2,.8,.2,1) both;transform-origin:top right}.sac-transaction-view{display:grid;gap:6px}.sac-transaction-hero{position:relative;overflow:hidden;padding:7px 8px!important;border-left:4px solid var(--sac-primary)!important;background:var(--sac-panel)!important}.sac-transaction-hero strong{display:block;color:var(--sac-text);font-size:12px;line-height:1.12}.sac-transaction-hero span{margin-top:3px}.sac-transaction-metric{border-color:color-mix(in srgb,var(--sac-primary) 34%,var(--sac-border))!important;background:color-mix(in srgb,var(--sac-primary) 7%,var(--sac-card))!important}.sac-transaction-metric strong{font-size:10px!important}.sac-merchant-card{display:grid;gap:4px;padding:6px!important}.sac-merchant-card>strong{display:block;font-size:10.5px;color:var(--sac-text);overflow-wrap:break-word}.sac-merchant-meta{display:flex!important;flex-wrap:wrap;gap:3px;margin-top:1px}.sac-merchant-meta i{display:inline-flex;align-items:center;min-height:19px;border:1px solid var(--sac-border);border-radius:4px;background:var(--sac-input);color:var(--sac-muted);padding:2px 4px;font-size:8.5px;font-style:normal;font-weight:900;line-height:1.05}.sac-side-head,.sac-choice-head{box-shadow:inset 0 -1px 0 rgba(255,255,255,.18)}@keyframes sacPanelEnter{from{opacity:0;transform:translateX(8px) scale(.985)}to{opacity:1;transform:translateX(0) scale(1)}}@media (prefers-reduced-motion:reduce){.sac-side-panel,.sac-config.open,.sac-pid-panel{animation:none!important}.sac-switch:after{transition:none!important}}
-      .sac-investigation-drawer .sac-side-body{gap:7px}.sac-investigation-drawer .sac-side-card span{color:var(--sac-text);font-size:9.5px;line-height:1.18}.sac-investigation-drawer .sac-side-group-title{font-size:9.3px}.sac-investigation-grid .sac-side-card>strong{position:absolute;top:-7px;left:4px;z-index:1;max-width:calc(100% - 8px);padding:1px 3px;border-radius:3px;background:var(--sac-bg);color:var(--sac-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:8.2px!important}.sac-counterparty-line{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px;align-items:stretch}.sac-counterparty-line .sac-side-card{min-height:38px}.sac-counterparty-line strong{display:block;color:var(--sac-text);font-size:8.8px;line-height:1.08}.sac-cnpj-actions button{min-width:0;min-height:34px;display:flex;align-items:center;justify-content:center;gap:4px;border-width:1px;border-style:solid;border-radius:6px;color:#fff;font-size:9.2px;line-height:1.05;text-align:center;font-weight:950;cursor:pointer;text-shadow:0 1px 1px rgba(0,0,0,.48)}.sac-cnpj-actions i{display:grid;place-items:center;width:16px;height:16px;border-radius:999px;background:rgba(255,255,255,.18);font-style:normal}.sac-classify-favorable{background:#166534!important;border-color:#4ade80!important}.sac-classify-suspicious{background:#b91c1c!important;border-color:#fca5a5!important}.sac-classify-remove{background:#334155!important;border-color:#94a3b8!important}.sac-cnpj-actions button:hover,.sac-cnpj-actions button:focus-visible{filter:brightness(1.14);box-shadow:0 0 0 2px rgba(255,255,255,.16);outline:none}
-      .sac-investigation-launcher{position:absolute;left:-84px;top:48px;z-index:1;width:84px;height:32px;display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--sac-border);border-right:0;border-left:3px solid var(--sac-primary);border-radius:9px 0 0 9px;background:var(--sac-panel);color:var(--sac-text);padding:0 8px;box-shadow:-8px 8px 24px rgba(0,0,0,.30),inset 0 1px rgba(255,255,255,.08);font-size:9.5px;font-weight:950;line-height:1;letter-spacing:0;cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease}.sac-investigation-launcher:hover,.sac-investigation-launcher:focus-visible{filter:none;transform:translateX(-2px);border-color:#38bdf8;border-left-color:var(--sac-primary);background:var(--sac-input);box-shadow:-10px 9px 28px rgba(0,0,0,.36),0 0 0 2px rgba(56,189,248,.16);outline:none}.sac-investigation-arrow{position:relative;display:block;width:12px;height:12px}.sac-investigation-arrow:before{content:"";position:absolute;top:2px;width:8px;height:8px;border-left:2px solid currentColor;border-bottom:2px solid currentColor}.sac-investigation-arrow.is-open:before{left:3px;transform:rotate(45deg)}.sac-investigation-arrow.is-close:before{left:0;transform:rotate(225deg)}.sac-investigation-pulse{position:relative;display:block;width:6px;height:6px;border-radius:999px;background:var(--sac-primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--sac-primary) 20%,transparent)}.sac-investigation-drawer{width:332px;border:1px solid var(--sac-border);border-left:3px solid var(--sac-primary);border-top-width:1px;border-radius:10px;background:var(--sac-bg);box-shadow:0 22px 54px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.05)}.sac-investigation-head{position:relative;display:grid;grid-template-columns:30px minmax(0,1fr) 30px;align-items:center;gap:8px;min-height:48px;padding:7px 8px;background:var(--sac-panel);border-bottom:1px solid var(--sac-border);border-radius:7px 7px 0 0;color:var(--sac-text)}.sac-investigation-head:after{content:"";position:absolute;left:38px;right:46px;bottom:-1px;height:1px;background:var(--sac-primary);opacity:.75}.sac-investigation-mark{position:relative;display:grid;width:28px;height:28px;place-items:center;border:1px solid color-mix(in srgb,var(--sac-primary) 70%,var(--sac-border));border-radius:7px;background:color-mix(in srgb,var(--sac-primary) 12%,var(--sac-input))}.sac-investigation-mark:before,.sac-investigation-mark:after{content:"";position:absolute;background:var(--sac-primary);opacity:.8}.sac-investigation-mark:before{width:12px;height:1px}.sac-investigation-mark:after{width:1px;height:12px}.sac-investigation-mark i{display:block;width:7px;height:7px;border:2px solid var(--sac-primary);border-radius:999px}.sac-investigation-heading{display:grid;gap:2px;min-width:0;text-align:left}.sac-investigation-heading strong{font-size:11.5px;line-height:1;color:var(--sac-text)}.sac-investigation-heading small{font-size:8.5px;line-height:1;color:var(--sac-muted);font-weight:900;text-transform:uppercase}.sac-investigation-collapse{display:grid;width:30px;height:30px;place-items:center;border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-input);color:var(--sac-text);padding:0;cursor:pointer;transition:border-color .15s ease,background .15s ease,transform .15s ease}.sac-investigation-collapse:hover,.sac-investigation-collapse:focus-visible{border-color:#38bdf8;background:#10263a;color:#edf3fb;transform:translateX(1px);box-shadow:0 0 0 2px rgba(56,189,248,.14);outline:none}.sac-light .sac-investigation-collapse:hover,.sac-light .sac-investigation-collapse:focus-visible{background:#eef7ff;color:#172033}.sac-book-guidance{padding:5px;border:1px solid color-mix(in srgb,var(--sac-primary) 28%,var(--sac-border));border-radius:7px;background:color-mix(in srgb,var(--sac-primary) 5%,var(--sac-panel))}.sac-book-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.sac-book-grid .sac-side-card{min-height:54px;display:flex;align-items:center}.sac-book-grid .sac-side-card span{line-height:1.2}
+      .sac-cnpj-state{display:block;margin-top:2px;color:var(--sac-muted);font-size:8.4px;line-height:1.05;font-style:normal;font-weight:900}.sac-help-launcher>span:first-child{display:grid;place-items:center;width:16px;height:16px;border-radius:5px;background:var(--sac-primary);color:#fff;font-size:9px}
+      .sac-panel.sac-minimized .sac-investigation-launcher{display:none}.sac-chevron{display:grid;place-items:center;width:18px;height:18px;font:950 24px/1 "Segoe UI Symbol","Segoe UI",Arial,sans-serif;transform:translateY(-1px);text-shadow:0 1px 1px rgba(0,0,0,.48)}.sac-drawer-toggle{width:30px;height:28px;border:1px solid rgba(255,255,255,.52);border-radius:7px;background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center;padding:0;cursor:pointer;transition:background .15s,transform .15s,box-shadow .15s}.sac-drawer-toggle:hover,.sac-drawer-toggle:focus-visible{background:rgba(255,255,255,.28);transform:translateX(1px);box-shadow:0 0 0 2px rgba(255,255,255,.20);outline:none}.sac-investigation-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.sac-investigation-controls.count-1{grid-template-columns:minmax(0,1fr)}.sac-investigation-controls.count-2{grid-template-columns:repeat(2,minmax(0,1fr))}.sac-investigation-controls button{min-width:0;min-height:32px;display:flex;align-items:center;justify-content:center;gap:4px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:4px 3px;text-align:center;font-size:8.8px;font-weight:950;line-height:1.08;cursor:pointer}.sac-investigation-controls button:hover,.sac-investigation-controls button:focus,.sac-investigation-controls button.active,.sac-investigation-controls button.selected{border-color:#38bdf8;background:#10263a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.14);outline:none}.sac-light .sac-investigation-controls button:hover,.sac-light .sac-investigation-controls button:focus,.sac-light .sac-investigation-controls button.active,.sac-light .sac-investigation-controls button.selected{background:#eef7ff;color:#172033}.sac-investigation-controls button span{display:grid;place-items:center;width:16px;height:16px;border-radius:5px;background:var(--sac-primary);color:#fff;font-size:8.5px}.sac-investigation-controls .sac-investigation-cnpj{font-size:8.8px;background:transparent}.sac-investigation-result{display:grid;gap:5px;margin-top:5px}
+      .sac-side-panel,.sac-config.open,.sac-pid-panel{animation:sacPanelEnter .18s cubic-bezier(.2,.8,.2,1) both;transform-origin:top right}.sac-transaction-view{display:grid;gap:6px}.sac-transaction-metric{border-color:color-mix(in srgb,var(--sac-primary) 34%,var(--sac-border))!important;background:color-mix(in srgb,var(--sac-primary) 7%,var(--sac-card))!important}.sac-transaction-metric strong{font-size:10px!important}.sac-merchant-card{display:grid;gap:4px;padding:6px!important}.sac-merchant-card>strong{display:block;font-size:10.5px;color:var(--sac-text);overflow-wrap:break-word}.sac-merchant-meta{display:flex!important;flex-wrap:wrap;gap:3px;margin-top:1px}.sac-merchant-meta i{display:inline-flex;align-items:center;min-height:19px;border:1px solid var(--sac-border);border-radius:4px;background:var(--sac-input);color:var(--sac-muted);padding:2px 4px;font-size:8.5px;font-style:normal;font-weight:900;line-height:1.05}.sac-side-head,.sac-choice-head{box-shadow:inset 0 -1px 0 rgba(255,255,255,.18)}@keyframes sacPanelEnter{from{opacity:0;transform:translateX(8px) scale(.985)}to{opacity:1;transform:translateX(0) scale(1)}}@media (prefers-reduced-motion:reduce){.sac-side-panel,.sac-config.open,.sac-pid-panel{animation:none!important}.sac-switch:after{transition:none!important}}
+      .sac-investigation-drawer .sac-side-body{gap:7px}.sac-investigation-drawer .sac-side-card span{color:var(--sac-text);font-size:9.5px;line-height:1.18}.sac-investigation-drawer .sac-side-group-title{font-size:9.3px}.sac-investigation-grid .sac-side-card>strong{position:absolute;top:-7px;left:4px;z-index:1;max-width:calc(100% - 8px);padding:1px 3px;border-radius:3px;background:var(--sac-bg);color:var(--sac-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:8.2px!important}.sac-counterparty-line{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px;align-items:stretch}.sac-counterparty-line .sac-side-card{min-height:38px}.sac-counterparty-line strong{display:block;color:var(--sac-text);font-size:8.8px;line-height:1.08}.sac-cnpj-selector{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.sac-cnpj-selector button{min-width:0;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:5px 6px;text-align:left;cursor:pointer}.sac-cnpj-selector button.selected,.sac-cnpj-selector button:hover{border-color:#38bdf8;background:#10263a;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-light .sac-cnpj-selector button.selected,.sac-light .sac-cnpj-selector button:hover{background:#eef7ff;color:#172033}.sac-cnpj-selector strong,.sac-cnpj-selector span{display:block;overflow-wrap:anywhere}.sac-cnpj-selector strong{color:var(--sac-muted);font-size:7.6px;font-weight:800;line-height:1.05}.sac-cnpj-selector button.selected strong,.sac-cnpj-selector button:hover strong{color:inherit}.sac-cnpj-selector span{margin-top:2px;font-size:9.5px;font-weight:900}.sac-cnpj-actions button{min-width:0;min-height:34px;display:flex;align-items:center;justify-content:center;gap:4px;border-width:1px;border-style:solid;border-radius:6px;color:#fff;font-size:9.2px;line-height:1.05;text-align:center;font-weight:950;cursor:pointer;text-shadow:0 1px 1px rgba(0,0,0,.48)}.sac-cnpj-actions i{display:grid;place-items:center;width:16px;height:16px;border-radius:999px;background:rgba(255,255,255,.18);font-style:normal}.sac-classify-favorable{background:#166534!important;border-color:#4ade80!important}.sac-classify-suspicious{background:#991b1b!important;border-color:#f87171!important}.sac-classify-remove{background:#334155!important;border-color:#94a3b8!important}.sac-cnpj-actions button:hover,.sac-cnpj-actions button:focus-visible{filter:brightness(1.14);box-shadow:0 0 0 2px rgba(255,255,255,.16);outline:none}
+      .sac-investigation-launcher{position:absolute;left:-92px;top:48px;z-index:1;width:92px;height:32px;display:grid;grid-template-columns:16px minmax(0,1fr) 11px;align-items:center;gap:5px;border:1px solid var(--sac-border);border-right:0;border-left:3px solid var(--sac-primary);border-radius:9px 0 0 9px;background:var(--sac-panel);color:var(--sac-text);padding:0 6px;box-shadow:-8px 8px 24px rgba(0,0,0,.30),inset 0 1px rgba(255,255,255,.08);font-size:9.5px;font-weight:950;line-height:1;letter-spacing:0;cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease}.sac-investigation-launcher.sac-help-launcher{top:84px}.sac-investigation-launcher.sac-help-launcher.sac-solo-launcher{top:48px}.sac-investigation-launcher:hover,.sac-investigation-launcher:focus-visible{filter:none;transform:translateX(-2px);border-color:#38bdf8;border-left-color:var(--sac-primary);background:var(--sac-input);box-shadow:-10px 9px 28px rgba(0,0,0,.36),0 0 0 2px rgba(56,189,248,.16);outline:none}.sac-launcher-chevron{display:grid;place-items:center;color:var(--sac-muted);font:950 18px/1 "Segoe UI Symbol","Segoe UI",Arial,sans-serif;font-style:normal}.sac-investigation-launcher:hover .sac-launcher-chevron{color:var(--sac-text)}.sac-investigation-pulse{position:relative;display:block;width:7px;height:7px;margin:auto;border-radius:999px;background:var(--sac-primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--sac-primary) 20%,transparent)}.sac-investigation-drawer,.sac-help-drawer{width:332px;border:1px solid var(--sac-border);border-left:3px solid var(--sac-primary);border-top-width:1px;border-radius:10px;background:var(--sac-bg);box-shadow:0 22px 54px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.05)}.sac-investigation-head{position:relative;display:grid;grid-template-columns:30px minmax(0,1fr) 30px;align-items:center;gap:8px;min-height:48px;padding:7px 8px;background:var(--sac-panel);border-bottom:1px solid var(--sac-border);border-radius:7px 7px 0 0;color:var(--sac-text)}.sac-investigation-head:after{content:"";position:absolute;left:38px;right:46px;bottom:-1px;height:1px;background:var(--sac-primary);opacity:.75}.sac-investigation-mark{position:relative;display:grid;width:28px;height:28px;place-items:center;border:1px solid color-mix(in srgb,var(--sac-primary) 70%,var(--sac-border));border-radius:7px;background:color-mix(in srgb,var(--sac-primary) 12%,var(--sac-input))}.sac-investigation-mark:before,.sac-investigation-mark:after{content:"";position:absolute;background:var(--sac-primary);opacity:.8}.sac-investigation-mark:before{width:12px;height:1px}.sac-investigation-mark:after{width:1px;height:12px}.sac-investigation-mark i{display:block;width:7px;height:7px;border:2px solid var(--sac-primary);border-radius:999px}.sac-investigation-heading{display:grid;gap:2px;min-width:0;text-align:left}.sac-investigation-heading strong{font-size:11.5px;line-height:1;color:var(--sac-text)}.sac-investigation-heading small{font-size:8.5px;line-height:1;color:var(--sac-muted);font-weight:900;text-transform:uppercase}.sac-investigation-collapse{display:grid;width:30px;height:30px;place-items:center;border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-input);color:var(--sac-text);padding:0;cursor:pointer;transition:border-color .15s ease,background .15s ease,transform .15s ease}.sac-investigation-chevron{display:grid;place-items:center;width:20px;height:20px;border-radius:999px;background:color-mix(in srgb,var(--sac-primary) 18%,var(--sac-input));font:950 25px/1 "Segoe UI Symbol","Segoe UI",Arial,sans-serif;transform:translateX(1px)}.sac-investigation-collapse:hover,.sac-investigation-collapse:focus-visible{border-color:#38bdf8;background:#10263a;color:#edf3fb;transform:translateX(1px);box-shadow:0 0 0 2px rgba(56,189,248,.14);outline:none}.sac-light .sac-investigation-collapse:hover,.sac-light .sac-investigation-collapse:focus-visible{background:#eef7ff;color:#172033}.sac-book-guidance{padding:5px;border:1px solid color-mix(in srgb,var(--sac-primary) 28%,var(--sac-border));border-radius:7px;background:color-mix(in srgb,var(--sac-primary) 5%,var(--sac-panel))}.sac-book-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.sac-book-grid .sac-side-card{min-height:54px;display:flex;align-items:center}.sac-book-grid .sac-side-card span{line-height:1.2}
       .sac-list-group-actions{display:flex;align-items:center;gap:4px}.sac-list-group-actions button{font-size:8.5px!important;padding:5px 6px!important}.sac-list-group-actions [data-list-remove-issuer]{background:#991b1b!important;border-color:#f87171!important}.sac-list-group-actions button:disabled{opacity:.58;cursor:wait}
       @media (max-width:460px){.sac-grid,.sac-field-grid{grid-template-columns:1fr}.sac-history-body{grid-template-columns:1fr}.sac-book-grid{grid-template-columns:1fr}}
     `;
@@ -977,7 +988,8 @@
   function placeSidePanel(ownerPanel, sidePanel) {
     const rect = ownerPanel.getBoundingClientRect();
     const width = sidePanel.offsetWidth || 292;
-    const preferredLeft = rect.left - width - 8;
+    const launcherReserve = sidePanel.matches(".sac-investigation-drawer,.sac-help-drawer,.sac-context-drawer") ? 100 : 0;
+    const preferredLeft = rect.left - width - launcherReserve - 8;
     const rightFallback = Math.min(window.innerWidth - width - 8, rect.right + 8);
     sidePanel.style.left = `${preferredLeft >= 8 ? preferredLeft : Math.max(8, rightFallback)}px`;
     sidePanel.style.top = `${Math.max(8, rect.top)}px`;
@@ -1018,14 +1030,10 @@
     }).join("");
   }
   function openContextHelp(kind, value, ownerPanel) {
-    if (!getInvestigationMode()) return;
+    if (!getHelpMode()) return;
     const groups = contextHelpGroups(kind, value);
     if (!groups.trim()) return;
-    const drawer = document.querySelector(`.sac-investigation-drawer[data-owner="${cssEscape(ownerPanel.id)}"]`);
-    if (!drawer) return;
-    const slot = drawer.querySelector("[data-investigation-slot='help']");
-    if (slot) slot.innerHTML = `<div class="sac-side-group-title">${kind === "issuer" ? "Particularidades do emissor" : "Orientação da regra"}</div>${groups}`;
-    return drawer;
+    return openSupportPanel(ownerPanel, kind === "issuer" ? "Particularidades do emissor" : "Orientação da regra", groups);
   }
 
   function renderPanel({ id, stage, flow = "banking", subtitle = "", body = "", footer = "", onEnter, onSignature }) {
@@ -1100,7 +1108,8 @@
             </div>
           </div>
           <button class="sac-toggle ${getSafeMode() ? "on" : ""}" data-action="safe-mode" aria-pressed="${getSafeMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Modo seguro</span><b>${getSafeMode() ? "Ligado" : "Desligado"}</b></button>
-          <button class="sac-toggle ${getInvestigationMode() ? "on" : ""}" data-action="investigation-mode" aria-pressed="${getInvestigationMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Investigação e ajuda</span><b>${getInvestigationMode() ? "Ligado" : "Desligado"}</b></button>
+          <button class="sac-toggle ${getInvestigationMode() ? "on" : ""}" data-action="investigation-mode" aria-pressed="${getInvestigationMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Modo investigação</span><b>${getInvestigationMode() ? "Ligado" : "Desligado"}</b></button>
+          <button class="sac-toggle ${getHelpMode() ? "on" : ""}" data-action="help-mode" aria-pressed="${getHelpMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Modo ajuda</span><b>${getHelpMode() ? "Ligado" : "Desligado"}</b></button>
           ${signatureConfig}
           <div class="sac-flow-legend">
             <span><i style="background:${escapeHtml(getFlowTone("banking"))}"></i>BANKING</span>
@@ -1125,7 +1134,6 @@
     const config = panel.querySelector(".sac-config");
     const close = () => {
       if (panel.dataset.decisionApplying === "true") {
-        showNotice("Aguarde a aplicação da decisão no Tabulador terminar.", "warn", 9000);
         return false;
       }
       if (panel.dataset.finalLocked === "true") {
@@ -1171,6 +1179,7 @@
     const openConfig = () => {
       panel.classList.remove("sac-minimized");
       closeSidePanels(panel.id);
+      if (panel.id === "sac-panel-console") closePidPanel();
       config.hidden = false;
       config.classList.add("open");
       panel.style.zIndex = "2147483646";
@@ -1182,12 +1191,15 @@
     panel.querySelector(".sac-head")?.addEventListener("dblclick", () => panel.classList.remove("sac-minimized"));
     panel.querySelector("[data-action='config']")?.addEventListener("click", () => {
       const opening = config.hidden;
-      if (opening) closeSidePanels(panel.id);
+      if (opening) {
+        closeSidePanels(panel.id);
+        if (panel.id === "sac-panel-console") closePidPanel();
+      }
       config.hidden = !config.hidden;
       config.classList.toggle("open", !config.hidden);
       panel.style.zIndex = config.hidden ? "" : "2147483646";
       placeConfigPanel(panel, config);
-      if (panel.id === "sac-panel-console") placePidPanel();
+      if (panel.id === "sac-panel-console" && !opening) placePidPanel();
     });
     panel.querySelector("[data-action='theme']")?.addEventListener("click", () => {
       setTheme(getTheme() === "dark" ? "light" : "dark");
@@ -1216,6 +1228,15 @@
       setInvestigationMode(next);
       if (next) hydrateCounterpartyLocalRecords();
       else releaseInvestigationSession();
+      event.currentTarget.classList.toggle("on", next);
+      event.currentTarget.setAttribute("aria-pressed", next ? "true" : "false");
+      const state = event.currentTarget.querySelector("b");
+      if (state) state.textContent = next ? "Ligado" : "Desligado";
+      reload();
+    });
+    panel.querySelector("[data-action='help-mode']")?.addEventListener("click", (event) => {
+      const next = !getHelpMode();
+      setHelpMode(next);
       event.currentTarget.classList.toggle("on", next);
       event.currentTarget.setAttribute("aria-pressed", next ? "true" : "false");
       const state = event.currentTarget.querySelector("b");
@@ -1270,9 +1291,11 @@
       });
     });
     panel.querySelector("[data-action='history']")?.addEventListener("click", renderHistory);
-    panel.addEventListener("mouseover", (event) => {
+    panel.addEventListener("click", (event) => {
       const help = event.target.closest("[data-help-kind]");
       if (!help) return;
+      event.preventDefault();
+      event.stopPropagation();
       openContextHelp(help.dataset.helpKind, help.dataset.helpValue, panel);
     });
     all("[data-other-select]", panel).forEach((select) => {
@@ -1341,10 +1364,10 @@
   function kv(label, value, cls = "") {
     const missing = isMissing(value);
     const labelKey = normalize(label);
-    const possibleKind = getInvestigationMode() && (labelKey === "REGRA" || ((labelKey.includes("STATUS") || labelKey.includes("SPD")) && hasHelpEntry("rule", value))) ? "rule" : getInvestigationMode() && labelKey === "EMISSOR" ? "issuer" : "";
+    const possibleKind = getHelpMode() && (labelKey === "REGRA" || ((labelKey.includes("STATUS") || labelKey.includes("SPD")) && hasHelpEntry("rule", value))) ? "rule" : getHelpMode() && labelKey === "EMISSOR" ? "issuer" : "";
     const kind = possibleKind && hasHelpEntry(possibleKind, value) ? possibleKind : "";
     const icon = kind === "rule" ? "!" : "i";
-    const title = kind === "rule" ? "Passe o mouse para ver orientação da regra" : "Passe o mouse para ver particularidades do emissor";
+    const title = kind === "rule" ? "Clique para ver orientação da regra" : "Clique para ver particularidades do emissor";
     const help = kind ? `<button class="sac-help-btn" data-help-kind="${kind}" data-help-value="${escapeHtml(clean(value, ""))}" aria-label="${escapeHtml(title)}" title="${escapeHtml(title)}">${icon}</button>` : "";
     return `<div class="sac-kv ${missing ? "sac-missing" : ""} ${cls}">${help}<div class="sac-kv-label">${escapeHtml(label)}</div><div class="sac-kv-value">${escapeHtml(clean(value))}</div></div>`;
   }
@@ -1354,10 +1377,10 @@
   }
   function kvOptional(label, value, cls = "") {
     const labelKey = normalize(label);
-    const possibleKind = getInvestigationMode() && (labelKey === "REGRA" || ((labelKey.includes("STATUS") || labelKey.includes("SPD")) && hasHelpEntry("rule", value))) ? "rule" : getInvestigationMode() && labelKey === "EMISSOR" ? "issuer" : "";
+    const possibleKind = getHelpMode() && (labelKey === "REGRA" || ((labelKey.includes("STATUS") || labelKey.includes("SPD")) && hasHelpEntry("rule", value))) ? "rule" : getHelpMode() && labelKey === "EMISSOR" ? "issuer" : "";
     const kind = possibleKind && hasHelpEntry(possibleKind, value) ? possibleKind : "";
     const icon = kind === "rule" ? "!" : "i";
-    const title = kind === "rule" ? "Passe o mouse para ver orientação da regra" : "Passe o mouse para ver particularidades do emissor";
+    const title = kind === "rule" ? "Clique para ver orientação da regra" : "Clique para ver particularidades do emissor";
     const help = kind ? `<button class="sac-help-btn" data-help-kind="${kind}" data-help-value="${escapeHtml(clean(value, ""))}" aria-label="${escapeHtml(title)}" title="${escapeHtml(title)}">${icon}</button>` : "";
     return `<div class="sac-kv ${cls}">${help}<div class="sac-kv-label">${escapeHtml(label)}</div><div class="sac-kv-value">${escapeHtml(clean(value, ""))}</div></div>`;
   }
@@ -2176,10 +2199,11 @@
 
   function collectConsolePidField(label, data = {}) {
     const wanted = normalize(label);
-    if (wanted.includes("NOME DA MAE")) return { key: "motherName", value: firstConsoleLabeledValue(["Nome da mãe", "Nome da mae", "Mãe", "Mae"]) };
-    if (wanted.includes("NASCIMENTO")) return { key: "birthDate", value: firstConsoleLabeledValue(["Data de nascimento", "Nascimento"]) };
-    if (wanted.includes("ENDERECO")) return { key: "address", value: firstConsoleLabeledValue(["Endereço de correspondência", "Endereço cadastrado", "Endereço"]) };
-    if (wanted.includes("TELEFONE")) return { key: "phone", value: findConsolePhone() };
+    const saved = data?.pidData || {};
+    if (wanted.includes("NOME DA MAE")) return { key: "motherName", value: firstConsoleLabeledValue(["Nome da mãe", "Nome da mae", "Mãe", "Mae"]) || clean(saved.motherName, "") };
+    if (wanted.includes("NASCIMENTO")) return { key: "birthDate", value: firstConsoleLabeledValue(["Data de nascimento", "Nascimento"]) || clean(saved.birthDate, "") };
+    if (wanted.includes("ENDERECO")) return { key: "address", value: firstConsoleLabeledValue(["Endereço de correspondência", "Endereço cadastrado", "Endereço"]) || clean(saved.address, "") };
+    if (wanted.includes("TELEFONE")) return { key: "phone", value: findConsolePhone() || clean(saved.phone, "") };
     if (wanted.includes("ULTIMA COMPRA")) return { key: "lastPurchase", value: firstConsoleLabeledValue(["Última compra", "Ultima compra", "Última transação de cartão", "Ultima transacao de cartao"]) };
     if (wanted.includes("LIMITE") && wanted.includes("SALDO")) {
       const cardLimit = firstConsoleLabeledValue(["Limite disponível", "Limite do cartão", "Limite"]);
@@ -2537,9 +2561,11 @@
       cardStatus: card.cardStatus || "N/A",
       cardMatched: card.matched !== false,
       cardDataOptional: globalCardWithoutData,
+      investigationSnapshot: falcon?.investigationSnapshot || {},
       fields: defaultConsoleFields(flow, isGlobal)
     };
-    data.pidData = collectConsolePidData(data);
+    const consolePidData = collectConsolePidData(data);
+    data.pidData = { ...(falcon?.pidData || {}), ...consolePidData };
     return data;
   }
   function defaultConsoleFields(flow, isGlobal) {
@@ -2563,18 +2589,50 @@
       .join("|") || "CURRENT";
   }
 
+  function investigationSnapshot(data) {
+    data.investigationSnapshot = data.investigationSnapshot && typeof data.investigationSnapshot === "object"
+      ? data.investigationSnapshot
+      : {};
+    return data.investigationSnapshot;
+  }
+
+  function corporateCandidates(data = {}) {
+    const falcon = data?.falcon || data || {};
+    const candidates = [];
+    const add = (documentValue, role, direction = "BOTH", source = "") => {
+      const cnpj = counterpartyEngine.normalizeCnpj(documentValue || "");
+      if (!counterpartyEngine.validateCnpj(cnpj) || candidates.some((item) => item.cnpj === cnpj)) return;
+      candidates.push({ cnpj, role, direction: counterpartyEngine.normalizeDirection(direction), source });
+    };
+    add(falcon.holderDocument || data?.cpfCnpj, "Titular da conta", "BOTH", falcon.holderDocumentSource || "CPF/CNPJ do titular");
+    add(falcon.counterpartyCnpj, "Quem está transacionando", falcon.counterpartyDirection, falcon.counterpartySourceLabel);
+    (Array.isArray(data?.investigationSnapshot?.cnpjs) ? data.investigationSnapshot.cnpjs : []).forEach((item) => {
+      add(item.cnpj, item.role || "CNPJ analisado", item.direction || "BOTH", item.source || "Análise anterior");
+    });
+    return candidates;
+  }
+
+  function investigationMediaOverview(data) {
+    const media = data?.mediaInvestigation?.found ? data.mediaInvestigation : data?.investigationSnapshot?.media;
+    if (!media?.found) return "";
+    const types = mediaEngine.normalizeTypes(media.mediaTypes || []);
+    if (!types.length) return "";
+    return `<div class="sac-side-group"><div class="sac-side-group-title">Mídias desabonadoras encontradas</div>${types.map((item) => `<div class="sac-side-card sac-support-summary danger"><strong>${escapeHtml(item)}</strong><span>O CPF do titular foi localizado como réu em processo compatível com esta categoria.</span></div>`).join("")}</div>`;
+  }
+
   function investigationControls(stage, data, rows = []) {
+    const snapshot = data?.investigationSnapshot || {};
     const controls = [];
-    if (stage === "FALCON" && counterpartyEngine.validateCnpj(data?.counterpartyCnpj || "")) {
-      controls.push(`<button class="sac-investigation-cnpj" data-investigation="cnpj"><span aria-hidden="true">✓</span>Verificar CNPJ</button>`);
+    if ((stage === "FALCON" && rows.length) || stage === "CONSOLE" || snapshot.transaction) {
+      controls.push(`<button data-investigation="transaction"><span aria-hidden="true">↗</span>Transacional</button>`);
     }
-    if (stage === "FALCON" && rows.length) {
-      controls.push(`<button data-investigation="falcon-transaction"><span aria-hidden="true">⌁</span>Análise transacional</button>`);
+    if (corporateCandidates(data).length) {
+      controls.push(`<button class="sac-investigation-cnpj" data-investigation="cnpj"><span aria-hidden="true">✓</span>CNPJ</button>`);
     }
-    if (stage === "CONSOLE") {
-      controls.push(`<button data-investigation="transaction"><span aria-hidden="true">⌁</span>Análise transacional</button>`);
+    if (investigationMediaOverview(data)) {
+      controls.push(`<button data-investigation="media"><span aria-hidden="true">!</span>Mídias</button>`);
     }
-    return `<div class="sac-investigation-controls ${controls.length === 1 ? "single" : ""}">${controls.join("")}</div>`;
+    return `<div class="sac-investigation-controls count-${controls.length}">${controls.join("")}</div>`;
   }
 
   function investigationHelpOverview(data, stage = "") {
@@ -2591,16 +2649,6 @@
       </div>` : "";
     const flow = data?.visualFlow || data?.flow || data?.falcon?.flow || "banking";
     const isCard = flow === "card";
-    const validation = stage === "CONSOLE" ? data?.accountValidation : null;
-    const validationCard = validation
-      ? `<div class="sac-side-group">
-          <div class="sac-side-group-title">Conferência Falcon x Console</div>
-          <div class="sac-side-card sac-support-summary ${validation.comparable ? (validation.matches ? "success" : "danger sac-investigation-alert") : "warning"}">
-            <strong>${validation.comparable ? (validation.matches ? "MESMO CASO CONFIRMADO" : "INFORMAÇÕES DIVERGENTES") : "CONFERÊNCIA INCOMPLETA"}</strong>
-            <span>${validation.comparable ? (validation.matches ? "Conta e CPF/CNPJ, ou final do cartão, correspondem entre as páginas." : "INFORMAÇÕES DIVERGENTES, VERIFIQUE O CASO NOVAMENTE") : "Não há identificadores suficientes para comparar as páginas."}</span>
-          </div>
-        </div>`
-      : "";
     const bookGuidance = [
       isCard
         ? "Compare recorrência, estabelecimento, modo de entrada e histórico de compra antes da decisão."
@@ -2614,32 +2662,43 @@
       <div class="sac-book-grid">${bookGuidance.map((item) => `<div class="sac-side-card"><span>${escapeHtml(item)}</span></div>`).join("")}</div>
     </div>`;
     return [
-      validationCard,
       book,
       issuerHelp ? `<div class="sac-side-group"><div class="sac-side-group-title">Particularidades do emissor</div>${issuerHelp}</div>` : "",
       transactional,
       ruleHelp ? `<div class="sac-side-group"><div class="sac-side-group-title">Orientação da regra</div>${ruleHelp}</div>` : ""
-    ].filter(Boolean).join("") || `<div class="sac-side-card"><span>Não há particularidades cadastradas para este emissor ou regra.</span></div>`;
+    ].filter(Boolean).join("");
   }
 
   function attachInvestigationLauncher(ownerPanel, stage, data, rowsSource = []) {
-    if (!ownerPanel || !getInvestigationMode() || !["FALCON", "CONSOLE", "TABULADOR"].includes(stage)) return;
-    ownerPanel.querySelector(".sac-investigation-launcher")?.remove();
-    const launcher = document.createElement("button");
-    launcher.className = "sac-investigation-launcher";
-    launcher.type = "button";
-    launcher.title = "Investigar este caso";
-    launcher.setAttribute("aria-label", "Investigar este caso");
-    launcher.innerHTML = `<span class="sac-investigation-pulse" aria-hidden="true"></span><span>Investigar</span>`;
-    ownerPanel.appendChild(launcher);
-    const toggleDrawer = () => {
-      const existing = document.querySelector(`.sac-investigation-drawer[data-owner="${cssEscape(ownerPanel.id)}"]`);
-      if (existing) {
-        existing.remove();
-        releaseInvestigationSession(data);
-        if (ownerPanel.id === "sac-panel-console") placePidPanel();
-        return null;
-      }
+    if (!ownerPanel || (!getInvestigationMode() && !getHelpMode()) || !["FALCON", "CONSOLE", "TABULADOR"].includes(stage)) return;
+    ownerPanel.querySelectorAll(".sac-investigation-launcher").forEach((item) => item.remove());
+    let launcher = null;
+    let helpLauncher = null;
+    if (getInvestigationMode()) {
+      launcher = document.createElement("button");
+      launcher.className = "sac-investigation-launcher";
+      launcher.type = "button";
+      launcher.title = "Abrir análises do caso";
+      launcher.setAttribute("aria-label", "Abrir análises do caso");
+      launcher.innerHTML = `<span class="sac-investigation-pulse" aria-hidden="true"></span><span>Analisar</span><i class="sac-launcher-chevron" aria-hidden="true">‹</i>`;
+      ownerPanel.appendChild(launcher);
+    }
+    if (getHelpMode()) {
+      helpLauncher = document.createElement("button");
+      helpLauncher.className = `sac-investigation-launcher sac-help-launcher${launcher ? "" : " sac-solo-launcher"}`;
+      helpLauncher.type = "button";
+      helpLauncher.title = "Abrir ajuda de regra e emissor";
+      helpLauncher.setAttribute("aria-label", "Abrir ajuda de regra e emissor");
+      helpLauncher.innerHTML = `<span aria-hidden="true">i</span><span>Ajuda</span><i class="sac-launcher-chevron" aria-hidden="true">‹</i>`;
+      ownerPanel.appendChild(helpLauncher);
+    }
+
+    const closeCurrentDrawer = () => {
+      closeSidePanels(ownerPanel.id);
+      releaseInvestigationSession(data);
+      if (ownerPanel.id === "sac-panel-console") placePidPanel();
+    };
+    const prepareDrawer = () => {
       const config = ownerPanel.querySelector(".sac-config");
       if (config) {
         config.hidden = true;
@@ -2647,54 +2706,79 @@
         ownerPanel.style.zIndex = "";
       }
       closeSidePanels(ownerPanel.id);
-      const rows = stage === "FALCON"
-        ? (typeof rowsSource === "function" ? rowsSource() : rowsSource)
-        : [];
-      const controls = investigationControls(stage, data, Array.isArray(rows) ? rows : []);
-      const hasActions = controls.includes("data-investigation");
+      if (ownerPanel.id === "sac-panel-console") closePidPanel();
+    };
+    const createDrawer = ({ className, supportKey, title, content }) => {
+      prepareDrawer();
       const drawer = document.createElement("aside");
-      drawer.className = `sac-side-panel sac-support-panel sac-investigation-drawer sac-${getTheme()}`;
+      drawer.className = `sac-side-panel sac-support-panel ${className} sac-${getTheme()}`;
       drawer.dataset.owner = ownerPanel.id;
-      drawer.dataset.supportKey = "MODO INVESTIGACAO";
+      drawer.dataset.supportKey = supportKey;
       drawer.style.setProperty("--sac-primary", ownerPanel.style.getPropertyValue("--sac-primary") || getFlowTone("banking"));
       const flowLabel = flowConfig(data?.visualFlow || data?.flow || "banking").label;
       drawer.innerHTML = `
         <div class="sac-investigation-head">
           <span class="sac-investigation-mark" aria-hidden="true"><i></i></span>
-          <span class="sac-investigation-heading"><strong>INVESTIGAÇÃO</strong><small>${escapeHtml(stage)} · ${escapeHtml(flowLabel)}</small></span>
-          <button class="sac-investigation-collapse" data-collapse-investigation aria-label="Recolher painel" title="Recolher painel"><span class="sac-investigation-arrow is-close" aria-hidden="true"></span></button>
+          <span class="sac-investigation-heading"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(stage)} · ${escapeHtml(flowLabel)}</small></span>
+          <button class="sac-investigation-collapse" data-collapse-investigation aria-label="Recolher painel" title="Recolher painel"><span class="sac-investigation-chevron" aria-hidden="true">›</span></button>
         </div>
-        <div class="sac-side-body">
-          ${hasActions ? controls : ""}
-          <div class="sac-investigation-result" data-investigation-slot="transaction">${stage === "TABULADOR" ? "" : `<div class="sac-side-card"><span>Preparando a análise transacional disponível nesta página...</span></div>`}</div>
-          <div class="sac-investigation-result" data-investigation-slot="cnpj"></div>
-          <div class="sac-investigation-result" data-investigation-slot="help">${investigationHelpOverview(data, stage)}</div>
-        </div>`;
+        <div class="sac-side-body">${content}</div>`;
       document.body.appendChild(drawer);
       placeSidePanel(ownerPanel, drawer);
-      drawer.querySelector("[data-collapse-investigation]")?.addEventListener("click", () => {
-        drawer.remove();
-        releaseInvestigationSession(data);
-        if (ownerPanel.id === "sac-panel-console") placePidPanel();
+      drawer.querySelector("[data-collapse-investigation]")?.addEventListener("click", closeCurrentDrawer);
+      return drawer;
+    };
+
+    const toggleDrawer = () => {
+      const existing = document.querySelector(`.sac-investigation-drawer[data-owner="${cssEscape(ownerPanel.id)}"]`);
+      if (existing) {
+        closeCurrentDrawer();
+        return null;
+      }
+      const rows = stage === "FALCON"
+        ? (typeof rowsSource === "function" ? rowsSource() : rowsSource)
+        : [];
+      const controls = investigationControls(stage, data, Array.isArray(rows) ? rows : []);
+      if (!controls.includes("data-investigation")) return null;
+      const drawer = createDrawer({
+        className: "sac-investigation-drawer",
+        supportKey: "MODO ANALISE",
+        title: "ANÁLISES",
+        content: `${controls}<div class="sac-investigation-result" data-investigation-content><div class="sac-side-card"><span>Escolha uma análise.</span></div></div>`
       });
       const runAction = async (button) => {
         if (!button || button.disabled) return;
         button.disabled = true;
         button.classList.add("active");
         try {
+          drawer.querySelectorAll("[data-investigation]").forEach((item) => item.classList.toggle("selected", item === button));
           if (button.dataset.investigation === "cnpj") await openCounterpartyVerification(data, ownerPanel);
-          if (button.dataset.investigation === "falcon-transaction") await openFalconTransactionAnalysis(data, Array.isArray(rows) ? rows : [], ownerPanel);
-          if (button.dataset.investigation === "transaction") await openTransactionAnalysis(data, ownerPanel);
+          if (button.dataset.investigation === "transaction") {
+            if (stage === "FALCON") await openFalconTransactionAnalysis(data, Array.isArray(rows) ? rows : [], ownerPanel);
+            else if (stage === "CONSOLE") await openTransactionAnalysis(data, ownerPanel);
+            else if (data?.investigationSnapshot?.transaction) openSupportPanel(ownerPanel, data.investigationSnapshot.transaction.title, data.investigationSnapshot.transaction.html);
+          }
+          if (button.dataset.investigation === "media") openSupportPanel(ownerPanel, "Mídias", investigationMediaOverview(data));
         } finally {
           button.disabled = false;
           button.classList.remove("active");
         }
       };
       drawer.querySelectorAll("[data-investigation]").forEach((button) => button.addEventListener("click", () => runAction(button)));
-      requestAnimationFrame(() => drawer.querySelectorAll("[data-investigation]").forEach((button) => runAction(button)));
       return drawer;
     };
-    launcher.addEventListener("click", toggleDrawer);
+    const toggleHelp = () => {
+      const existing = document.querySelector(`.sac-help-drawer[data-owner="${cssEscape(ownerPanel.id)}"]`);
+      if (existing) {
+        closeCurrentDrawer();
+        return null;
+      }
+      const content = investigationHelpOverview(data, stage);
+      if (!content) return null;
+      return createDrawer({ className: "sac-help-drawer", supportKey: "MODO AJUDA", title: "AJUDA", content });
+    };
+    launcher?.addEventListener("click", toggleDrawer);
+    helpLauncher?.addEventListener("click", toggleHelp);
   }
 
   function mediaHolderDocument(data) {
@@ -2728,7 +2812,16 @@
       data.fields = data.fields || {};
       data.fields.badMedia = result.found ? "sim" : "não";
       data.fields.badMediaDetails = result.found ? mediaEngine.normalizeTypes(result.mediaTypes) : [];
+      data.pidData = { ...(data.pidData || {}), ...(result.pidData || {}) };
       data.mediaInvestigation = result;
+      data.investigationSnapshot = {
+        ...(data.investigationSnapshot || {}),
+        media: result.found ? {
+          found: true,
+          mediaTypes: mediaEngine.normalizeTypes(result.mediaTypes),
+          defendants: Array.isArray(result.defendants) ? result.defendants : []
+        } : null
+      };
       memory.transport.clear("mediaResult");
       applied = true;
     }
@@ -2745,14 +2838,7 @@
     const drawer = all(".sac-investigation-drawer").find((item) => item.dataset.owner === ownerPanel.id);
     if (drawer) {
       drawer.dataset.activeSupportKey = supportKey;
-      const slotKey = supportKey.includes("CNPJ") ? "cnpj" : supportKey.includes("TRANSACIONAL") ? "transaction" : "help";
-      let resultHost = drawer.querySelector(`[data-investigation-slot="${slotKey}"]`);
-      if (!resultHost) {
-        resultHost = document.createElement("div");
-        resultHost.className = "sac-investigation-result";
-        resultHost.dataset.investigationSlot = slotKey;
-        drawer.querySelector(".sac-side-body")?.appendChild(resultHost);
-      }
+      const resultHost = drawer.querySelector("[data-investigation-content]");
       if (resultHost) {
         resultHost.innerHTML = `<div class="sac-side-group"><div class="sac-side-group-title">${escapeHtml(title)}</div>${content}</div>`;
         resultHost.querySelectorAll("[data-close-support]").forEach((button) => button.remove());
@@ -2767,7 +2853,7 @@
     }
     closeSidePanels(ownerPanel.id);
     const panel = document.createElement("aside");
-    panel.className = `sac-side-panel sac-support-panel sac-${getTheme()}`;
+    panel.className = `sac-side-panel sac-support-panel sac-context-drawer sac-${getTheme()}`;
     panel.dataset.owner = ownerPanel.id;
     panel.dataset.supportKey = supportKey;
     panel.style.setProperty("--sac-primary", ownerPanel.style.getPropertyValue("--sac-primary") || getFlowTone("banking"));
@@ -2822,14 +2908,26 @@
       ["5 minutos", Number(metrics.velocity5m || 0)],
       ["10 minutos", Number(metrics.velocity10m || 0)]
     ];
-    const active = buckets.find(([, count]) => count >= 2);
-    if (!active) return "";
-    return `<div class="sac-side-group"><div class="sac-side-group-title">Velocidade transacional</div><div class="sac-investigation-grid"><div class="sac-side-card sac-grid-full sac-support-summary warning"><strong>Transações em ${escapeHtml(active[0])}</strong><span>${active[1]} transações no menor intervalo identificado</span></div></div></div>`;
+    const active = buckets.filter(([, count]) => count >= 2);
+    if (!active.length) return "";
+    return `<div class="sac-side-group"><div class="sac-side-group-title">Velocidade transacional</div><div class="sac-investigation-grid">${active.map(([period, count]) => `<div class="sac-side-card sac-support-summary warning"><strong>Dentro de ${escapeHtml(period)}</strong><span>${count} transações</span></div>`).join("")}</div></div>`;
+  }
+
+  function investigationUnusualHoursHtml(metrics = {}) {
+    const count = Number(metrics.unusualHours || 0);
+    if (!count) return "";
+    return `<div class="sac-side-group"><div class="sac-side-group-title">Horário suspeito</div><div class="sac-investigation-grid"><div class="sac-side-card sac-support-summary warning"><strong>Entre 00h e 06h</strong><span>${count} transaç${count === 1 ? "ão" : "ões"}</span></div><div class="sac-side-card sac-support-summary warning"><strong>Valor no horário</strong><span>${escapeHtml(investigationCurrency(metrics.unusualHoursAmount))}</span></div></div></div>`;
+  }
+
+  function investigationPatternsHtml(metrics = {}) {
+    const recurring = Number(metrics.repeatedCounterpartyCount || 0);
+    const passThroughPairs = Number(metrics.passThroughPairs || 0);
+    return `<div class="sac-side-group"><div class="sac-side-group-title">Padrões transacionais</div><div class="sac-investigation-grid"><div class="sac-side-card sac-support-summary ${metrics.passThrough ? "danger" : "neutral"}"><strong>Possível triangulação</strong><span>${metrics.passThrough ? `${passThroughPairs} par${passThroughPairs === 1 ? "" : "es"} de entrada e saída semelhantes em até 10 minutos` : "Não identificada"}</span></div><div class="sac-side-card sac-support-summary ${recurring ? "warning" : "neutral"}"><strong>Envios ou destinos recorrentes</strong><span>${recurring} pessoa${recurring === 1 ? " ou empresa" : "s ou empresas"}</span></div><div class="sac-side-card"><strong>Maior transação</strong><span>${escapeHtml(investigationCurrency(metrics.largestAmount))}</span></div><div class="sac-side-card"><strong>Valor mediano</strong><span>${escapeHtml(investigationCurrency(metrics.medianAmount))}</span></div></div></div>`;
   }
 
   function investigationCounterpartiesHtml(items = []) {
     if (!Array.isArray(items) || !items.length) {
-      return `<div class="sac-side-card sac-support-summary warning"><span>Não foi possível identificar a pessoa ou empresa do outro lado nas linhas disponíveis.</span></div>`;
+      return `<div class="sac-side-card sac-support-summary warning"><span>Não foi possível identificar com quem o cliente transacionou nas linhas disponíveis.</span></div>`;
     }
     return items.map((item) => {
       const documentValue = String(item.document || "");
@@ -2845,30 +2943,14 @@
     return Boolean(ownerPanel?.isConnected && document.querySelector(`.sac-investigation-drawer[data-owner="${cssEscape(ownerPanel.id)}"]`));
   }
 
-  function investigationSummaryHtml(result = {}) {
-    const signals = Array.isArray(result.signals) ? result.signals : [];
-    const favorable = signals.filter((item) => item.kind === "favorable");
-    const attention = signals.filter((item) => item.kind === "attention" || item.kind === "alert");
-    const hasAlert = signals.some((item) => item.kind === "alert");
-    const classification = normalize(result.classification);
-    const tone = hasAlert ? "danger" : attention.length ? "warning" : favorable.length ? "success" : "neutral";
-    const label = clean(result.label, "SEM SINAIS CADASTRADOS");
-    const detail = classification === "FAVORABLE"
-      ? `${favorable.length} sinal${favorable.length === 1 ? "" : "is"} favorável${favorable.length === 1 ? "" : "eis"} e nenhum ponto de atenção cadastrado.`
-      : classification === "REVIEW"
-        ? `${attention.length} ponto${attention.length === 1 ? "" : "s"} precisa${attention.length === 1 ? "" : "m"} de conferência antes da decisão.`
-        : "Os dados disponíveis não acionaram uma orientação cadastrada.";
-    const titles = (items, fallback) => items.length
-      ? items.slice(0, 3).map((item) => clean(item.title, "Sinal identificado")).join(" · ")
-      : fallback;
-    return `<div class="sac-side-group">
-      <div class="sac-side-group-title">Resumo para decisão</div>
-      <div class="sac-side-card sac-support-summary ${tone}"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(detail)}</span></div>
-      <div class="sac-investigation-grid">
-        <div class="sac-side-card sac-support-summary ${favorable.length ? "success" : "neutral"}"><strong>A favor</strong><span>${escapeHtml(titles(favorable, "Nenhum sinal favorável cadastrado"))}</span></div>
-        <div class="sac-side-card sac-support-summary ${hasAlert ? "danger" : attention.length ? "warning" : "neutral"}"><strong>Atenção</strong><span>${escapeHtml(titles(attention, "Nenhum ponto de atenção cadastrado"))}</span></div>
-      </div>
-    </div>`;
+  function transactionSignalFact(value) {
+    return clean(String(value || "").split(/(?<=[.!?])\s+/)[0], "Sinal transacional identificado.");
+  }
+
+  function openInvestigationResult(data, ownerPanel, title, content, snapshotKey = "transaction") {
+    const snapshot = investigationSnapshot(data);
+    snapshot[snapshotKey] = { title, html: content, savedAt: Date.now() };
+    return openSupportPanel(ownerPanel, title, content);
   }
 
   async function openFalconTransactionAnalysis(data, rows, ownerPanel) {
@@ -2893,10 +2975,9 @@
       rule: data?.rule,
       rows
     });
-    const decisionSummary = investigationSummaryHtml(analysis);
     const signalCards = analysis.signals.length
-      ? `<div class="sac-side-group"><div class="sac-side-group-title">Sinais observados</div>${analysis.signals.map((item) => `<div class="sac-side-card sac-support-summary ${transactionSignalClass(item.kind)}"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.detail)}</span></div>`).join("")}</div>`
-      : `<div class="sac-side-card"><span class="sac-support-empty">Nenhum sinal cadastrado foi identificado nas linhas disponíveis.</span></div>`;
+      ? `<div class="sac-side-group"><div class="sac-side-group-title">Alertas transacionais</div>${analysis.signals.map((item) => `<div class="sac-side-card sac-support-summary ${transactionSignalClass(item.kind)}"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(transactionSignalFact(item.detail))}</span></div>`).join("")}</div>`
+      : "";
 
     if (cardFlow) {
       const merchantCards = summary.merchants.length
@@ -2918,10 +2999,8 @@
           }).join("")
         : `<div class="sac-side-card sac-support-summary warning"><strong>Estabelecimento não identificado</strong><span>As linhas foram lidas, mas o campo mapeado de estabelecimento não estava disponível.</span></div>`;
       if (!investigationDrawerActive(ownerPanel)) return;
-      openSupportPanel(ownerPanel, "Análise transacional de cartão", `
+      openInvestigationResult(data, ownerPanel, "Análise transacional de cartão", `
         <div class="sac-transaction-view">
-          ${decisionSummary}
-          <div class="sac-side-card sac-transaction-hero"><strong>Leitura por estabelecimento e modo de entrada</strong><span>Chip e senha é um sinal favorável. Repetições por aproximação, digitado manual ou e-commerce no mesmo estabelecimento exigem atenção.</span></div>
           <div class="sac-investigation-grid">
             <div class="sac-side-card sac-transaction-metric"><strong>Tentativas analisadas</strong><span>${summary.transactionCount}</span></div>
             <div class="sac-side-card sac-transaction-metric"><strong>Estabelecimentos</strong><span>${summary.merchantCount}</span></div>
@@ -2932,7 +3011,6 @@
           </div>
           ${signalCards}
           <div class="sac-side-group"><div class="sac-side-group-title">Estabelecimentos</div>${merchantCards}</div>
-          <div class="sac-side-card"><span>O resultado apoia a análise e não escolhe uma decisão. Outros sinais do caso continuam prevalecendo sobre um modo de entrada isolado.</span></div>
         </div>`);
       return;
     }
@@ -2959,18 +3037,20 @@
         }).join("")
       : investigationCounterpartiesHtml([]);
     if (!investigationDrawerActive(ownerPanel)) return;
-    openSupportPanel(ownerPanel, "Análise transacional Falcon", `<div class="sac-transaction-view">
-      ${decisionSummary}
+    openInvestigationResult(data, ownerPanel, "Análise transacional Falcon", `<div class="sac-transaction-view">
       <div class="sac-side-group"><div class="sac-side-group-title">Visão geral</div>
       <div class="sac-investigation-grid">
         <div class="sac-side-card"><strong>Total de transações analisadas</strong><span>${summary.transactionCount}</span></div>
         <div class="sac-side-card"><strong>Valor total transacionado</strong><span>${escapeHtml(investigationCurrency(summary.totalAmount))}</span></div>
         <div class="sac-side-card"><strong>Período transacionado</strong><span>${escapeHtml(investigationPeriod(summary.periodStart, summary.periodEnd, summary.validDateCount))}</span></div>
         <div class="sac-side-card"><strong>Contatos diferentes</strong><span>${summary.uniqueCounterpartyCount}</span></div>
+        <div class="sac-side-card sac-support-summary ${summary.p2pCount ? "success" : "neutral"}"><strong>P2P detectado</strong><span>${summary.p2pCount || 0} transaç${summary.p2pCount === 1 ? "ão" : "ões"}</span></div>
         <div class="sac-side-card sac-support-summary ${summary.p2pIssuerCount ? "success" : "neutral"}"><strong>P2P Emissor</strong><span>${summary.p2pIssuerCount || 0}</span></div>
         <div class="sac-side-card sac-support-summary ${summary.p2pPersonalCount ? "success" : "neutral"}"><strong>P2P Pessoal</strong><span>${summary.p2pPersonalCount || 0}</span></div>
       </div></div>
+      ${investigationPatternsHtml(summary)}
       ${investigationVelocityHtml(summary)}
+      ${investigationUnusualHoursHtml(summary)}
       ${signalCards}
       <div class="sac-side-group"><div class="sac-side-group-title">Transacionando com</div>${counterpartCards}</div>
     </div>`);
@@ -3002,37 +3082,29 @@
     const signals = result.signals.length
       ? result.signals.map((item) => `
           <div class="sac-side-card sac-support-summary ${transactionSignalClass(item.kind)}">
-            <strong>${escapeHtml(item.title)}${item.points > 0 ? ` · +${item.points}` : item.points < 0 ? ` · ${item.points}` : ""}</strong>
-            <span>${escapeHtml(item.detail)}</span>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(transactionSignalFact(item.detail))}</span>
           </div>`).join("")
-      : `<div class="sac-side-card"><span class="sac-support-empty">Nenhum sinal cadastrado foi identificado nos dados disponíveis.</span></div>`;
-    const profile = result.issuerProfile
-      ? `<div class="sac-side-group"><div class="sac-side-group-title">Particularidades transacionais do emissor</div>
-          ${result.issuerProfile.expected.map((item) => `<div class="sac-side-card sac-support-summary success"><span>${escapeHtml(item)}</span></div>`).join("")}
-          ${result.issuerProfile.cautions.map((item) => `<div class="sac-side-card sac-support-summary warning"><span>${escapeHtml(item)}</span></div>`).join("")}
-        </div>`
       : "";
     const metrics = result.metrics || {};
     if (!investigationDrawerActive(ownerPanel)) return;
-    openSupportPanel(ownerPanel, cardFlow ? "Análise transacional de cartão" : "Análise transacional", `<div class="sac-transaction-view">
-      ${investigationSummaryHtml(result)}
-      ${result.mappingPending ? `<div class="sac-side-card sac-support-summary warning"><strong>Estrutura transacional pronta</strong><span>O adaptador usará diretamente a página transacional do Console assim que o HTML e as regras do book forem mapeados.</span></div>` : ""}
+    openInvestigationResult(data, ownerPanel, cardFlow ? "Análise transacional de cartão" : "Análise transacional", `<div class="sac-transaction-view">
+      ${result.mappingPending ? `<div class="sac-side-card sac-support-summary warning"><strong>Dados transacionais não encontrados</strong><span>Nenhuma movimentação mapeada está disponível nesta página.</span></div>` : ""}
       ${result.mappingPending ? "" : `<div class="sac-side-group"><div class="sac-side-group-title">Visão geral</div><div class="sac-investigation-grid">
         <div class="sac-side-card"><strong>Total de transações analisadas</strong><span>${Number(metrics.count || 0)}</span></div>
         <div class="sac-side-card"><strong>Valor total transacionado</strong><span>${escapeHtml(investigationCurrency(metrics.totalAmount))}</span></div>
         <div class="sac-side-card"><strong>Período transacionado</strong><span>${escapeHtml(investigationPeriod(metrics.periodStart, metrics.periodEnd, metrics.validDateCount))}</span></div>
         <div class="sac-side-card"><strong>Contatos diferentes</strong><span>${Number(cardFlow ? metrics.merchantCount : metrics.uniqueCounterparties || 0)}</span></div>
+        <div class="sac-side-card sac-support-summary ${metrics.p2pCount ? "success" : "neutral"}"><strong>P2P detectado</strong><span>${Number(metrics.p2pCount || 0)} transaç${Number(metrics.p2pCount || 0) === 1 ? "ão" : "ões"}</span></div>
         <div class="sac-side-card sac-support-summary ${metrics.p2pIssuerCount ? "success" : "neutral"}"><strong>P2P Emissor</strong><span>${Number(metrics.p2pIssuerCount || 0)}</span></div>
         <div class="sac-side-card sac-support-summary ${metrics.p2pPersonalCount ? "success" : "neutral"}"><strong>P2P Pessoal</strong><span>${Number(metrics.p2pPersonalCount || 0)}</span></div>
       </div></div>`}
+      ${result.mappingPending || cardFlow ? "" : investigationPatternsHtml(metrics)}
       ${result.mappingPending ? "" : investigationVelocityHtml(metrics)}
+      ${result.mappingPending ? "" : investigationUnusualHoursHtml(metrics)}
       ${!cardFlow && !result.mappingPending ? `<div class="sac-side-group"><div class="sac-side-group-title">Transacionando com</div>${investigationCounterpartiesHtml(metrics.counterparties || [])}</div>` : ""}
       ${dddInfo.found ? `<div class="sac-side-group"><div class="sac-side-group-title">DDD</div><div class="sac-investigation-grid"><div class="sac-side-card"><strong>DDD</strong><span>${escapeHtml(dddInfo.ddd)}</span></div><div class="sac-side-card"><strong>UF / Região</strong><span>${escapeHtml(`${dddInfo.uf} · ${dddInfo.region}`)}</span></div></div></div>` : ""}
-      ${profile}
-      <div class="sac-side-group">
-        <div class="sac-side-group-title">Sinais</div>
-        ${signals}
-      </div>
+      ${signals ? `<div class="sac-side-group"><div class="sac-side-group-title">Alertas transacionais</div>${signals}</div>` : ""}
     </div>`);
   }
 
@@ -3075,84 +3147,126 @@
     return clean(crossed?.reason || counterparty?.reason || "CNPJ ainda não classificado na base.");
   }
 
-  function counterpartyResultHtml(counterparty, corporate, crossed) {
+  function companyMatchesText(companyName, reference) {
+    const ignored = new Set(["LTDA", "SA", "S", "A", "EIRELI", "ME", "EPP", "BRASIL", "SERVICOS", "COMERCIO"]);
+    const tokens = (value) => normalize(value).split(/[^A-Z0-9]+/).filter((item) => item.length >= 4 && !ignored.has(item));
+    const companyTokens = tokens(companyName);
+    const referenceTokens = new Set(tokens(reference));
+    return companyTokens.length > 0 && companyTokens.filter((item) => referenceTokens.has(item)).length >= Math.min(2, companyTokens.length);
+  }
+
+  function issuerRelatedCompany(data, corporate) {
+    const issuer = clean(data?.issuer || data?.falcon?.issuer, "");
+    if (!issuer) return false;
+    return [corporate?.tradeName, corporate?.legalName].some((name) => companyMatchesText(name, issuer));
+  }
+
+  function possibleSelfFinancing(data, corporate) {
+    const flow = data?.visualFlow || data?.flow || data?.falcon?.flow;
+    if (flow !== "card") return false;
+    const merchant = data?.falcon?.merchant || data?.merchant;
+    return [corporate?.tradeName, corporate?.legalName].some((name) => companyMatchesText(name, merchant));
+  }
+
+  function counterpartyResultHtml(counterparty, corporate, crossed, data = {}) {
     const corporateStatus = corporate?.found ? corporate.registrationStatus : corporate?.label || "NÃO SINCRONIZADA";
     const statusAlert = corporate?.found && ["INAPTA", "BAIXADA", "SUSPENSA", "NULA"].includes(corporate.registrationStatus);
     const ageAlert = Boolean(corporate?.activityAge?.underThreeMonths);
-    const displayName = corporate?.tradeName || corporate?.legalName || "N/A";
-    const nameLabel = corporate?.tradeName ? "Nome fantasia" : "Razão social";
     const openingClass = ageAlert ? "sac-investigation-alert" : corporate?.activityAge?.known ? "sac-support-summary success" : "sac-support-summary warning";
     const statusClass = statusAlert ? "danger sac-investigation-alert" : resultSeverityClass(corporate);
-    const summaryState = counterpartyIndicatorState(counterparty, corporate, crossed);
-    const summaryLabel = {
-      success: "SINAL FAVORÁVEL",
-      warning: "CONFERÊNCIA NECESSÁRIA",
-      danger: "ATENÇÃO ELEVADA",
-      neutral: "SEM CLASSIFICAÇÃO"
-    }[summaryState] || "SEM CLASSIFICAÇÃO";
-    const summaryReason = counterpartyIndicatorTitle(counterparty, corporate, crossed);
+    const betCategory = normalize(counterparty?.category);
+    const isBet = betCategory.includes("BET");
+    const legalBet = betCategory.includes("AUTHORIZED");
+    const selfFinancing = possibleSelfFinancing(data, corporate);
     return `
-      <div class="sac-side-group">
-        <div class="sac-side-group-title">Resumo para decisão</div>
-        <div class="sac-side-card sac-support-summary ${summaryState}"><strong>${escapeHtml(summaryLabel)}</strong><span>${escapeHtml(summaryReason)}</span></div>
-      </div>
       <div class="sac-side-group">
         <div class="sac-side-group-title">Dados cadastrais</div>
         <div class="sac-investigation-grid">
-          <div class="sac-side-card sac-grid-full"><strong>${escapeHtml(nameLabel)}</strong><span>${escapeHtml(displayName)}</span></div>
-          <div class="sac-side-card ${openingClass}"><strong>Abertura</strong><span>${escapeHtml(corporate?.openedAt || "N/A")}</span></div>
-          <div class="sac-side-card sac-support-summary ${statusClass}"><strong>Situação</strong><span>${escapeHtml(corporateStatus)}</span></div>
-          <div class="sac-side-card sac-grid-full"><strong>Porte da empresa</strong><span>${escapeHtml(corporate?.companySize || "N/A")}</span></div>
+          <div class="sac-side-card sac-grid-full" data-cnpj-copy="${escapeHtml(corporate?.legalName || "N/A")}" data-cnpj-label="Razão social"><strong>Razão social</strong><span>${escapeHtml(corporate?.legalName || "N/A")}</span></div>
+          <div class="sac-side-card sac-grid-full" data-cnpj-copy="${escapeHtml(corporate?.tradeName || "N/A")}" data-cnpj-label="Nome fantasia"><strong>Nome fantasia</strong><span>${escapeHtml(corporate?.tradeName || "N/A")}</span></div>
+          <div class="sac-side-card ${openingClass}" data-cnpj-copy="${escapeHtml(corporate?.openedAt || "N/A")}" data-cnpj-label="Criação"><strong>Criação</strong><span>${escapeHtml(corporate?.openedAt || "N/A")}</span></div>
+          <div class="sac-side-card sac-support-summary ${statusClass}" data-cnpj-copy="${escapeHtml(corporateStatus)}" data-cnpj-label="Situação cadastral"><strong>Situação cadastral</strong><span>${escapeHtml(corporateStatus)}</span></div>
+          <div class="sac-side-card sac-grid-full" data-cnpj-copy="${escapeHtml(corporate?.companySize || "N/A")}" data-cnpj-label="Porte da empresa"><strong>Porte da empresa</strong><span>${escapeHtml(corporate?.companySize || "N/A")}</span></div>
         </div>
       </div>
-      <div class="sac-side-card"><span>A classificação apoia a análise e não seleciona uma decisão automaticamente.</span></div>`;
+      ${isBet ? `<div class="sac-side-card sac-support-summary ${legalBet ? "success" : "danger"}"><strong>${legalBet ? "BET LEGALIZADA" : "BET EM LISTA DE ATENÇÃO"}</strong><span>${legalBet ? "CNPJ reconhecido na base favorável; mantenha a identificação de que se trata de uma BET." : "CNPJ relacionado a BET que exige atenção reforçada."}</span></div>` : ""}
+      ${selfFinancing ? `<div class="sac-side-card sac-support-summary danger sac-investigation-alert"><strong>POSSÍVEL AUTOFINANCIAMENTO</strong><span>O estabelecimento se aproxima do nome empresarial consultado.</span></div>` : ""}`;
   }
 
   function openCounterpartyVerification(data, ownerPanel) {
     const falcon = data?.falcon || data || {};
-    const mappedCnpj = counterpartyEngine.normalizeCnpj(falcon.counterpartyCnpj || "");
-    const mappedDirection = counterpartyEngine.normalizeDirection(falcon.counterpartyDirection || "BOTH");
-    const mappedSource = clean(falcon.counterpartySourceLabel, "Quem enviou ou recebeu");
-    if (!counterpartyEngine.validateCnpj(mappedCnpj)) return null;
-    const originMessage = `CNPJ coletado de ${mappedSource} na linha laranja do Falcon.`;
+    const candidates = corporateCandidates(data);
+    if (!candidates.length) return null;
     const panel = openSupportPanel(ownerPanel, "Verificação de CNPJ", `
-      <div class="sac-side-card"><span>${escapeHtml(originMessage)}</span></div>
-      <div class="sac-investigation-grid">
-        <div class="sac-side-card sac-cnpj-card" id="sac-counterparty-cnpj-card"><strong>CNPJ</strong><span>${escapeHtml(mappedCnpj)}</span><i class="sac-cnpj-indicator" id="sac-counterparty-indicator" title="CNPJ ainda não classificado" aria-label="CNPJ ainda não classificado">✓</i></div>
-        <div class="sac-side-card"><strong>Direção</strong><span>${escapeHtml(mappedDirection === "ORIGIN" ? "Origem" : mappedDirection === "DESTINATION" ? "Destino" : "Origem ou destino")}</span></div>
-      </div>
-      <div id="sac-counterparty-result"><div class="sac-side-card"><span>Consultando dados cadastrais automaticamente...</span></div></div>
-      <div class="sac-support-actions three sac-cnpj-actions" id="sac-counterparty-local-actions" hidden>
-        <button class="sac-classify-favorable" data-classify-counterparty="TRUSTED"><i aria-hidden="true">✓</i>Favorável</button>
+      <div class="sac-cnpj-selector" data-cnpj-selector>${candidates.map((item, index) => `<button type="button" class="${index === 0 ? "selected" : ""}" data-cnpj-candidate="${escapeHtml(item.cnpj)}"><strong>${escapeHtml(item.role)}</strong><span>${escapeHtml(item.cnpj)}</span></button>`).join("")}</div>
+      <div data-cnpj-summary></div>
+      <div data-counterparty-result><div class="sac-side-card"><span>Consultando dados cadastrais automaticamente...</span></div></div>
+      <div class="sac-support-actions three sac-cnpj-actions" data-counterparty-actions hidden>
+        <button class="sac-classify-favorable" data-classify-counterparty="TRUSTED"><i aria-hidden="true">✓</i>Confiável</button>
         <button class="sac-classify-suspicious" data-classify-counterparty="UNTRUSTED"><i aria-hidden="true">!</i>Suspeito</button>
         <button class="sac-classify-remove" data-remove-counterparty><i aria-hidden="true">−</i>Remover</button>
       </div>
     `);
     if (!panel) return;
-    const resultHost = panel.querySelector("#sac-counterparty-result");
-    const verify = async () => {
-      const cnpj = mappedCnpj;
+    if (panel.dataset.cnpjCopyBound !== "1") {
+      panel.dataset.cnpjCopyBound = "1";
+      panel.addEventListener("click", async (event) => {
+        const card = event.target.closest("[data-cnpj-copy]");
+        if (!card || !getSafeMode()) return;
+        const value = clean(card.dataset.cnpjCopy, "");
+        if (!value || value === "N/A") return;
+        await copyText(value);
+        card.classList.add("sac-copied");
+        setTimeout(() => card.classList.remove("sac-copied"), 650);
+        showNotice(`${clean(card.dataset.cnpjLabel, "Dado do CNPJ")} copiado.`, "success");
+      });
+    }
+    const resultHost = panel.querySelector("[data-counterparty-result]");
+    const summaryHost = panel.querySelector("[data-cnpj-summary]");
+    let activeCandidate = candidates[0];
+    const verify = async (candidate = activeCandidate) => {
+      activeCandidate = candidate;
+      const cnpj = candidate.cnpj;
+      summaryHost.innerHTML = `<div class="sac-investigation-grid"><div class="sac-side-card sac-cnpj-card sac-grid-full" data-counterparty-cnpj-card data-cnpj-copy="${escapeHtml(cnpj)}" data-cnpj-label="CNPJ"><strong>CNPJ</strong><span>${escapeHtml(cnpj)}</span><em class="sac-cnpj-state" data-counterparty-state>Não classificado</em><i class="sac-cnpj-indicator" data-counterparty-indicator title="CNPJ ainda não classificado" aria-label="CNPJ ainda não classificado">✓</i></div></div>`;
+      resultHost.innerHTML = `<div class="sac-side-card"><span>Consultando dados cadastrais automaticamente...</span></div>`;
+      panel.querySelector("[data-counterparty-actions]")?.setAttribute("hidden", "");
       try {
-        const [counterparty, corporate] = await Promise.all([
+        let [counterparty, corporate] = await Promise.all([
           counterpartyEngine.classify({
             cnpj,
             issuer: data?.issuer || falcon?.issuer || "GLOBAL",
-            direction: mappedDirection
+            direction: candidate.direction
           }),
           corporateEngine.lookup(cnpj)
         ]);
         if (!panel.isConnected || !investigationDrawerActive(ownerPanel)) return;
+        if (issuerRelatedCompany(data, corporate) && counterparty.classification !== "TRUSTED") {
+          counterpartyEngine.upsertLocalClassification({
+            cnpj,
+            issuer: data?.issuer || falcon?.issuer || "GLOBAL",
+            direction: candidate.direction,
+            classification: "TRUSTED",
+            legalName: corporate?.legalName || "",
+            reason: "CNPJ relacionado ao próprio emissor identificado no caso."
+          });
+          persistCounterpartyLocalRecords();
+          counterparty = await counterpartyEngine.classify({ cnpj, issuer: data?.issuer || falcon?.issuer || "GLOBAL", direction: candidate.direction });
+        }
         const crossed = corporateEngine.cross(corporate, counterparty);
-        counterpartySessionResults.set(counterpartySessionKey(data), counterparty);
+        if (candidate.role === "Quem está transacionando") counterpartySessionResults.set(counterpartySessionKey(data), counterparty);
         data.counterpartyResult = counterparty;
         data.corporateResult = corporate;
         falcon.counterpartyResult = counterparty;
         falcon.corporateResult = corporate;
-        resultHost.innerHTML = counterpartyResultHtml(counterparty, corporate, crossed);
+        const snapshot = investigationSnapshot(data);
+        const previous = Array.isArray(snapshot.cnpjs) ? snapshot.cnpjs.filter((item) => item.cnpj !== cnpj) : [];
+        snapshot.cnpjs = [...previous, { ...candidate, counterparty, corporate, crossed }];
+        resultHost.innerHTML = counterpartyResultHtml(counterparty, corporate, crossed, data);
         const indicatorState = counterpartyIndicatorState(counterparty, corporate, crossed);
         const indicatorTitle = counterpartyIndicatorTitle(counterparty, corporate, crossed);
-        const cnpjCard = panel.querySelector("#sac-counterparty-cnpj-card");
-        const indicator = panel.querySelector("#sac-counterparty-indicator");
+        const cnpjCard = panel.querySelector("[data-counterparty-cnpj-card]");
+        const indicator = panel.querySelector("[data-counterparty-indicator]");
+        const stateLabel = panel.querySelector("[data-counterparty-state]");
         cnpjCard?.classList.remove("is-success", "is-warning", "is-danger");
         indicator?.classList.remove("is-success", "is-warning", "is-danger");
         if (indicatorState !== "neutral") {
@@ -3163,39 +3277,48 @@
           indicator.title = indicatorTitle;
           indicator.setAttribute("aria-label", indicatorTitle);
         }
-        panel.querySelector("#sac-counterparty-local-actions")?.removeAttribute("hidden");
+        if (stateLabel) stateLabel.textContent = ({ success: "Confiável", warning: "Atenção", danger: "Suspeito", neutral: "Não classificado" })[indicatorState] || "Não classificado";
+        panel.querySelector("[data-counterparty-actions]")?.removeAttribute("hidden");
       } catch (_error) {
         resultHost.innerHTML = `<div class="sac-side-card sac-support-summary danger"><strong>Consulta indisponível</strong><span>Não foi possível consultar a base agora.</span></div>`;
         showNotice("Não foi possível consultar a base de CNPJs.", "error");
       }
     };
-    panel.querySelector("#sac-counterparty-local-actions")?.addEventListener("click", async (event) => {
+    panel.querySelector("[data-cnpj-selector]")?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-cnpj-candidate]");
+      if (!button) return;
+      const candidate = candidates.find((item) => item.cnpj === button.dataset.cnpjCandidate);
+      if (!candidate) return;
+      panel.querySelectorAll("[data-cnpj-candidate]").forEach((item) => item.classList.toggle("selected", item === button));
+      verify(candidate);
+    });
+    panel.querySelector("[data-counterparty-actions]")?.addEventListener("click", async (event) => {
       const removeButton = event.target.closest("[data-remove-counterparty]");
       if (removeButton) {
         const removed = counterpartyEngine.removeLocalClassification?.({
-          cnpj: mappedCnpj,
+          cnpj: activeCandidate.cnpj,
           issuer: data?.issuer || falcon?.issuer || "GLOBAL",
-          direction: mappedDirection
+          direction: activeCandidate.direction
         });
         persistCounterpartyLocalRecords();
-        await verify();
+        await verify(activeCandidate);
         showNotice(removed ? "Classificação local do CNPJ excluída." : "Este CNPJ não tinha classificação local para excluir.", removed ? "success" : "warn");
         return;
       }
       const button = event.target.closest("[data-classify-counterparty]");
       if (!button) return;
       counterpartyEngine.upsertLocalClassification({
-        cnpj: mappedCnpj,
+        cnpj: activeCandidate.cnpj,
         issuer: data?.issuer || falcon?.issuer || "GLOBAL",
-        direction: mappedDirection,
+        direction: activeCandidate.direction,
         classification: button.dataset.classifyCounterparty,
         legalName: data?.corporateResult?.legalName || ""
       });
       persistCounterpartyLocalRecords();
-      await verify();
-      showNotice(button.dataset.classifyCounterparty === "TRUSTED" ? "CNPJ adicionado à base favorável local." : "CNPJ adicionado à base de suspeitos local.", "success");
+      await verify(activeCandidate);
+      showNotice(button.dataset.classifyCounterparty === "TRUSTED" ? "CNPJ adicionado à base confiável local." : "CNPJ adicionado à base de suspeitos local.", "success");
     });
-    verify();
+    verify(activeCandidate);
     return panel;
   }
 
@@ -3624,7 +3747,7 @@
       showNotice(`Atenção: inconsistência em ${workflowIssueMessage(data, missing)}, mas o modo seguro está desligado.`, "warn", 14000);
       setDecisionIssues(panel, missing.map((label) => workflowIssueMessage(data, [label])));
     }
-    setDecisionProgress(panel, "Aplicando todos os campos no Tabulador. Apenas Motivo Status pode aguardar carregamento.");
+    setDecisionProgress(panel, "");
     startTabulatorWriting();
     const application = applyTabulator(data, decision, text, isCurrentRun);
     const copied = copyText(text);
@@ -3633,7 +3756,6 @@
       stopTabulatorWriting(panel);
       return;
     }
-    setDecisionProgress(panel, "Campos aplicados. Aguardando apenas Motivo Status.");
     const applied = await application;
     if (applied.cancelled || !isCurrentRun()) {
       stopTabulatorWriting(panel);
@@ -3669,6 +3791,9 @@
       applied.ok ? "Todos os campos foram aplicados e confirmados no Tabulador." : "Campos aplicados. Confira os itens sinalizados no Tabulador.",
     );
     setFinalCopyReady(panel, true);
+    closeSidePanels(panel.id);
+    delete data.investigationSnapshot;
+    releaseInvestigationSession(data);
     showNotice("Tudo certo: decisão e motivo status aplicados. A tabulação está pronta.", "success");
   }
   function showFinalTabulation(data, decision, text, panel, status = "") {
@@ -3676,11 +3801,10 @@
     panel.querySelector(".sac-body").innerHTML =
       section("Tabulação pronta", `<textarea class="sac-textarea sac-final-textarea ${data.flow === "card" ? "sac-final-card" : ""}" id="sac-final-text" readonly>${escapeHtml(text)}</textarea>`, "final")
       + `<div class="sac-apply-status" id="sac-apply-status">${escapeHtml(status || "Tabulação pronta.")}</div>`
-      + `<div class="sac-final-actions"><button class="sac-main" id="sac-copy-final" data-ready="false" disabled>Aguarde...</button><button class="sac-secondary" id="sac-change-decision">Mudar decisão</button></div>`;
+      + `<div class="sac-final-actions"><button class="sac-main" id="sac-copy-final" data-ready="false" disabled>Copiar</button><button class="sac-secondary" id="sac-change-decision">Mudar decisão</button></div>`;
     neutralizeAutomationButtons(panel);
     byId("sac-copy-final")?.addEventListener("click", async (event) => {
       if (event.currentTarget.dataset.ready !== "true") {
-        showNotice("Ainda estou confirmando Fila, Decisão e Motivo Status no Tabulador.", "warn");
         return;
       }
       event.currentTarget.disabled = true;
@@ -3725,7 +3849,7 @@
     if (!button) return;
     button.dataset.ready = ready ? "true" : "false";
     button.disabled = !ready;
-    button.textContent = ready ? "Copiar" : "Aguarde...";
+    button.textContent = "Copiar";
   }
   function clearCompletedCaseState(data) {
     storageRemove("lastFalcon");
@@ -4457,12 +4581,20 @@
     const text = normalize(rule);
     return text.includes("CONTENCAO") || text.includes("CONTENSAO");
   }
+  function hasBlockingOrSpdStatus(data) {
+    const accountStatus = normalize(data?.accountStatus);
+    const personStatus = normalize(data?.fields?.personStatus);
+    const spdHistory = normalize(data?.fields?.spdHistory);
+    const blockedAccount = accountStatus && !["NORMAL", "ATIVA", "ATIVO"].includes(accountStatus);
+    const spdStatus = [accountStatus, personStatus, spdHistory].some((value) => /\bSPD\s*\d+\b/.test(value));
+    return blockedAccount || spdStatus;
+  }
   function listTypesFor(data) {
     if (normalize(data.flow) !== "BANKING" || normalize(data.visualFlow) === "HOLD") {
       return { allowlist: false, contencao: false };
     }
     return {
-      allowlist: true,
+      allowlist: !hasBlockingOrSpdStatus(data),
       contencao: isContainmentRule(data.falcon?.rule)
     };
   }
@@ -4586,6 +4718,9 @@
         return retireCurrentCaseFromLists(queue, data);
       }
       const lists = listTypesFor(data);
+      if (!lists.allowlist && hasBlockingOrSpdStatus(data)) {
+        showNotice("Conta bloqueada ou com SPD: o caso não foi adicionado à permissiva.", "warn", 10000);
+      }
       if (!lists.allowlist && !lists.contencao) {
         return retireCurrentCaseFromLists(queue, data);
       }
@@ -4616,12 +4751,12 @@
         updatedAt: savedAt
       };
       const listItems = [
-        {
+        ...(lists.allowlist ? [{
           ...baseItem,
           id: `allowlist:${alnumOnly(baseItem.caseNumber)}:${alnumOnly(account)}`,
           lists: { allowlist: true, contencao: false },
           applied: { allowlist: false, contencao: true }
-        },
+        }] : []),
         ...(lists.contencao ? [{
           ...baseItem,
           id: `contencao:${alnumOnly(baseItem.caseNumber)}:${alnumOnly(documentValue)}`,

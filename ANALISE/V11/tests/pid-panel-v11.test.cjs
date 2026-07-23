@@ -25,7 +25,7 @@ assert.match(source, /panel\.dataset\.flow = pidFlow;/);
 assert.match(source, /getFlowTone\(pidFlow\)/);
 assert.doesNotMatch(source, /panel\.style\.setProperty\("--sac-primary", getFlowTone\("card"\)\)/);
 assert.match(source, /Análise transacional de cartão/);
-assert.match(source, /Leitura por estabelecimento e modo de entrada/);
+assert.match(source, /Estabelecimentos/);
 assert.match(source, /sac-transaction-view/);
 assert.match(source, /placePidPanel\(\);/);
 assert.match(source, /id="sac-call-mode-toggle" class="sac-toggle/);
@@ -45,7 +45,7 @@ assert.equal((source.match(/\.sac-pid-panel\{width:min\(420px/g) || []).length, 
 assert.match(source, /const oppositeOfSide = side/);
 
 const preview = fs.readFileSync(path.join(__dirname, "..", "preview.html"), "utf8");
-assert.match(preview, /investigation:true/);
+assert.match(preview, /investigation:false,help:false/);
 assert.match(preview, /callMode:"com chamada",callResult:"com sucesso"/);
 assert.match(preview, /if\(norm\(data\.fields\.callMode\)==="COM CHAMADA"\)openPid\(data\)/);
 assert.match(preview, /\.pid-grid\{[^}]*grid-template-columns:minmax\(0,1fr\)/);

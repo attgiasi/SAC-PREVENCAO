@@ -92,6 +92,32 @@ assert.equal(velocityMetrics.velocity5m, 3);
 assert.equal(velocityMetrics.p2pPersonalCount, 2);
 assert.equal(velocityMetrics.counterparties.length, 2);
 assert.equal(velocityMetrics.counterparties[0].transactionCount, 2);
+assert.equal(velocityMetrics.repeatedCounterpartyCount, 1);
+assert.equal(velocityMetrics.largestAmount, 300);
+assert.equal(velocityMetrics.medianAmount, 200);
+
+const unusualHourMetrics = engine.transactionMetrics([
+  { timestamp: new Date(2026, 6, 16, 2, 0, 0).getTime(), amount: 320, direction: "DEBIT" },
+  { timestamp: new Date(2026, 6, 16, 2, 4, 0).getTime(), amount: 180, direction: "DEBIT" },
+  { timestamp: new Date(2026, 6, 16, 9, 0, 0).getTime(), amount: 900, direction: "CREDIT" }
+]);
+assert.equal(unusualHourMetrics.unusualHours, 2);
+assert.equal(unusualHourMetrics.unusualHoursAmount, 500);
+assert.equal(unusualHourMetrics.velocity1m, 1);
+assert.equal(unusualHourMetrics.velocity5m, 2);
+assert.equal(unusualHourMetrics.velocity10m, 2);
+
+const passThroughMetrics = engine.transactionMetrics([
+  { timestamp: new Date(2026, 6, 16, 10, 0, 0).getTime(), amount: 1000, direction: "CREDIT" },
+  { timestamp: new Date(2026, 6, 16, 10, 7, 0).getTime(), amount: 950, direction: "DEBIT" }
+]);
+assert.equal(passThroughMetrics.passThrough, true);
+assert.equal(passThroughMetrics.passThroughPairs, 1);
+const distantTransactions = engine.transactionMetrics([
+  { timestamp: new Date(2026, 6, 16, 10, 0, 0).getTime(), amount: 1000, direction: "CREDIT" },
+  { timestamp: new Date(2026, 6, 16, 11, 0, 0).getTime(), amount: 950, direction: "DEBIT" }
+]);
+assert.equal(distantTransactions.passThrough, false, "valores semelhantes e distantes não representam passagem imediata");
 
 const p2p = engine.analyze({ transactionType: "P2P" });
 assert.equal(p2p.classification, "FAVORABLE");

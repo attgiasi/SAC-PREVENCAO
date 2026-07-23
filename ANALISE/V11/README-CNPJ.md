@@ -9,7 +9,7 @@ A base combina 18 registros confirmados pelo usuário com 82 CNPJs autorizados n
 - `sac-counterparty-v11.js`: motor de validação, atualização, cache e classificação.
 - `sac-corporate-v11.js`: motor cadastral que cruza a situação da Receita Federal com a classificação operacional.
 - `sac-transaction-v11.js`: motor de sinais transacionais. Nesta versão, P2P soma um ponto favorável a não fraude e a classificação do CNPJ pode complementar a leitura.
-- `counterparty-registry-v11.json`: snapshot seguro e versionado. Começa vazio para não inventar classificações.
+- `counterparty-registry-v11.json`: snapshot seguro e versionado com os registros operacionais e da SPA já validados.
 - `rfb-cnpj-registry-v11.json`: snapshot compacto reservado aos dados oficiais já sincronizados.
 - `counterparty-registry-v11.schema.json`: contrato dos dados aceitos.
 
@@ -104,15 +104,17 @@ O sincronizador remove somente registros gerados anteriormente com os prefixos `
 
 ## Integração no Console
 
-O modo unificado `Investigação e ajuda` fica desligado por padrão. Quando ativado, o painel lateral abre automaticamente e reúne consulta de CNPJ, análise transacional e orientações de regra/emissor. `Verificar CNPJ` aparece no Falcon quando o documento de quem enviou ou recebeu na linha laranja for um CNPJ válido; `Análise transacional` aparece quando houver transações mapeadas. O BigData não coleta PID e participa somente da mídia desabonadora do CPF titular.
+`Modo investigação` e `Modo ajuda` ficam desligados por padrão e são independentes. `Analisar` disponibiliza Transacional, CNPJ e Mídias em até três colunas; `Ajuda` abre orientações em um painel próprio. Cada ação só aparece quando houver dados aplicáveis, um painel lateral substitui o anterior e apenas esses painéis recebem rolagem vertical quando necessário. O BigData coleta silenciosamente mídia do CPF titular e os campos disponíveis para complementar o PID.
 
 - `Análise transacional`: avalia somente sinais explicitamente cadastrados. P2P adiciona um ponto favorável a não fraude.
-- `Verificar CNPJ`: consulta a base versionada e apresenta a classificação em um indicador dentro do próprio grid do CNPJ.
-- a mesma consulta mostra nome fantasia ou razão social, abertura, situação cadastral e porte da empresa em grids compactos.
+- `CNPJ`: consulta separadamente o titular e quem está transacionando quando cada parte possuir CNPJ válido.
+- cada resultado mostra `Razão social`, `Nome fantasia`, `Criação`, `Situação cadastral` e `Porte da empresa`.
+- o card do CNPJ usa sinal visual e o texto `Confiável`, `Suspeito`, `Atenção` ou `Não classificado`, sem criar um resumo de decisão separado.
+- os botões `Confiável`, `Suspeito` e `Remover` atualizam a base local de apoio do operador.
 - situação `INAPTA`, `BAIXADA`, `SUSPENSA` ou `NULA` e empresa com menos de três meses recebem alerta pulsante vermelho.
 - nenhum resultado seleciona decisão ou Motivo Status automaticamente.
 
-O Falcon não possui uma coluna chamada CNPJ, mas o documento de quem enviou ou recebeu pode estar nos IDs da linha laranja. Em `Depósito bancário de varejo`, o motor lê a coluna de crédito (`CREDIT_CUSTOMER_XID_VALUE`); em `Pagamento bancário de varejo`, lê a coluna de origem/débito (`DEBIT_CUSTOMER_XID_VALUE`). A seleção é feita no mesmo índice da linha de regra, data e valor. Quando o ID passa na validação de CNPJ, o painel é preenchido automaticamente. Caso seja CPF ou valor inválido, a consulta empresarial permanece vazia. O documento do titular do Console nunca é reutilizado como documento da outra parte.
+O Falcon não possui uma coluna chamada CNPJ, mas os documentos estão nos IDs da linha laranja. Em `Depósito bancário de varejo`, o titular fica na coluna de crédito (`CREDIT_CUSTOMER_XID_VALUE`) e quem enviou fica na origem/débito (`DEBIT_CUSTOMER_XID_VALUE`). Em `Pagamento bancário de varejo`, o titular fica na origem/débito e quem recebeu fica na coluna de crédito. A seleção usa o mesmo índice da linha de regra, data e valor. O CPF do titular alimenta o BigData; qualquer CNPJ válido do titular ou da outra parte pode alimentar a consulta empresarial. Um documento nunca substitui o outro.
 
 ## Situação cadastral da Receita Federal
 
@@ -127,20 +129,10 @@ O arquivo público no GitHub não recebe credenciais. O motor consulta primeiro 
 
 ## Mídia e análise transacional
 
-O motor transacional lê os campos mapeados dos HTMLs do Console e Falcon. A visão geral mostra total de transações, valor total, período, contatos diferentes, P2P do emissor e P2P pessoal. A seção `Transacionando com` agrupa CPF/CNPJ, quantidade e valor, enquanto a velocidade exibe o menor intervalo relevante entre 1, 5 e 10 minutos. As particularidades do emissor ficam em uma seção de coluna única. P2P é ponto favorável a não fraude em BANKING/HOLD. Em CARTÃO, chip e senha é sinal favorável; duas ou mais tentativas por aproximação, digitado manual ou e-commerce no mesmo estabelecimento geram alerta. Nenhum sinal decide o caso sozinho.
+O motor transacional lê os campos mapeados dos HTMLs do Console e Falcon. A visão geral mostra total de transações, valor total, período, contatos diferentes, P2P total, P2P do emissor e P2P pessoal. A seção `Transacionando com` agrupa CPF/CNPJ ou nome, quantidade e valor total por pessoa ou empresa. A velocidade mostra separadamente as concentrações em 1, 5 e 10 minutos. Movimentações entre 00h e 06h exibem quantidade e valor somado. As orientações e particularidades do emissor ficam somente no painel `Ajuda`; no Jeitto, os alertas transacionais destacam valor individual acima de R$ 5.000,00, volume acima de R$ 2.000,00 em 24 horas, volume mensal acima de R$ 10.000,00 e P2P próximos. P2P é ponto favorável a não fraude em BANKING/HOLD. Em CARTÃO, chip e senha é sinal favorável; duas ou mais tentativas por aproximação, digitado manual ou e-commerce no mesmo estabelecimento geram alerta. Nenhum sinal decide o caso sozinho.
 
-A investigação de mídia segue `FALCON > BigData (opcional) > CONSOLE`. O Falcon cria um pedido identificado por caso e CPF; o BigData coleta silenciosamente e devolve o resultado para a mesma identidade. O CPF do bloco de dados pessoais precisa coincidir com o pedido. Só conta processo em que esse mesmo CPF seja parte ré/polo passivo. Variações de assunto são classificadas por palavras-chave tolerantes. Resultado sem categoria criminal compatível é `SEM MÍDIA` e atualiza o campo do Console para `não`; com ocorrência, o Console recebe `sim` e as categorias marcadas automaticamente.
+A investigação de mídia segue `FALCON > BigData (opcional) > CONSOLE`. O Falcon cria um pedido identificado por caso e CPF; o BigData coleta silenciosamente e devolve o resultado para a mesma identidade. O CPF do bloco de dados pessoais precisa coincidir com o pedido. Só conta processo em que esse mesmo CPF seja parte ré/polo passivo. Variações de assunto são classificadas por palavras-chave tolerantes. `Tráfico de drogas` exige referência a tráfico, comercialização, distribuição, fornecimento ou artigo 33; posse/porte para consumo e artigo 28 não são classificados como tráfico. Resultado sem categoria criminal compatível é `SEM MÍDIA` e atualiza o campo do Console para `não`; com ocorrência, o Console recebe `sim` e as categorias marcadas automaticamente.
 
-## Próxima integração automática
+## Integração atual
 
-Quando a página que expõe o CNPJ da contraparte estiver disponível, o Console fornecerá ao motor somente:
-
-```js
-await window.SACCounterpartyV11.classify({
-  cnpj: contraparte.cnpj,
-  issuer: dadosConsole.issuer,
-  direction: transacao.direction
-});
-```
-
-As regras adicionais de velocidade, valores e comportamento só serão implementadas depois do mapeamento dos books, sem limites presumidos.
+A contraparte já é coletada da mesma linha laranja usada para regra, data e valor. A classificação recebe somente o CNPJ, o emissor e a direção mapeada da operação. Velocidade, valores, recorrência, triangulação e particularidades cadastradas são calculados pelos motores atuais sem misturar o documento do titular com o documento de quem transacionou.

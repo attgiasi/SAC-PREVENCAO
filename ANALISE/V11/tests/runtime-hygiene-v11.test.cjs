@@ -9,7 +9,7 @@ const memory = fs.readFileSync(path.join(root, "sac-memory-v11.js"), "utf8");
 const tabulator = fs.readFileSync(path.join(root, "sac-tabulator-v11.js"), "utf8");
 const preview = fs.readFileSync(path.join(root, "preview.html"), "utf8");
 
-assert.doesNotMatch(runtime, /helpMode|getHelpMode/);
+assert.match(runtime, /getHelpMode/);
 assert.doesNotMatch(runtime, /SETTINGS_WINDOW_NAME|readSharedSettings|writeSharedSettings/);
 assert.doesNotMatch(runtime, /Legacy/);
 assert.doesNotMatch(runtime, /\.sac-grid\.two/);
@@ -25,14 +25,15 @@ assert.match(runtime, /getInvestigationMode/);
 assert.match(runtime, /data-classify-counterparty="TRUSTED"/);
 assert.match(runtime, /data-classify-counterparty="UNTRUSTED"/);
 assert.doesNotMatch(runtime, /data-classify-counterparty="REVIEW"/);
-assert.match(runtime, />INVESTIGAÇÃO</);
-assert.match(runtime, /\.sac-investigation-drawer\{width:332px/);
+assert.match(runtime, /title: "ANÁLISES"/);
+assert.match(runtime, /title: "AJUDA"/);
+assert.match(runtime, /\.sac-investigation-drawer,\.sac-help-drawer\{width:332px/);
 assert.match(runtime, /\.sac-investigation-head\{/);
-assert.match(runtime, /\.sac-investigation-arrow\.is-open/);
+assert.match(runtime, /\.sac-investigation-chevron\{/);
 assert.doesNotMatch(runtime, /\.sac-investigation-drawer\{width:312px/);
 assert.match(runtime, /\.sac-side-panel,\.sac-side-panel \*\{box-sizing:border-box!important\}/);
 
-for (const setting of ["theme", "safeMode", "investigationMode", "fontScale", "signatureName", "signatureSector"]) {
+for (const setting of ["theme", "safeMode", "investigationMode", "helpMode", "fontScale", "signatureName", "signatureSector"]) {
   assert.match(runtime, new RegExp(`"${setting}"`));
 }
 assert.match(runtime, /memory\.settings\?\.set/);
@@ -46,7 +47,7 @@ assert.match(runtime, /await memory\.hydrateFromClipboard\(\{ timeoutMs: timeout
 assert.match(runtime, /const savedAt = nextListRevision\(queue\)/);
 assert.match(runtime, /const updatedAt = nextListRevision\(\[item\]\);[\s\S]+?savedAt: updatedAt,[\s\S]+?updatedAt/);
 assert.match(runtime, /window\.__SAC_TABULATOR_DECISION_WRITE_ACTIVE__ = false;\s*window\.__SAC_TABULATOR_DECISION_PANEL_ACTIVE__ = false;/);
-assert.match(runtime, /const data = \{\s*type: EXPORT_CONSOLE,[\s\S]+?data\.pidData = collectConsolePidData\(data\);\s*return data;/);
+assert.match(runtime, /const data = \{\s*type: EXPORT_CONSOLE,[\s\S]+?data\.pidData = \{ \.\.\.\(falcon\?\.pidData \|\| \{\}\), \.\.\.consolePidData \};\s*return data;/);
 assert.match(runtime, /\.sac-config\{max-height:calc\(100vh - 16px\);overflow-y:auto;overscroll-behavior:contain\}/);
 assert.match(runtime, /const width = configPanel\.offsetWidth \|\| 360;[\s\S]+?configPanel\.style\.maxHeight = `\$\{Math\.max\(180, window\.innerHeight - top - 8\)\}px`/);
 assert.match(runtime, /const tombstones = memory\.lists\.tombstones\?\.\(\) \|\| \[\]/);
@@ -76,6 +77,15 @@ assert.match(preview, /document\.getElementById\("merchantHistory"\)\?\.value\|\
 assert.match(preview, /document\.getElementById\("purchase"\)\?\.value\|\|data\.fields\.purchase\|\|""/);
 assert.match(preview, /\.config\{max-height:calc\(100vh - 16px\);overflow-y:auto;overscroll-behavior:contain\}/);
 assert.match(preview, /width=box\.offsetWidth\|\|360[\s\S]+?box\.style\.maxHeight=`\$\{Math\.max\(180,innerHeight-top-8\)\}px`/);
+assert.match(preview, /investigation:false,help:false/);
+assert.match(preview, />Modo investigação</);
+assert.match(preview, />Modo ajuda</);
+assert.match(preview, /\.investigation-launcher\.help-launcher\{top:84px\}/);
+assert.match(preview, /reserve=side\.matches\("\[data-investigation-menu\],\[data-help-menu\]"\)\?100:0/);
+assert.match(preview, /\[data-preview-cnpj-result\] \.side-help-card\.copied/);
+assert.match(preview, /\.cnpj-selector strong\{color:var\(--muted\);font-size:7\.6px/);
+assert.match(preview, /event\.target\.closest\("\[data-preview-cnpj-result\] \.side-help-card"\)/);
+assert.doesNotMatch(preview, /document\.addEventListener\("mouseover"/);
 
 assert.doesNotMatch(tabulator, /applyMap|fillNow|setNativeValue/);
 assert.match(tabulator, /Object\.freeze\(\{\s*selectNow\s*\}\)/);

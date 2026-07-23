@@ -105,19 +105,19 @@
     const isRetailPayment = transactionType.includes("PAGAMENTO BANCARIO DE VAREJO");
     const direction = isRetailDeposit ? "ORIGIN" : isRetailPayment ? "DESTINATION" : "BOTH";
     const sourceField = isRetailDeposit
-      ? "CREDIT_CUSTOMER_XID_VALUE"
+      ? "DEBIT_CUSTOMER_XID_VALUE"
       : isRetailPayment
-        ? "DEBIT_CUSTOMER_XID_VALUE"
+        ? "CREDIT_CUSTOMER_XID_VALUE"
         : "";
     const sourceLabel = isRetailDeposit
-      ? "ID do cliente de crédito"
+      ? "ID do cliente de origem"
       : isRetailPayment
-        ? "ID do cliente de origem"
+        ? "ID do cliente de crédito"
         : "";
     const rawDocument = isRetailDeposit
-      ? input.creditCustomerId
+      ? input.debitCustomerId
       : isRetailPayment
-        ? input.debitCustomerId
+        ? input.creditCustomerId
         : "";
     const document = normalizeCnpj(rawDocument);
 

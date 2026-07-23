@@ -325,15 +325,40 @@
     const debits = items.filter((row) => row.direction === "DEBIT");
     const creditAmount = credits.reduce((sum, row) => sum + Number(row.amount || 0), 0);
     const debitAmount = debits.reduce((sum, row) => sum + Number(row.amount || 0), 0);
-    const largestAmount = Math.max(0, ...items.map((row) => Number(row.amount || 0)));
+    const sortedAmounts = items.map((row) => Number(row.amount || 0)).filter(Number.isFinite).sort((a, b) => a - b);
+    const largestAmount = Math.max(0, ...sortedAmounts);
+    const medianAmount = sortedAmounts.length
+      ? sortedAmounts.length % 2
+        ? sortedAmounts[Math.floor(sortedAmounts.length / 2)]
+        : (sortedAmounts[(sortedAmounts.length / 2) - 1] + sortedAmounts[sortedAmounts.length / 2]) / 2
+      : 0;
     const counterparties = new Set(items.map((row) => normalizeText(
       typeof row.counterparty === "object" ? row.counterparty?.document || row.counterpartyName : row.counterparty
     )).filter(Boolean));
     const p2pRows = items.filter((row) => row.p2p);
-    const unusualHours = items.filter((row) => Number.isFinite(row.timestamp) && new Date(row.timestamp).getHours() < 6).length;
-    const largerSide = Math.max(creditAmount, debitAmount);
-    const passThroughRatio = largerSide ? Math.abs(creditAmount - debitAmount) / largerSide : 1;
+    const unusualHourRows = items.filter((row) => Number.isFinite(row.timestamp) && new Date(row.timestamp).getHours() < 6);
+    const unusualHours = unusualHourRows.length;
+    const unusualHoursAmount = unusualHourRows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
     const chronological = items.filter((row) => Number.isFinite(row.timestamp)).slice().sort((a, b) => a.timestamp - b.timestamp);
+    let passThroughPairs = 0;
+    let passThroughRatio = 1;
+    chronological.forEach((entry, index) => {
+      if (!["CREDIT", "DEBIT"].includes(entry.direction)) return;
+      for (let nextIndex = index + 1; nextIndex < chronological.length; nextIndex += 1) {
+        const exit = chronological[nextIndex];
+        const elapsed = exit.timestamp - entry.timestamp;
+        if (elapsed > 10 * 60 * 1000) break;
+        if (!["CREDIT", "DEBIT"].includes(exit.direction) || exit.direction === entry.direction) continue;
+        const largerAmount = Math.max(Number(entry.amount || 0), Number(exit.amount || 0));
+        if (!largerAmount) continue;
+        const ratio = Math.abs(Number(entry.amount || 0) - Number(exit.amount || 0)) / largerAmount;
+        passThroughRatio = Math.min(passThroughRatio, ratio);
+        if (ratio <= 0.12) {
+          passThroughPairs += 1;
+          break;
+        }
+      }
+    });
     const maxRollingAmount = (windowMs) => {
       let left = 0;
       let sum = 0;
@@ -365,6 +390,7 @@
     });
     const p2pRelationships = p2pRelationshipMetrics(items, input);
     const groupedCounterparties = transactionCounterparties(items);
+    const repeatedCounterpartyCount = groupedCounterparties.filter((item) => item.transactionCount >= 2).length;
     return Object.freeze({
       count: items.length,
       validDateCount: validTimes.length,
@@ -377,8 +403,10 @@
       debitAmount,
       totalAmount: creditAmount + debitAmount,
       largestAmount,
+      medianAmount,
       uniqueCounterparties: counterparties.size,
       counterparties: groupedCounterparties,
+      repeatedCounterpartyCount,
       p2pCount: p2pRows.length,
       p2pIssuerCount: p2pRelationships.issuerCount,
       p2pPersonalCount: p2pRelationships.personalCount,
@@ -387,9 +415,11 @@
       velocity5m: maxRollingCount(5 * 60 * 1000),
       velocity10m: maxRollingCount(10 * 60 * 1000),
       unusualHours,
+      unusualHoursAmount,
       maxAmount24h: maxRollingAmount(24 * 60 * 60 * 1000),
       maxMonthlyAmount: Math.max(0, ...monthlyTotals.values()),
-      passThrough: credits.length > 0 && debits.length > 0 && passThroughRatio <= 0.12,
+      passThrough: passThroughPairs > 0,
+      passThroughPairs,
       passThroughRatio
     });
   }
@@ -484,11 +514,19 @@
       periodDurationMs: metrics.periodDurationMs,
       totalAmount,
       p2pDetected: items.some((row) => containsP2P(`${row?.transactionType || ""} ${row?.rule || ""}`)),
+      p2pCount: metrics.p2pCount,
       p2pIssuerCount: metrics.p2pIssuerCount,
       p2pPersonalCount: metrics.p2pPersonalCount,
       velocity1m: metrics.velocity1m,
       velocity5m: metrics.velocity5m,
       velocity10m: metrics.velocity10m,
+      unusualHours: metrics.unusualHours,
+      unusualHoursAmount: metrics.unusualHoursAmount,
+      largestAmount: metrics.largestAmount,
+      medianAmount: metrics.medianAmount,
+      repeatedCounterpartyCount: metrics.repeatedCounterpartyCount,
+      passThrough: metrics.passThrough,
+      passThroughPairs: metrics.passThroughPairs,
       uniqueCounterpartyCount: counterparties.size,
       merchantCount: card.merchantCount,
       chipPinCount: card.chipPinCount,

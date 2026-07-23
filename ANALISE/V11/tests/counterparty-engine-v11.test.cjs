@@ -104,15 +104,15 @@ assert.deepEqual(
   {
     transactionType: "DEPOSITO BANCARIO DE VAREJO",
     direction: "ORIGIN",
-    sourceField: "CREDIT_CUSTOMER_XID_VALUE",
-    sourceLabel: "ID do cliente de crédito",
-    document: cnpj,
-    cnpj,
-    cpf: ""
+    sourceField: "DEBIT_CUSTOMER_XID_VALUE",
+    sourceLabel: "ID do cliente de origem",
+    document: "11111111111",
+    cnpj: "",
+    cpf: "11111111111"
   }
 );
-assert.equal(engine.selectFalconCounterparty({ transactionType: "Pagamento bancário de varejo", debitCustomerId: cnpj, creditCustomerId: "11111111111" }).document, cnpj);
-assert.equal(engine.selectFalconCounterparty({ transactionType: "Pagamento bancário de varejo", debitCustomerId: secondBranch }).cnpj, secondBranch);
+assert.equal(engine.selectFalconCounterparty({ transactionType: "Pagamento bancário de varejo", debitCustomerId: "11111111111", creditCustomerId: cnpj }).document, cnpj);
+assert.equal(engine.selectFalconCounterparty({ transactionType: "Pagamento bancário de varejo", creditCustomerId: secondBranch }).cnpj, secondBranch);
 assert.equal(engine.selectFalconCounterparty({ transactionType: "Transferência Pix", debitCustomerId: cnpj, creditCustomerId: secondBranch }).document, "");
 assert.equal(engine.getState().recordCount, 3);
 assert.equal(engine.classifyFromRegistry({ cnpj, issuer: "Outro", direction: "crédito" }).classification, "TRUSTED");

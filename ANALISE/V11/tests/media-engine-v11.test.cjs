@@ -8,7 +8,7 @@ vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "sac-media-v11.js"), "utf8"), context);
 
 const engine = context.window.SACMediaV11;
-assert.equal(typeof engine.collectPidData, "undefined");
+assert.equal(typeof engine.collectPidData, "function");
 assert.equal(typeof engine.collectCustomerIdentity, "function");
 assert.equal(engine.isBigDataPage({ querySelector: (selector) => selector.includes("#inputCPF") ? {} : null }), true);
 assert.equal(engine.isBigDataPage({ querySelector: () => null }), false);
@@ -18,6 +18,7 @@ assert.equal(engine.eligibleParties({ holderDocument: "111.111.111-11", originDo
 const request = engine.createRequest({ caseNumber: "49373570", holderDocument: "111.111.111-11" });
 const noMedia = engine.createResult(request, { found: false, mediaTypes: [] });
 assert.equal(noMedia.classification, "SEM MÍDIA");
+assert.equal(Object.keys(noMedia.pidData).length, 0);
 assert.equal(engine.resultMatches(request, noMedia), true);
 
 (async () => {
@@ -51,6 +52,38 @@ assert.equal(engine.resultMatches(request, noMedia), true);
   assert.equal(tolerant.found, true);
   assert.deepEqual(Array.from(tolerant.mediaTypes), ["Crimes contra a fé pública"]);
   assert.equal(tolerant.defendants.length, 1, "processo de outro CPF não pode contaminar o resultado");
+
+  const drugDistinction = engine.classifyProcessRecords([{
+    processNumber: "0005",
+    subject: "Posse de drogas para consumo pessoal - artigo 28",
+    parties: [{ document: "11111111111", role: "réu" }]
+  }, {
+    processNumber: "0006",
+    subject: "Tráfico ilícito de substância entorpecente",
+    parties: [{ document: "11111111111", role: "réu" }]
+  }], [{ document: "11111111111" }]);
+  assert.deepEqual(Array.from(drugDistinction.mediaTypes), ["Tráfico de drogas"]);
+  assert.equal(drugDistinction.defendants.length, 1, "posse para consumo não pode ser marcada como tráfico");
+
+  const possessionOnly = engine.classifyProcessRecords([{
+    processNumber: "0007",
+    subject: "Porte e posse de entorpecentes para uso pessoal",
+    parties: [{ document: "11111111111", role: "acusado" }]
+  }], [{ document: "11111111111" }]);
+  assert.equal(possessionOnly.found, false);
+  assert.deepEqual(Array.from(possessionOnly.mediaTypes), []);
+
+  const articleDistinction = engine.classifyProcessRecords([{
+    processNumber: "0008",
+    subject: "Artigo 33 do Código Penal",
+    parties: [{ document: "11111111111", role: "réu" }]
+  }, {
+    processNumber: "0009",
+    subject: "Artigo 33 da Lei 11.343",
+    parties: [{ document: "11111111111", role: "réu" }]
+  }], [{ document: "11111111111" }]);
+  assert.deepEqual(Array.from(articleDistinction.mediaTypes), ["Tráfico de drogas"]);
+  assert.equal(articleDistinction.defendants.length, 1, "artigo 33 sem vínculo com a Lei de Drogas não pode ser classificado");
 
   engine.useProvider({
     canScan: () => true,

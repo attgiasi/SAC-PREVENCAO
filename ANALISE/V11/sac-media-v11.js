@@ -22,7 +22,7 @@
     "Homicídio"
   ]);
   const MEDIA_PATTERNS = Object.freeze([
-    ["Tráfico de drogas", /TRAFIC\w*.*(?:DROG|ENTORPEC)|DROG\w*|ENTORPEC\w*/],
+    ["Tráfico de drogas", /TRAFIC\w*(?:\s+\w+){0,5}\s+(?:DROG|ENTORPEC)\w*|ART(?:IGO)?\.?\s*33\b(?:\s+\w+){0,6}\s+(?:LEI\s*11\.?343|DROG|ENTORPEC)\w*|(?:LEI\s*11\.?343|DROG|ENTORPEC)\w*(?:\s+\w+){0,6}\s+ART(?:IGO)?\.?\s*33\b|(?:COMERCI|VEND|DISTRIBU|FORNEC)\w*(?:\s+\w+){0,5}\s+(?:DROG|ENTORPEC)\w*|(?:DROG|ENTORPEC)\w*(?:\s+\w+){0,5}\s+(?:COMERCI|VEND|DISTRIBU|FORNEC)\w*/],
     ["Terrorismo", /TERRORIS\w*/],
     ["Falsidade ideológica", /FALS\w*\s+IDEOLOG\w*|IDENTIDADE FALSA/],
     ["Crimes contra a fé pública", /FE\s+PUBLIC\w*|MOED\w*\s+FALS\w*|DOCUMENT\w*\s+FALS\w*|FALSIFIC\w*|USO\s+DE\s+DOCUMENT\w*\s+FALS\w*/],
@@ -111,7 +111,35 @@
     return Object.freeze({
       supported: Boolean(person.size),
       name: fieldValue(person, "Nome"),
-      document: digits(fieldValue(person, "Documento"))
+      document: digits(fieldValue(person, "Documento")),
+      motherName: fieldValue(person, "Nome da mãe", "Nome da mae"),
+      birthDate: fieldValue(person, "Data de nascimento", "Nascimento")
+    });
+  }
+
+  function collectPidData(root = document) {
+    const identity = collectCustomerIdentity(root);
+    const addressCards = Array.from(root?.querySelectorAll?.("#queryResult_addressData .content-card") || []).map(fieldMap);
+    const primaryAddress = addressCards.find((fields) => normalizeText(fieldValue(fields, "Endereço é principal", "Endereco e principal")) === "SIM")
+      || addressCards.find((fields) => fieldValue(fields, "Endereço", "Endereco"))
+      || new Map();
+    const emailCards = Array.from(root?.querySelectorAll?.("#queryResult_emailData .content-card") || []).map(fieldMap);
+    const primaryEmail = emailCards.find((fields) => normalizeText(fieldValue(fields, "Email é principal", "Email e principal")) === "SIM")
+      || emailCards.find((fields) => fieldValue(fields, "Email", "E-mail"))
+      || new Map();
+    const address = [
+      fieldValue(primaryAddress, "Endereço", "Endereco"),
+      fieldValue(primaryAddress, "Complemento"),
+      fieldValue(primaryAddress, "Cidade"),
+      fieldValue(primaryAddress, "UF")
+    ].filter(Boolean).join(" · ");
+    return Object.freeze({
+      document: identity.document,
+      name: identity.name,
+      motherName: identity.motherName,
+      birthDate: identity.birthDate,
+      address,
+      email: fieldValue(primaryEmail, "Email", "E-mail")
     });
   }
 
@@ -180,14 +208,15 @@
     },
     async scan(input = {}) {
       const root = input.root || document;
-      const pageDocument = digits(collectCustomerIdentity(root).document);
+      const pidData = collectPidData(root);
+      const pageDocument = digits(pidData.document);
       const requestedDocuments = new Set((input.parties || []).map((party) => digits(party?.document)).filter(isCpf));
       if (!isCpf(pageDocument) || !requestedDocuments.has(pageDocument)) {
-        return { found: false, mediaTypes: [], defendants: [], pageDocument, identityMismatch: true, source: "BigData" };
+        return { found: false, mediaTypes: [], defendants: [], pageDocument, pidData, identityMismatch: true, source: "BigData" };
       }
       const selectedParty = (input.parties || []).filter((party) => digits(party?.document) === pageDocument);
       const result = classifyProcessRecords(parseBigDataProcesses(root), selectedParty);
-      return { ...result, pageDocument, identityMismatch: false, source: "BigData" };
+      return { ...result, pageDocument, pidData, identityMismatch: false, source: "BigData" };
     }
   });
 
@@ -236,6 +265,7 @@
       found,
       mediaTypes,
       defendants: Array.isArray(scanResult.defendants) ? scanResult.defendants : [],
+      pidData: scanResult.pidData && typeof scanResult.pidData === "object" ? { ...scanResult.pidData } : {},
       source: String(scanResult.source || "BigData").trim(),
       createdAt: Date.now(),
       savedAt: Date.now()
@@ -290,6 +320,7 @@
       parties,
       defendants: Array.isArray(raw?.defendants) ? raw.defendants : [],
       mediaTypes,
+      pidData: raw?.pidData && typeof raw.pidData === "object" ? { ...raw.pidData } : {},
       source: String(raw?.source || "BigData").trim()
     };
   }
@@ -306,6 +337,7 @@
     eligibleParties,
     normalizeTypes,
     collectCustomerIdentity,
+    collectPidData,
     classifyProcessRecords,
     parseBigDataProcesses,
     requestIdentity,

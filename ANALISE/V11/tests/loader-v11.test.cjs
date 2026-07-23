@@ -4,12 +4,12 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "loader-v11.js"), "utf8");
-const safeFallback = "1a94977e928199b45c909ae6eae87c4c2b25aa0c";
+const safeFallback = "43a561246dcb751ef3aa5f29da9aca78f7e2a549";
 const release = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "release-v11.json"), "utf8"));
 const bookmarklet = fs.readFileSync(path.join(__dirname, "..", "bookmarklet-v11.txt"), "utf8");
 
-assert.equal(release.build, "11.29");
-assert.match(bookmarklet, new RegExp(`@${release.commit}/ANALISE/V11/loader-v11\\.js\\?v=11\\.29\\.0`));
+assert.equal(release.build, "11.30");
+assert.match(bookmarklet, new RegExp(`@${release.commit}/ANALISE/V11/loader-v11\\.js\\?v=11\\.30\\.0`));
 
 async function executeLoader(fetchImpl) {
   const loaded = [];
@@ -74,7 +74,7 @@ function response(payload, ok = true, status = 200) {
 
   assert.match(viaApi.loaded[0], /sac-memory-v11\.js/);
   assert.match(viaApi.loaded.at(-1), /sac-prevencao-v11\.js/);
-  assert.ok(viaApi.loaded.every((url) => url.includes("v=11.29.0-")));
+  assert.ok(viaApi.loaded.every((url) => url.includes("v=11.30.0-")));
   console.log("OK - carregador V11 validado por API, manifesto e revisão segura");
 })().catch((error) => {
   console.error(error);

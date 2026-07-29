@@ -26,6 +26,7 @@ fs.writeFileSync(configPath, [
   "Repositorio: attgiasi/SAC-PREVENCAO",
   "Pasta correta: JIRA/FRASES/V4",
   "Dados editaveis: JIRA/FRASES/V4/frases-data.json",
+  "Ponte de sincronizacao: JIRA/FRASES/V4/sync.html",
   "Arquivo CDN:",
   cdnUrl,
   ""

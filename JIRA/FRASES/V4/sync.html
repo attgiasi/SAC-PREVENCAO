@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Sincronização - Frases Prontas V4</title>
+</head>
+<body>
+<script>
+(() => {
+  "use strict";
+
+  const STORE = "jira_frases_v4";
+  const SCOPE = "jira-frases-sync-v4";
+  const CHANNEL = `${STORE}:shared`;
+  const CLIENT_ID = `bridge-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  let channel = null;
+
+  try {
+    channel = new BroadcastChannel(CHANNEL);
+    channel.addEventListener("message", event => {
+      const message = event.data || {};
+      if (!message.key || message.source === CLIENT_ID) return;
+      sendToParent({ action: "update", key: message.key, value: message.value, source: message.source });
+    });
+  } catch {
+    channel = null;
+  }
+
+  window.addEventListener("message", onMessage);
+  window.addEventListener("storage", event => {
+    if (!event.key || !event.key.startsWith(`${STORE}:`)) return;
+    const key = event.key.slice(STORE.length + 1);
+    if (key !== "data" && key !== "config") return;
+    sendToParent({ action: "update", key, value: read(key, null), source: "storage" });
+  });
+
+  sendToParent({ action: "ready" });
+
+  function onMessage(event) {
+    const message = event.data || {};
+    if (message.scope !== SCOPE) return;
+    try {
+      if (message.action === "snapshot") {
+        reply(message, { data: read("data", null), config: read("config", null) });
+        return;
+      }
+      if (message.action === "set") {
+        const value = message.key === "config" ? mergeConfig(read("config", null), message.value) : message.value;
+        write(message.key, value);
+        broadcast(message.key, value, message.source);
+        reply(message, { key: message.key, value });
+        return;
+      }
+      if (message.action === "incrementUsage") {
+        const config = mergeConfig(read("config", null), null);
+        config.usage = normalizeUsage(config.usage);
+        config.usage[message.phraseId] = Math.max(0, Math.floor(Number(config.usage[message.phraseId]) || 0)) + 1;
+        write("config", config);
+        broadcast("config", config, message.source);
+        reply(message, { key: "config", config });
+        return;
+      }
+      reply(message, {}, false, "Ação inválida.");
+    } catch (error) {
+      reply(message, {}, false, error.message || "Erro inesperado.");
+    }
+  }
+
+  function read(key, fallback) {
+    try {
+      const raw = localStorage.getItem(`${STORE}:${key}`);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function write(key, value) {
+    if (key !== "data" && key !== "config") throw new Error("Chave inválida.");
+    localStorage.setItem(`${STORE}:${key}`, JSON.stringify(value));
+  }
+
+  function mergeConfig(current, incoming) {
+    const base = current && typeof current === "object" ? current : {};
+    const next = incoming && typeof incoming === "object" ? { ...base, ...incoming } : { ...base };
+    next.usage = mergeUsage(base.usage, incoming?.usage);
+    return next;
+  }
+
+  function mergeUsage(left, right) {
+    const merged = { ...normalizeUsage(left), ...normalizeUsage(right) };
+    Object.keys(merged).forEach(id => {
+      merged[id] = Math.max(
+        Math.floor(Number(left?.[id]) || 0),
+        Math.floor(Number(right?.[id]) || 0)
+      );
+    });
+    return merged;
+  }
+
+  function normalizeUsage(input) {
+    if (!input || typeof input !== "object" || Array.isArray(input)) return {};
+    return Object.fromEntries(Object.entries(input).map(([id, count]) => [
+      String(id || "").trim(),
+      Math.max(0, Math.floor(Number(count) || 0))
+    ]).filter(([id]) => id));
+  }
+
+  function broadcast(key, value, source) {
+    sendToParent({ action: "update", key, value, source: source || CLIENT_ID });
+    try {
+      channel?.postMessage({ key, value, source: source || CLIENT_ID });
+    } catch {}
+  }
+
+  function reply(message, payload = {}, ok = true, error = "") {
+    sendToParent({ replyTo: message.requestId, ok, error, ...payload });
+  }
+
+  function sendToParent(payload) {
+    window.parent?.postMessage({ scope: SCOPE, source: CLIENT_ID, ...payload }, "*");
+  }
+})();
+</script>
+</body>
+</html>

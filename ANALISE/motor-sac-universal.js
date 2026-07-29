@@ -1,7 +1,7 @@
 (async function SacPrevencaoUniversalV11() {
   "use strict";
 
-  const VERSION = "11.31.0";
+  const VERSION = "11.32.0";
   const LOADER = "V11/loader-v11.js";
 
   const current = (() => {

@@ -5,7 +5,7 @@ const vm = require("node:vm");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "sac-prevencao-v11.js"), "utf8");
 
-assert.match(source, /if \(enabled\) openPidPanel\(data\);/);
+assert.match(source, /if \(enabled && !jira\) openPidPanel\(data\);\s*else closePidPanel\(\);/);
 assert.doesNotMatch(source, /data\.flow === ["']card["'] && enabled/);
 assert.match(source, /PID - \$\{issuer \|\| ["']PADRÃO["']\}/);
 assert.match(source, /pid\.motherName/);
@@ -50,7 +50,8 @@ assert.match(source, /panel\.classList\.contains\("sac-minimized"\) \|\| host\.c
 const preview = fs.readFileSync(path.join(__dirname, "..", "preview.html"), "utf8");
 assert.match(preview, /investigation:false,help:false/);
 assert.match(preview, /callMode:"com chamada",callResult:"com sucesso"/);
-assert.match(preview, /if\(norm\(data\.fields\.callMode\)==="COM CHAMADA"\)openPid\(data\)/);
+assert.match(preview, /norm\(data\.fields\.callMode\)==="COM CHAMADA"&&!data\.jiraActive/);
+assert.match(preview, /if\(active&&!jira\)openPid\(data\);else closePid\(\)/);
 assert.match(preview, /\.pid-grid\{[^}]*grid-template-columns:minmax\(0,1fr\)/);
 assert.doesNotMatch(preview, /\.pid-grid\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
 assert.doesNotMatch(preview, /\.pid\{[^}]*width:360px/);

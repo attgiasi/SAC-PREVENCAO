@@ -11,7 +11,7 @@ Arquivos carregados pelo favorito:
 - `V11/loader-v11.js`
 - motores `V11/sac-*.js`
 
-O carregador universal aponta exclusivamente para a V11.31. O loader resolve a revisão mais recente publicada e só então carrega os motores na ordem correta.
+O carregador universal aponta exclusivamente para a V11.32. O loader resolve a revisão mais recente publicada e só então carrega os motores na ordem correta.
 
 ## Versão de teste
 

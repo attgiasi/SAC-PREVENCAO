@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V11_20260715";
   const BUILD = "ANALISE/V11";
   const BUILD_FAMILY = "11";
-  const BUILD_VERSION = "11.31";
+  const BUILD_VERSION = "11.32";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -3443,6 +3443,7 @@
       label?.classList.toggle("on", data.jiraActive);
       const state = label?.querySelector("b");
       if (state) state.textContent = data.jiraActive ? "Ligado" : "Desligado";
+      syncCallToggles();
     });
     byId("sac-bad-media")?.addEventListener("change", (event) => {
       if (normalize(event.target.value) !== "SIM") return;
@@ -3476,21 +3477,23 @@
       const modeToggle = byId("sac-call-mode-toggle");
       const resultToggle = byId("sac-call-result-toggle");
       const enabled = modeToggle?.dataset.active === "true";
+      const jira = Boolean(data.jiraActive);
       if (resultToggle) {
-        resultToggle.disabled = !enabled;
+        resultToggle.disabled = !enabled || jira;
         if (!enabled) resultToggle.dataset.active = "false";
+        if (enabled && jira) resultToggle.dataset.active = "true";
       }
       modeToggle?.classList.toggle("on", enabled);
       modeToggle?.setAttribute("aria-pressed", enabled ? "true" : "false");
       modeToggle?.querySelector("b") && (modeToggle.querySelector("b").textContent = enabled ? "Ligado" : "Desligado");
-      const success = enabled && resultToggle?.dataset.active === "true";
+      const success = enabled && (jira || resultToggle?.dataset.active === "true");
       resultToggle?.classList.toggle("on", success);
-      resultToggle?.setAttribute("aria-disabled", enabled ? "false" : "true");
+      resultToggle?.setAttribute("aria-disabled", enabled && !jira ? "false" : "true");
       resultToggle?.setAttribute("aria-pressed", success ? "true" : "false");
-      resultToggle?.querySelector("b") && (resultToggle.querySelector("b").textContent = enabled ? (success ? "Com sucesso" : "Sem sucesso") : "Sem chamada");
+      resultToggle?.querySelector("b") && (resultToggle.querySelector("b").textContent = enabled ? (jira ? "JIRA" : success ? "Com sucesso" : "Sem sucesso") : "Sem chamada");
       data.fields.callMode = enabled ? "com chamada" : "sem chamada";
       data.fields.callResult = enabled ? (success ? "com sucesso" : "sem sucesso") : "";
-      if (enabled) openPidPanel(data);
+      if (enabled && !jira) openPidPanel(data);
       else closePidPanel();
     };
     byId("sac-call-mode-toggle")?.addEventListener("click", (event) => {
@@ -3526,12 +3529,13 @@
     const mode = normalize(data.fields.callMode) === "COM CHAMADA" ? "com chamada" : "sem chamada";
     const result = normalize(data.fields.callResult) === "COM SUCESSO" ? "com sucesso" : normalize(data.fields.callResult) === "SEM SUCESSO" ? "sem sucesso" : "";
     const callEnabled = mode === "com chamada";
-    const success = result === "com sucesso";
+    const jira = Boolean(data.jiraActive);
+    const success = callEnabled && (jira || result === "com sucesso");
     return `
       <div class="sac-console-flags">
-        <label class="sac-toggle sac-jira-toggle ${data.jiraActive ? "on" : ""}" aria-pressed="${data.jiraActive ? "true" : "false"}"><input type="checkbox" id="sac-jira-flag" ${data.jiraActive ? "checked" : ""} hidden><span class="sac-switch"></span><span>JIRA</span><b>${data.jiraActive ? "Ligado" : "Desligado"}</b></label>
+        <label class="sac-toggle sac-jira-toggle ${jira ? "on" : ""}" aria-pressed="${jira ? "true" : "false"}"><input type="checkbox" id="sac-jira-flag" ${jira ? "checked" : ""} hidden><span class="sac-switch"></span><span>JIRA</span><b>${jira ? "Ligado" : "Desligado"}</b></label>
         <button type="button" id="sac-call-mode-toggle" class="sac-toggle ${callEnabled ? "on" : ""}" data-active="${callEnabled ? "true" : "false"}" aria-pressed="${callEnabled ? "true" : "false"}"><span class="sac-switch"></span><span>Com chamada</span><b>${callEnabled ? "Ligado" : "Desligado"}</b></button>
-        <button type="button" id="sac-call-result-toggle" class="sac-toggle ${callEnabled && success ? "on" : ""}" data-active="${success ? "true" : "false"}" aria-disabled="${callEnabled ? "false" : "true"}" aria-pressed="${callEnabled && success ? "true" : "false"}" ${callEnabled ? "" : "disabled"}><span class="sac-switch"></span><span>Com sucesso</span><b>${callEnabled ? (success ? "Ligado" : "Desligado") : "Sem chamada"}</b></button>
+        <button type="button" id="sac-call-result-toggle" class="sac-toggle ${success ? "on" : ""}" data-active="${success ? "true" : "false"}" aria-disabled="${callEnabled && !jira ? "false" : "true"}" aria-pressed="${success ? "true" : "false"}" ${callEnabled && !jira ? "" : "disabled"}><span class="sac-switch"></span><span>Com sucesso</span><b>${callEnabled ? (jira ? "JIRA" : success ? "Ligado" : "Desligado") : "Sem chamada"}</b></button>
       </div>`;
   }
   function cardFields(data) {
@@ -3552,9 +3556,10 @@
   }
   async function readConsoleFields(data) {
     const callModeActive = byId("sac-call-mode-toggle")?.dataset.active === "true";
+    const jiraCall = Boolean(data.jiraActive) && callModeActive;
     const callState = {
       callMode: callModeActive ? "com chamada" : "sem chamada",
-      callResult: callModeActive ? (byId("sac-call-result-toggle")?.dataset.active === "true" ? "com sucesso" : "sem sucesso") : ""
+      callResult: callModeActive ? (jiraCall || byId("sac-call-result-toggle")?.dataset.active === "true" ? "com sucesso" : "sem sucesso") : ""
     };
     if (data.flow === "card") {
       return {
@@ -4313,7 +4318,10 @@
     return "";
   }
   function tabulatorCallValues(data) {
-    if (data.jiraActive) return { type: "RECEPTIVO", result: "COM SUCESSO" };
+    if (data.jiraActive && normalize(data.fields?.callMode) === "COM CHAMADA") {
+      return { type: "RECEPTIVO", result: "COM SUCESSO" };
+    }
+    if (data.jiraActive) return { type: "SEM CONTATO - PLANILHA", result: "SEM CHAMADA" };
     if (normalize(data.fields?.callMode) === "COM CHAMADA") {
       return {
         type: "ATIVA - PLANILHA",

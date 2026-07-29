@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão ativa revisada em 29/07/2026. Build `11.31`.
+Versão ativa revisada em 29/07/2026. Build `11.32`.
 
 ## Estrutura
 
@@ -23,7 +23,7 @@ A V11 fica organizada em blocos claros:
 
 Esta é a versão ativa. O favorito universal carrega a V11 pelo `loader-v11.js`.
 
-A V11.31 mantém `Modo investigação` e `Modo ajuda` desligados por padrão. As duas preferências são independentes e compartilhadas entre todas as etapas. `Analisar` abre somente Transacional, CNPJ e Mídias; `Ajuda` abre separadamente orientações de regra, emissor e book. Os botões aparecem à esquerda das janelas Falcon, Console e Tabulador somente quando o respectivo modo estiver ativo. Cada painel é criado apenas no clique, substitui qualquer lateral anterior e recebe rolagem vertical própria quando o conteúdo ultrapassa a tela. A conferência Falcon x Console continua no fluxo de segurança, mas não ocupa um grid da investigação. O BigData coleta silenciosamente mídia do CPF titular e os dados disponíveis para o PID.
+A V11.32 mantém `Modo investigação` e `Modo ajuda` desligados por padrão. As duas preferências são independentes e compartilhadas entre todas as etapas. `Analisar` abre somente Transacional, CNPJ e Mídias; `Ajuda` abre separadamente orientações de regra, emissor e book. Os botões aparecem à esquerda das janelas Falcon, Console e Tabulador somente quando o respectivo modo estiver ativo. Cada painel é criado apenas no clique, substitui qualquer lateral anterior e recebe rolagem vertical própria quando o conteúdo ultrapassa a tela. A conferência Falcon x Console continua no fluxo de segurança, mas não ocupa um grid da investigação. O BigData coleta silenciosamente mídia do CPF titular e os dados disponíveis para o PID.
 
 O PID usa botões de chave próprios, sem depender do comportamento de labels da página do Console. Seus dados aparecem em uma única coluna e, quando a investigação também estiver aberta, o posicionador tenta usar o lado oposto da janela do Console para evitar sobreposição. A reexecução encerra listeners e janelas da instância anterior antes de criar a nova, e o PID possui ciclo independente dos popovers auxiliares.
 
@@ -503,7 +503,11 @@ O sistema mostra principalmente:
 
 O bookmarklet dedicado e o favorito universal carregam a mesma versão V11 publicada.
 
-## Pente fino da build 11.31
+## Pente fino da build 11.32
+
+- JIRA sem chamada aplica `SEM CONTATO - PLANILHA` e `SEM CHAMADA`.
+- JIRA com chamada aplica `RECEPTIVO` e `COM SUCESSO`, sem abrir o painel de PID.
+- O PID continua disponível somente para chamadas comuns e a prévia reproduz a mesma regra.
 
 - `PID`: o painel respeita o estado minimizado do Console. Ao minimizar a janela principal, o PID e os popovers associados recolhem juntos; ao restaurar, voltam à posição lateral sem forçar largura, visibilidade ou deslocamento.
 - `LISTAS`: a gravação confirma a fila inteira e reforça apenas os itens que não aparecerem no cofre local. A memória é transportada imediatamente por `window.name`, além do espelho local, para que a mesma fila esteja disponível na etapa seguinte sem depender da leitura tardia da área de transferência.

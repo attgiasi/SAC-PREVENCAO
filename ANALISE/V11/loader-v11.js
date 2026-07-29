@@ -4,8 +4,8 @@
   const REPOSITORY = "attgiasi/SAC-PREVENCAO";
   const BRANCH = "main";
   const BUILD_PATH = "ANALISE/V11";
-  const LOADER_VERSION = "11.30.0";
-  const SAFE_FALLBACK_REF = "43a561246dcb751ef3aa5f29da9aca78f7e2a549";
+  const LOADER_VERSION = "11.31.0";
+  const SAFE_FALLBACK_REF = "e3a6592d340eca575a9dadf919ea8bc76a8b68e1";
   const RELEASE_MANIFEST = `https://raw.githubusercontent.com/${REPOSITORY}/${BRANCH}/${BUILD_PATH}/release-v11.json`;
   const FILES = Object.freeze([
     "sac-memory-v11.js",

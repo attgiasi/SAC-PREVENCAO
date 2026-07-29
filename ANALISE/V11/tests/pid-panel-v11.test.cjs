@@ -43,6 +43,9 @@ assert.doesNotMatch(source, /\.sac-pid-grid\{[^}]*grid-template-columns:repeat\(
 assert.doesNotMatch(source, /\.sac-pid-panel\{width:min\(360px/);
 assert.equal((source.match(/\.sac-pid-panel\{width:min\(420px/g) || []).length, 1);
 assert.match(source, /const oppositeOfSide = side/);
+assert.match(source, /panel\.classList\.toggle\("sac-minimized", Boolean\(owner\?\.classList\.contains\("sac-minimized"\)\)\)/);
+assert.match(source, /\["display", "visibility", "opacity", "pointer-events"\]\.forEach\(\(property\) => panel\.style\.removeProperty\(property\)\)/);
+assert.match(source, /panel\.classList\.contains\("sac-minimized"\) \|\| host\.classList\.contains\("sac-minimized"\)/);
 
 const preview = fs.readFileSync(path.join(__dirname, "..", "preview.html"), "utf8");
 assert.match(preview, /investigation:false,help:false/);
@@ -54,6 +57,8 @@ assert.doesNotMatch(preview, /\.pid\{[^}]*width:360px/);
 assert.match(preview, /class="pid-reload-control"/);
 assert.match(preview, /pid-reload-icon/);
 assert.match(preview, /Dado do PID atualizado/);
+assert.match(preview, /data-owner="console"/);
+assert.match(preview, /if\(!minimized&&stage==="console"\)placePid\(\)/);
 
 const functionStart = source.indexOf("  function openPidPanel(data, options = {}) {");
 const functionEnd = source.indexOf("  function ensureStyles()", functionStart);

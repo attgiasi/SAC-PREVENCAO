@@ -9,6 +9,7 @@
   const DEFAULT_ENDPOINT = "https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/ANALISE/V11/rfb-cnpj-registry-v11.json";
   const DEFAULT_TTL_MS = 15 * 60 * 1000;
   const LOOKUP_TTL_MS = 24 * 60 * 60 * 1000;
+  const REGISTRY_TIMEOUT_MS = 3500;
   const BRASIL_API_ENDPOINT = "https://brasilapi.com.br/api/cnpj/v1/";
   const STATUS_BY_CODE = Object.freeze({ "01": "NULA", "1": "NULA", "02": "ATIVA", "2": "ATIVA", "03": "SUSPENSA", "3": "SUSPENSA", "04": "INAPTA", "4": "INAPTA", "08": "BAIXADA", "8": "BAIXADA" });
   const VALID_STATUS = new Set(["ATIVA", "SUSPENSA", "INAPTA", "BAIXADA", "NULA"]);
@@ -213,9 +214,15 @@
       async load({ endpoint }) {
         const url = new URL(endpoint, window.location?.href || undefined);
         url.searchParams.set("sac_refresh", String(Date.now()));
-        const response = await fetch(url.toString(), { cache: "no-store", credentials: "omit" });
-        if (!response.ok) throw new Error(`RFB_HTTP_${response.status}`);
-        return response.json();
+        const controller = typeof AbortController === "function" ? new AbortController() : null;
+        const timeout = setTimeout(() => controller?.abort(), REGISTRY_TIMEOUT_MS);
+        try {
+          const response = await fetch(url.toString(), { cache: "no-store", credentials: "omit", signal: controller?.signal });
+          if (!response.ok) throw new Error(`RFB_HTTP_${response.status}`);
+          return response.json();
+        } finally {
+          clearTimeout(timeout);
+        }
       }
     };
   }
@@ -246,6 +253,8 @@
 
   async function lookup(cnpj, options = {}) {
     const generation = sessionGeneration;
+    // A base interna é apoio. Se ela estiver indisponível, a consulta pública
+    // continua sendo acionada em seguida para não bloquear a análise do CNPJ.
     if (options.refresh !== false) await refresh({ force: Boolean(options.forceRefresh) });
     if (generation !== sessionGeneration) return lookupFromRegistry(cnpj);
     const synchronized = lookupFromRegistry(cnpj);

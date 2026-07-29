@@ -176,6 +176,28 @@ assert.equal(reloadContext.window.SACMemoryV11.settings.get("theme"), "light", "
 assert.equal(reloadContext.window.SACMemoryV11.lists.all().length, 2, "LISTAS devem sobreviver à troca de etapa");
 assert.equal(reloadContext.window.SACMemoryV11.history.all().length, 1, "Histórico deve sobreviver à troca de etapa");
 
+const crossOriginContext = {
+  console,
+  Date,
+  JSON,
+  encodeURIComponent,
+  decodeURIComponent,
+  setTimeout,
+  clearTimeout,
+  document: documentMock,
+  navigator: { clipboard: {} },
+  window: {
+    name: context.window.name,
+    localStorage: storageMock(),
+    sessionStorage: storageMock()
+  }
+};
+crossOriginContext.window.window = crossOriginContext.window;
+crossOriginContext.window.navigator = crossOriginContext.navigator;
+vm.createContext(crossOriginContext);
+vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "sac-memory-v11.js"), "utf8"), crossOriginContext, { filename: "sac-memory-v11-cross-origin.js" });
+assert.equal(crossOriginContext.window.SACMemoryV11.lists.all().length, 2, "LISTAS devem aparecer imediatamente em outra etapa/origem pelo cofre de window.name");
+
 (async () => {
   context.navigator.clipboard.read = () => new Promise(() => {});
   const startedAt = Date.now();

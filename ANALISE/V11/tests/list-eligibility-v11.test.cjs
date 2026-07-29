@@ -28,5 +28,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor(eligible))), { a
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, accountStatus: "bloqueado" }))), { allowlist: false, contencao: true });
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, fields: { personStatus: "spd 21", spdHistory: "não" } }))), { allowlist: false, contencao: true });
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, falcon: { rule: "REGRA COMUM" }, fields: { personStatus: "normal", spdHistory: "spd 8" } }))), { allowlist: false, contencao: false });
+assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "Conta Simples", issuerId: "155", jiraActive: false }))), { allowlist: false, contencao: true });
+assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "Conta Simples", issuerId: "155", jiraActive: true }))), { allowlist: true, contencao: true });
 
-console.log("OK - permissiva bloqueia conta com bloqueio ou SPD");
+console.log("OK - permissiva bloqueia conta com bloqueio ou SPD e exige JIRA para Conta Simples");

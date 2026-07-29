@@ -2,17 +2,16 @@
 
 ## Versão ativa
 
-A versão ativa é a `V10`.
+A versão ativa é a `V11`.
 
 Arquivos carregados pelo favorito:
 
 - `favorito-universal.bookmarklet.txt`
 - `motor-sac-universal.js`
-- `V10/sac-memory-v10.js`
-- `V10/sac-tabulator-v10.js`
-- `V10/sac-prevencao-v10.js`
+- `V11/loader-v11.js`
+- motores `V11/sac-*.js`
 
-O carregador universal aponta exclusivamente para a V10.3 e carrega os motores na ordem correta.
+O carregador universal aponta exclusivamente para a V11.31. O loader resolve a revisão mais recente publicada e só então carrega os motores na ordem correta.
 
 ## Versão de teste
 
@@ -22,4 +21,4 @@ Também existe um bookmarklet separado dentro de cada pasta de versão, no forma
 
 As pastas anteriores ficam apenas como histórico local. Elas não são carregadas, importadas ou executadas pela versão ativa.
 
-Consulte `V10/README-PASSO-A-PASSO.md` para instalação, regras, memória e testes.
+Consulte `V11/README-PASSO-A-PASSO.md` para instalação, regras, memória e testes.

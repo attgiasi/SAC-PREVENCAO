@@ -57,6 +57,10 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "sac-corporate-v11.js
   assert.equal(result.registrationStatus, "ATIVA");
   assert.equal(result.companySize, "DEMAIS");
   assert.equal(result.source.label, "BrasilAPI / dados públicos da Receita Federal");
+  context.window.SACCorporateV11.useProvider({ load: async () => { throw new Error("REGISTRY_UNAVAILABLE"); } });
+  const fallback = await context.window.SACCorporateV11.lookup(cnpj, { forceRefresh: true });
+  assert.equal(fallback.found, true, "a consulta pública deve continuar quando a base de apoio falhar");
+  assert.equal(fallback.lookupSource, "BRASIL_API");
   console.log("OK - consulta cadastral automática V11 validada");
 })().catch((error) => {
   console.error(error);

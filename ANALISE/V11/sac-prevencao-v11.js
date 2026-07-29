@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V11_20260715";
   const BUILD = "ANALISE/V11";
   const BUILD_FAMILY = "11";
-  const BUILD_VERSION = "11.30";
+  const BUILD_VERSION = "11.31";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -634,7 +634,9 @@
     return name ? `${name} | ${getSignatureSector()}` : "";
   };
   function showNotice(message, type = "info", duration = NOTICE_MS) {
-    if (type === "info") return;
+    // A interface já mostra as ações concluídas. Mantemos avisos apenas para
+    // erros, atenção e a confirmação final, evitando uma fila de toasts.
+    if (type === "info" || type === "success") return;
     ensureStyles();
     let host = byId("sac-notices");
     if (!host) {
@@ -643,7 +645,7 @@
       document.body.appendChild(host);
     }
     const node = document.createElement("div");
-    const classes = type === "warn-pulse" ? "warn warn-pulse" : type;
+    const classes = type === "warn-pulse" ? "warn warn-pulse" : type === "complete" ? "success" : type;
     node.className = `sac-notice ${classes} sac-${getTheme()}`;
     node.textContent = message;
     while (host.children.length >= 2) host.firstElementChild?.remove();
@@ -714,13 +716,12 @@
   }
   function forcePidPanelVisible(panel) {
     if (!panel) return;
+    const owner = byId(panel.dataset.owner || "sac-panel-console");
     panel.hidden = false;
+    panel.classList.toggle("sac-minimized", Boolean(owner?.classList.contains("sac-minimized")));
     panel.style.setProperty("position", "fixed", "important");
-    panel.style.setProperty("display", "grid", "important");
-    panel.style.setProperty("visibility", "visible", "important");
-    panel.style.setProperty("opacity", "1", "important");
     panel.style.setProperty("z-index", "2147483647", "important");
-    panel.style.setProperty("pointer-events", "auto", "important");
+    ["display", "visibility", "opacity", "pointer-events"].forEach((property) => panel.style.removeProperty(property));
   }
   function closeAuxiliaryPanels(ownerId = "") {
     const scoped = ownerId ? `[data-owner="${cssEscape(ownerId)}"]` : "";
@@ -751,7 +752,7 @@
   function placePidPanel() {
     const panel = byId("sac-pid-panel");
     const host = byId("sac-panel-console");
-    if (!panel || !host) return;
+    if (!panel || !host || panel.classList.contains("sac-minimized") || host.classList.contains("sac-minimized")) return;
     const config = host.querySelector(".sac-config.open:not([hidden])");
     const visibleSides = all(`.sac-side-panel[data-owner="${cssEscape(host.id)}"]`).filter((item) => !item.classList.contains("sac-minimized"));
     const side = visibleSides[visibleSides.length - 1] || null;
@@ -930,7 +931,7 @@
   const ISSUER_HELP = [
     { match: ["ONLYPAY"], title: "ONLYPAY", items: ["Cliente premiado via JIRA usa allowlist por 5 dias corridos.", "Durante o período de LISTAS, evitar bloqueios de fraude relacionados ao caso validado.", "BANKING não fraude entra em LISTAS quando houver ID conta."] },
     { match: ["SOFISA"], title: "SOFISA", items: ["Regra de contenção usa prazo de 3 dias.", "Não fraude com contenção entra em Allowlist e Contenção.", "Quando não for contenção, seguir prazo padrão da lista aplicável."] },
-    { match: ["CONTA SIMPLES", "CONTA SIMPLES 155"], title: "CONTA SIMPLES", items: ["Não enviar para LISTAS quando a conta tiver menos de 3 meses.", "Evitar allowlist para conta nova, CNPJ recente, nome suspeito ou empresa com indício de fraude.", "Para LTDA e S.A., precisa haver de acordo antes de bloquear."] },
+    { match: ["CONTA SIMPLES", "CONTA SIMPLES 155"], title: "CONTA SIMPLES", items: ["Permissiva somente em caso JIRA decidido como não fraude.", "Mesmo com JIRA, não incluir conta bloqueada ou com status SPD.", "Avaliar perfil, CNPJ recente, nome suspeito e indícios de fraude antes de liberar."] },
     { match: ["AMIGOZ"], title: "AMIGOZ", items: ["Possui PID próprio no fluxo de cartão.", "Bloqueio preventivo só com cliente não reconhecendo ou fraude crítica evidente.", "Tentar contato entre 08h e 22h em suspeita de fraude."] },
     { match: ["TIPCARD"], title: "TIPCARD", items: ["SPD 29 é bloqueio estratégico.", "A operação DBM não deve remover esse bloqueio.", "Remoção indevida pode comprometer a estratégia antifraude."] },
     { match: ["WUDIPAY"], title: "WUDIPAY", items: ["Não bloquear contas deste emissor.", "Alertas devem ser classificados como não fraude e tabulados normalmente."] },
@@ -996,13 +997,17 @@
     if (ownerPanel.id === "sac-panel-console") placePidPanel();
   }
   function syncSidePanels(ownerPanel) {
+    const minimized = ownerPanel.classList.contains("sac-minimized");
     all(`.sac-side-panel[data-owner="${cssEscape(ownerPanel.id)}"]`).forEach((panel) => {
-      panel.classList.toggle("sac-minimized", ownerPanel.classList.contains("sac-minimized"));
-      if (!ownerPanel.classList.contains("sac-minimized")) placeSidePanel(ownerPanel, panel);
+      panel.classList.toggle("sac-minimized", minimized);
+      if (!minimized) placeSidePanel(ownerPanel, panel);
     });
     all(`.sac-choice-popover[data-owner="${cssEscape(ownerPanel.id)}"]`).forEach((panel) => {
-      panel.classList.toggle("sac-minimized", ownerPanel.classList.contains("sac-minimized"));
-      if (!ownerPanel.classList.contains("sac-minimized")) placeAuxiliaryPanel(ownerPanel, panel);
+      panel.classList.toggle("sac-minimized", minimized);
+      if (!minimized) {
+        if (panel.classList.contains("sac-pid-panel")) placePidPanel();
+        else placeAuxiliaryPanel(ownerPanel, panel);
+      }
     });
     placeConfigPanel(ownerPanel, ownerPanel.querySelector(".sac-config"));
   }
@@ -3822,7 +3827,7 @@
       if ((queue.length || history.length) && !clipboardEnvelopeReady) {
         showNotice("Tabulação copiada. LISTAS e Histórico foram mantidos na memória local da V11.", "warn", 11000);
       }
-      showNotice("Tabulação copiada e fluxo finalizado.", "success");
+      showNotice("Tabulação copiada e fluxo finalizado.", "complete");
       panel.dataset.finalLocked = "false";
       closeAuxiliaryPanels(panel.id);
       closeSidePanels(panel.id);
@@ -4589,12 +4594,20 @@
     const spdStatus = [accountStatus, personStatus, spdHistory].some((value) => /\bSPD\s*\d+\b/.test(value));
     return blockedAccount || spdStatus;
   }
+  function isContaSimplesIssuer(data) {
+    const issuerId = String(data?.issuerId || "").trim();
+    const issuer = normalize(data?.issuer);
+    return String(issuerId) === "155" || issuer.includes("CONTA SIMPLES") || issuer.includes("CONTASIMPLES");
+  }
+  function isJiraCase(data) {
+    return Boolean(data?.jiraActive);
+  }
   function listTypesFor(data) {
     if (normalize(data.flow) !== "BANKING" || normalize(data.visualFlow) === "HOLD") {
       return { allowlist: false, contencao: false };
     }
     return {
-      allowlist: !hasBlockingOrSpdStatus(data),
+      allowlist: !hasBlockingOrSpdStatus(data) && (!isContaSimplesIssuer(data) || isJiraCase(data)),
       contencao: isContainmentRule(data.falcon?.rule)
     };
   }
@@ -4673,8 +4686,21 @@
     return Boolean(pendingAllowlist || pendingContencao);
   }
   async function writeListQueue(list) {
-    memory.lists.replace(validPendingListItems(list));
-    return validPendingListItems(memory.lists.all());
+    const expected = validPendingListItems(list);
+    memory.lists.replace(expected);
+    let persisted = validPendingListItems(memory.lists.all());
+    const missing = expected.filter((item) => {
+      const listType = item.lists?.contencao ? "contencao" : "allowlist";
+      return !persisted.some((entry) => listItemKey(entry, listType) === listItemKey(item, listType));
+    });
+    // Reforço por item: evita que uma troca rápida de página descarte parte
+    // de um lote antes de window.name e o cofre local receberem a atualização.
+    if (missing.length) {
+      missing.forEach((item) => memory.lists.upsert(item));
+      memory.mergeCurrentMirrors?.();
+      persisted = validPendingListItems(memory.lists.all());
+    }
+    return persisted;
   }
   function listIdentityToken(value) {
     const token = alnumOnly(value);
@@ -4725,10 +4751,6 @@
         return retireCurrentCaseFromLists(queue, data);
       }
       const issuerId = data.issuerId || issuerIdOverride(data.issuer) || digitsOnly(data.issuer) || "";
-      if ((issuerId === "155" || normalize(data.issuer).includes("CONTA SIMPLES")) && isRecentRegistration(data.registrationDate)) {
-        showNotice("Conta Simples 155 com cadastro menor que 3 meses não foi enviada para LISTAS.", "warn", 10000);
-        return retireCurrentCaseFromLists(queue, data);
-      }
       const account = clean(data.account, "");
       const documentValue = documentFieldValue(data.cpfCnpj);
       if (!account) showNotice("Caso guardado em LISTAS, mas falta o ID da conta para concluir a inclusão.", "warn", 12000);

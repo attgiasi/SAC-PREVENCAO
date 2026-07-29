@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão de testes revisada em 22/07/2026. Build `11.30`.
+Versão ativa revisada em 29/07/2026. Build `11.31`.
 
 ## Estrutura
 
@@ -21,9 +21,9 @@ A V11 fica organizada em blocos claros:
 - `bookmarklet-v11.txt`: favorito dedicado para testar a V11 diretamente.
 - `loader-v11.js`: carregador dedicado que resolve o commit mais recente e evita reutilizar uma build antiga do CDN.
 
-Esta versão é isolada para testes. O favorito universal permanece na V10 estável.
+Esta é a versão ativa. O favorito universal carrega a V11 pelo `loader-v11.js`.
 
-A V11.30 mantém `Modo investigação` e `Modo ajuda` desligados por padrão. As duas preferências são independentes e compartilhadas entre todas as etapas. `Analisar` abre somente Transacional, CNPJ e Mídias; `Ajuda` abre separadamente orientações de regra, emissor e book. Os botões aparecem à esquerda das janelas Falcon, Console e Tabulador somente quando o respectivo modo estiver ativo. Cada painel é criado apenas no clique, substitui qualquer lateral anterior e recebe rolagem vertical própria quando o conteúdo ultrapassa a tela. A conferência Falcon x Console continua no fluxo de segurança, mas não ocupa um grid da investigação. O BigData coleta silenciosamente mídia do CPF titular e os dados disponíveis para o PID.
+A V11.31 mantém `Modo investigação` e `Modo ajuda` desligados por padrão. As duas preferências são independentes e compartilhadas entre todas as etapas. `Analisar` abre somente Transacional, CNPJ e Mídias; `Ajuda` abre separadamente orientações de regra, emissor e book. Os botões aparecem à esquerda das janelas Falcon, Console e Tabulador somente quando o respectivo modo estiver ativo. Cada painel é criado apenas no clique, substitui qualquer lateral anterior e recebe rolagem vertical própria quando o conteúdo ultrapassa a tela. A conferência Falcon x Console continua no fluxo de segurança, mas não ocupa um grid da investigação. O BigData coleta silenciosamente mídia do CPF titular e os dados disponíveis para o PID.
 
 O PID usa botões de chave próprios, sem depender do comportamento de labels da página do Console. Seus dados aparecem em uma única coluna e, quando a investigação também estiver aberta, o posicionador tenta usar o lado oposto da janela do Console para evitar sobreposição. A reexecução encerra listeners e janelas da instância anterior antes de criar a nova, e o PID possui ciclo independente dos popovers auxiliares.
 
@@ -499,8 +499,17 @@ O sistema mostra principalmente:
 1. Envie a pasta `ANALISE/V11` para o GitHub.
 2. Mantenha o favorito geral apontando para `ANALISE/favorito-universal.bookmarklet.txt`.
 3. Use o mesmo favorito nas páginas do Falcon, Console, Tabulador e LISTAS.
-4. Para testar a V11 sem alterar o favorito universal, use `ANALISE/V11/bookmarklet-v11.txt`.
+4. O `bookmarklet-v11.txt` continua disponível como carregador dedicado da mesma V11.
 
-O bookmarklet dedicado da V11 não altera nem substitui o favorito universal da V10.
+O bookmarklet dedicado e o favorito universal carregam a mesma versão V11 publicada.
+
+## Pente fino da build 11.31
+
+- `PID`: o painel respeita o estado minimizado do Console. Ao minimizar a janela principal, o PID e os popovers associados recolhem juntos; ao restaurar, voltam à posição lateral sem forçar largura, visibilidade ou deslocamento.
+- `LISTAS`: a gravação confirma a fila inteira e reforça apenas os itens que não aparecerem no cofre local. A memória é transportada imediatamente por `window.name`, além do espelho local, para que a mesma fila esteja disponível na etapa seguinte sem depender da leitura tardia da área de transferência.
+- `CONTA SIMPLES`: somente casos com o botão `JIRA` ligado entram na permissiva. Conta bloqueada ou com qualquer status SPD continua impedindo a permissiva mesmo em JIRA.
+- `CNPJ`: o arquivo de apoio recebe limite curto de espera. Se estiver indisponível, a consulta automática ao serviço público segue normalmente, sem abrir outra página.
+- `NOTIFICAÇÕES`: mensagens intermediárias de sucesso foram suprimidas. Permanecem alertas de erro/atenção e a confirmação final de cópia.
+- `VALIDAÇÃO`: testes cobrem a restauração do PID, a regra Conta Simples/JIRA, a persistência imediata da fila entre origens e a consulta de CNPJ com falha da base de apoio.
 
 Ao migrar de um favorito V11 antigo, substitua seu conteúdo uma vez pelo código atual de `bookmarklet-v11.txt`. O favorito fixa o próprio loader em um commit imutável; esse loader resolve o commit mais recente do repositório e carrega os oito módulos por outra referência imutável. Assim, a inicialização não depende do cache de `@main` nem recupera uma build anterior.

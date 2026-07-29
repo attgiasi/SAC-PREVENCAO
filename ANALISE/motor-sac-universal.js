@@ -1,12 +1,8 @@
-(async function SacPrevencaoUniversalV10() {
+(async function SacPrevencaoUniversalV11() {
   "use strict";
 
-  const VERSION = "10.3.0";
-  const FILES = [
-    "V10/sac-memory-v10.js",
-    "V10/sac-tabulator-v10.js",
-    "V10/sac-prevencao-v10.js"
-  ];
+  const VERSION = "11.31.0";
+  const LOADER = "V11/loader-v11.js";
 
   const current = (() => {
     try { return new URL(document.currentScript?.src || location.href); }
@@ -15,23 +11,15 @@
 
   try {
     document.querySelectorAll("script[data-sac-universal]").forEach((script) => script.remove());
-    Object.keys(window)
-      .filter((name) => /^SAC(Memory|Tabulator)V\d+$/i.test(name))
-      .forEach((name) => { try { delete window[name]; } catch (_error) {} });
+    window.__SAC_PREVENCAO_V11_RUNTIME__?.dispose?.();
   } catch (_error) {}
 
-  for (const file of FILES) {
-    await new Promise((resolve, reject) => {
-      const url = new URL(file, current);
-      url.searchParams.set("v", VERSION);
-      url.searchParams.set("cache", String(Date.now()));
-      const script = document.createElement("script");
-      script.dataset.sacUniversal = "v10";
-      script.src = url.href;
-      script.async = false;
-      script.onload = resolve;
-      script.onerror = () => reject(new Error(`Não foi possível carregar ${file}.`));
-      document.documentElement.appendChild(script);
-    });
-  }
+  const url = new URL(LOADER, current);
+  url.searchParams.set("v", VERSION);
+  url.searchParams.set("cache", String(Date.now()));
+  const script = document.createElement("script");
+  script.dataset.sacUniversal = "v11";
+  script.src = url.href;
+  script.async = false;
+  document.documentElement.appendChild(script);
 })();

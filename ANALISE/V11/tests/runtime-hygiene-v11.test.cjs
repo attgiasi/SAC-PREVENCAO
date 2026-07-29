@@ -17,6 +17,7 @@ assert.doesNotMatch(runtime, /sac-support-form|sac-support-field/);
 assert.doesNotMatch(runtime, /applyMappedTabulatorFields|tabulatorTextFieldMap|tabulatorDropdownFieldMap/);
 assert.doesNotMatch(runtime, /window\.set(?:Dirty|Value)\s*=\s*\(\)\s*=>/);
 assert.doesNotMatch(runtime, /showNotice\([^\n]+,\s*"info"/);
+assert.match(runtime, /if \(type === "info" \|\| type === "success"\) return;/);
 assert.doesNotMatch(runtime, /listMutationDepth/);
 assert.doesNotMatch(runtime, /copyText\(text, queue, history\)/);
 assert.doesNotMatch(runtime, /memory\.lists\.upsert\?\.\(item\)/);
@@ -58,6 +59,7 @@ assert.match(runtime, /attachInvestigationLauncher\(panel, "FALCON", data, \(\) 
 assert.doesNotMatch(corporate, /openOfficialQuery|OFFICIAL_QUERY_URL|window\.open/);
 assert.match(corporate, /lookupFromPublicData/);
 assert.match(corporate, /BRASIL_API_ENDPOINT/);
+assert.match(corporate, /const REGISTRY_TIMEOUT_MS = 3500/);
 assert.match(corporate, /releaseSession/);
 assert.doesNotMatch(corporate, /LOOKUP_CACHE_KEY/);
 

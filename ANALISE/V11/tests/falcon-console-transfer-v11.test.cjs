@@ -14,6 +14,9 @@ assert.match(runtimeSource, /Não consegui transferir os dados do Console/);
 assert.match(runtimeSource, /DADOS DO FALCON NÃO RECEBIDOS/);
 assert.match(runtimeSource, /sac-retry-falcon-transfer/);
 assert.doesNotMatch(runtimeSource, /collectConsoleData\(falcon \|\| emptyFalconData\(\)\)/);
+assert.match(runtimeSource, /accountStatus: clean\(findAccountStatus\(\), ""\)/);
+assert.match(runtimeSource, /map\(findValueAfterLabel\)\.find\(Boolean\)/);
+assert.doesNotMatch(runtimeSource, /function normalizeStatusOption/);
 
 function storageMock(initial = {}) {
   const values = new Map(Object.entries(initial).map(([key, value]) => [key, String(value)]));

@@ -83,8 +83,8 @@ const base = {
   caseNumber: "49373570",
   account: "ACC-100",
   issuer: "BEMOL",
-  lists: { allowlist: true, contencao: false },
-  applied: { allowlist: false, contencao: true },
+  lists: { allowlist: true, contencao: false, cashout: false },
+  applied: { allowlist: false, contencao: true, cashout: true },
   savedAt: Date.now()
 };
 
@@ -96,16 +96,19 @@ assert.equal(memory.lists.all()[0].issuer, "BEMOL ATUALIZADO");
 memory.lists.upsert({ ...base, id: "same-case-other-account", account: "ACC-200", savedAt: Date.now() + 15 });
 assert.equal(memory.lists.all().length, 2, "caso igual com conta diferente não pode ser tratado como duplicado");
 
-memory.lists.replace([{ ...base, documentValue: "11122233344", lists: { allowlist: true, contencao: true }, applied: { allowlist: false, contencao: false }, savedAt: Date.now() + 20 }]);
-assert.equal(memory.lists.all().length, 2, "ALLOWLIST e CONTENÇÃO devem ter registros lógicos independentes");
+memory.lists.replace([{ ...base, documentValue: "11122233344", lists: { allowlist: true, contencao: true, cashout: true }, applied: { allowlist: false, contencao: false, cashout: false }, savedAt: Date.now() + 20 }]);
+assert.equal(memory.lists.all().length, 3, "ALLOWLIST, CONTENÇÃO e CASHOUT devem ter registros lógicos independentes");
 assert.equal(memory.lists.all().filter((entry) => entry.lists.allowlist).length, 1);
 assert.equal(memory.lists.all().filter((entry) => entry.lists.contencao).length, 1);
+assert.equal(memory.lists.all().filter((entry) => entry.lists.cashout).length, 1);
 
 const allowlistItem = memory.lists.all().find((entry) => entry.lists.allowlist);
 memory.lists.markDone(allowlistItem, "allowlist");
-assert.equal(memory.lists.all().length, 1);
-assert.equal(memory.lists.all()[0].lists.contencao, true);
+assert.equal(memory.lists.all().length, 2);
 memory.lists.markDone(memory.lists.all().find((entry) => entry.lists.contencao), "contencao");
+assert.equal(memory.lists.all().length, 1);
+assert.equal(memory.lists.all()[0].lists.cashout, true);
+memory.lists.markDone(memory.lists.all().find((entry) => entry.lists.cashout), "cashout");
 assert.equal(memory.lists.all().length, 0);
 
 memory.lists.replace([]);
@@ -136,7 +139,7 @@ memory.lists.upsert({
   ...removed,
   savedAt: latestRemoval + 1,
   updatedAt: latestRemoval + 1,
-  applied: { allowlist: false, contencao: true }
+  applied: { allowlist: false, contencao: true, cashout: true }
 });
 assert.equal(memory.lists.all().some((entry) => entry.caseNumber === removed.caseNumber), true, "uma nova decisão NÃO FRAUDE posterior à baixa deve recolocar o caso em LISTAS");
 

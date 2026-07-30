@@ -30,6 +30,7 @@ assert.ok(engine);
 assert.equal(engine.containsP2P("Transferência P2P"), true);
 assert.equal(engine.containsP2P("P2P_OUT_DIF_CONTA"), true);
 assert.equal(engine.containsP2P("Depósito bancário"), false);
+assert.equal(engine.containsP2P("PIX recebido"), false, "PIX genérico não pode ser classificado como P2P");
 assert.equal(engine.parseBrazilianAmount("R$ 1.400,50"), 1400.5);
 
 function falconNode(id, text) {
@@ -72,14 +73,14 @@ const falconSummary = engine.summarizeFalconTransactions(falconRows, { issuer: "
 assert.equal(falconSummary.transactionCount, 2);
 assert.equal(falconSummary.totalAmount, 2000);
 assert.equal(falconSummary.uniqueCounterpartyCount, 1);
-assert.equal(falconSummary.p2pDetected, true);
+assert.equal(falconSummary.p2pDetected, false, "o nome da regra não pode simular uma transação P2P");
 assert.equal(falconSummary.counterparties[0].transactionCount, 2);
 assert.equal(falconSummary.validDateCount, 2);
 assert.equal(falconSummary.periodEnd - falconSummary.periodStart, 8 * 60 * 1000);
 assert.equal(falconSummary.velocity1m, 1);
 assert.equal(falconSummary.velocity5m, 1);
 assert.equal(falconSummary.velocity10m, 2);
-assert.equal(falconSummary.p2pIssuerCount, 2);
+assert.equal(falconSummary.p2pIssuerCount, 0);
 
 const velocityRows = [
   { timestamp: Date.parse("2026-07-16T10:00:00"), amount: 100, direction: "CREDIT", p2p: true, counterparty: "111.111.111-11", counterpartyDocument: "11111111111" },
@@ -143,9 +144,33 @@ const empty = engine.analyze({ transactionType: "Depósito bancário" });
 assert.equal(empty.classification, "NO_SIGNAL");
 assert.equal(empty.signals.length, 0);
 
+const plainPix = engine.analyze({
+  transactionType: "Depósito bancário",
+  rows: [{ description: "PIX recebido", amount: 500, direction: "CREDIT", p2p: false }]
+});
+assert.equal(plainPix.p2pDetected, false);
+assert.equal(plainPix.metrics.p2pCount, 0);
+
+const p2pRuleWithoutMappedP2p = engine.analyze({
+  transactionType: "Depósito bancário",
+  rule: "Nega_P2P_Out_Dif_Conta",
+  rows: [{ description: "PIX recebido", amount: 500, direction: "CREDIT", p2p: false }]
+});
+assert.equal(p2pRuleWithoutMappedP2p.p2pDetected, false, "regra com P2P não substitui a evidência transacional mapeada");
+
+const highValueBoleto = engine.analyze({
+  issuer: "BEMOL",
+  transactionType: "Depósito bancário em boleto",
+  rule: "boleto_valor_suspeito",
+  rows: [{ description: "Depósito por boleto", amount: 9000, direction: "CREDIT", p2p: false }]
+});
+assert.equal(highValueBoleto.classification, "REVIEW");
+assert.ok(highValueBoleto.signals.some((item) => item.code === "HIGH_VALUE_BOLETO_DEPOSIT"));
+
 const profile = engine.issuerProfileFor("Rede Frota Solutions");
 assert.equal(profile.name, "REDEFROTA");
 assert.ok(profile.expected.some((item) => item.includes("alto valor")));
+assert.equal(engine.issuerProfileFor("Natura").name, "NATURA");
 
 const jeittoRows = [
   { timestamp: Date.parse("2026-07-16T10:00:00"), amount: 1200, signedAmount: 1200, direction: "CREDIT", p2p: true, counterparty: "Origem A" },

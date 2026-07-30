@@ -17,6 +17,7 @@
   const WINDOW_NAME_KEY = "__SAC_PREVENCAO_V11_MEMORY__=";
   const TTL_MS = 12 * 60 * 60 * 1000;
   const TRANSPORT_STAGES = new Set(["falcon", "console", "mediaRequest", "mediaResult"]);
+  const LIST_TYPES = Object.freeze(["allowlist", "contencao", "cashout"]);
   const MAX_LISTS = 300;
   const MAX_HISTORY = 60;
   const MAX_TOMBSTONES = 800;
@@ -40,7 +41,10 @@
     const issuer = identityPart(item?.issuer);
     return caseNumber || account || documentValue || issuer ? `${caseNumber}:${account}:${documentValue}:${issuer}` : "";
   };
-  const normalizedListType = (listType) => normalizeText(listType).toLowerCase() === "contencao" ? "contencao" : "allowlist";
+  const normalizedListType = (listType) => {
+    const normalized = normalizeText(listType).toLowerCase();
+    return LIST_TYPES.includes(normalized) ? normalized : "allowlist";
+  };
   const listBaseIdentity = (item, listType = "allowlist") => {
     const type = normalizedListType(listType);
     const caseNumber = identityPart(item?.caseNumber);
@@ -242,7 +246,7 @@
     };
     const stamp = itemStamp(next);
     const removals = tombstones instanceof Map ? tombstones : tombstoneMap(tombstones);
-    ["allowlist", "contencao"].forEach((listType) => {
+    LIST_TYPES.forEach((listType) => {
       if (!next.lists?.[listType]) return;
       const removal = listIdentityAliases(next, listType)
         .map((key) => removals.get(key))
@@ -257,18 +261,18 @@
   }
 
   function hasPendingList(item) {
-    return Boolean((item?.lists?.allowlist && !item?.applied?.allowlist) || (item?.lists?.contencao && !item?.applied?.contencao));
+    return LIST_TYPES.some((listType) => item?.lists?.[listType] && !item?.applied?.[listType]);
   }
 
   function splitPendingListEntries(item) {
-    return ["allowlist", "contencao"].flatMap((listType) => {
+    return LIST_TYPES.flatMap((listType) => {
       if (!item?.lists?.[listType] || item?.applied?.[listType]) return [];
-      const stableId = (normalizeText(item?.id) || listBaseIdentity(item, listType)).replace(/:(allowlist|contencao)$/i, "");
+      const stableId = (normalizeText(item?.id) || listBaseIdentity(item, listType)).replace(/:(allowlist|contencao|cashout)$/i, "");
       return [{
         ...item,
         id: `${stableId}:${listType}`,
-        lists: { allowlist: listType === "allowlist", contencao: listType === "contencao" },
-        applied: { allowlist: listType !== "allowlist", contencao: listType !== "contencao" }
+        lists: Object.fromEntries(LIST_TYPES.map((type) => [type, type === listType])),
+        applied: Object.fromEntries(LIST_TYPES.map((type) => [type, type !== listType]))
       }];
     });
   }
@@ -281,7 +285,7 @@
       const normalizedItem = applyListTombstones(item, removals);
       if (!hasPendingList(normalizedItem)) return;
       splitPendingListEntries(normalizedItem).forEach((entry) => {
-        const listType = entry.lists?.contencao ? "contencao" : "allowlist";
+        const listType = LIST_TYPES.find((type) => entry.lists?.[type] && !entry.applied?.[type]) || "allowlist";
         const key = listBaseIdentity(entry, listType) || entry.id;
         const previous = byIdentity.get(key);
         if (!previous || itemStamp(entry) >= itemStamp(previous)) byIdentity.set(key, entry);

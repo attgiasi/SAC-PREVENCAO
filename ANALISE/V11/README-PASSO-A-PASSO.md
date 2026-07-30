@@ -1,6 +1,6 @@
 # SAC Prevenção V11
 
-Versão ativa revisada em 29/07/2026. Build `11.32`.
+Versão ativa revisada em 30/07/2026. Build `11.33`.
 
 ## Estrutura
 
@@ -23,7 +23,7 @@ A V11 fica organizada em blocos claros:
 
 Esta é a versão ativa. O favorito universal carrega a V11 pelo `loader-v11.js`.
 
-A V11.32 mantém `Modo investigação` e `Modo ajuda` desligados por padrão. As duas preferências são independentes e compartilhadas entre todas as etapas. `Analisar` abre somente Transacional, CNPJ e Mídias; `Ajuda` abre separadamente orientações de regra, emissor e book. Os botões aparecem à esquerda das janelas Falcon, Console e Tabulador somente quando o respectivo modo estiver ativo. Cada painel é criado apenas no clique, substitui qualquer lateral anterior e recebe rolagem vertical própria quando o conteúdo ultrapassa a tela. A conferência Falcon x Console continua no fluxo de segurança, mas não ocupa um grid da investigação. O BigData coleta silenciosamente mídia do CPF titular e os dados disponíveis para o PID.
+A V11.33 mantém `Modo investigação` e `Modo ajuda` desligados por padrão. As duas preferências são independentes e compartilhadas entre todas as etapas. `Analisar` abre somente Transacional, CNPJ e Mídias; `Ajuda` abre separadamente orientações de regra, emissor e book. Os dois acessos usam o mesmo padrão visual e aparecem à esquerda das janelas Falcon, Console e Tabulador somente quando o respectivo modo estiver ativo. Cada painel é criado apenas no clique, substitui qualquer lateral anterior e recebe rolagem vertical própria quando o conteúdo ultrapassa a tela. A conferência Falcon x Console continua no fluxo de segurança, mas não ocupa um grid da investigação. O BigData coleta silenciosamente mídia do CPF titular e os dados disponíveis para o PID.
 
 O PID usa botões de chave próprios, sem depender do comportamento de labels da página do Console. Seus dados aparecem em uma única coluna e, quando a investigação também estiver aberta, o posicionador tenta usar o lado oposto da janela do Console para evitar sobreposição. A reexecução encerra listeners e janelas da instância anterior antes de criar a nova, e o PID possui ciclo independente dos popovers auxiliares.
 
@@ -35,11 +35,11 @@ O loader baixa os sete motores independentes em paralelo e executa o módulo pri
 
 No Console, ligar `COM CHAMADA` abre o painel PID ao lado da janela em qualquer fluxo. O painel PID usa a mesma cor do fluxo atual, inclusive quando a cor foi personalizada. O emissor aparece no título e AMIGOZ mantém seu roteiro específico. Os dados do PID são coletados somente no Console; cada item ausente recebe um botão de recarga que tenta buscar apenas aquele dado na página aberta. `Vencimento da fatura` não participa do PID.
 
-O painel de investigação usa grids compactos com título na borda. A visão geral apresenta total de transações, valor total, período, contatos diferentes, P2P total, P2P com o emissor e P2P pessoal. A seção `Transacionando com` agrupa CPF/CNPJ ou nome, quantidade e valor total por pessoa ou empresa. A velocidade apresenta separadamente os intervalos ativos de 1, 5 e 10 minutos. Quando houver movimentação entre 00h e 06h, informa quantidade e valor nesse horário. Recorrência, possível triangulação, maior valor e valor mediano aparecem como fatos transacionais; orientações de emissor ficam somente em `Ajuda`. A consulta cadastral pode mostrar o CNPJ do titular e o CNPJ de quem está transacionando. Cada resultado exibe `Razão social`, `Nome fantasia`, `Criação`, `Situação cadastral` e `Porte da empresa`; o estado confiável, atenção, suspeito ou não classificado aparece de forma compacta no próprio card do CNPJ. Com o modo seguro ligado, um clique em qualquer grid cadastral copia apenas o valor exibido e confirma a ação discretamente. Os botões `Confiável`, `Suspeito` e `Remover` atualizam somente a classificação local de apoio e nunca escolhem a decisão do caso.
+O painel de investigação usa grids compactos com título na borda. A visão geral apresenta total de transações, valor total, período, contatos diferentes, P2P total, P2P com o emissor e P2P pessoal. A velocidade apresenta separadamente os intervalos ativos de 1, 5 e 10 minutos. Quando houver movimentação entre 00h e 06h, informa quantidade e valor nesse horário. Recorrência, possível triangulação, maior valor e valor mediano aparecem como fatos transacionais; a lista extensa de pessoas ou empresas transacionadas não ocupa mais esse painel. Orientações de emissor ficam somente em `Ajuda`. A consulta cadastral continua mostrando separadamente o CNPJ do titular e o CNPJ de quem está transacionando. Cada resultado exibe `Razão social`, `Nome fantasia`, `Criação`, `Situação cadastral` e `Porte da empresa`; o estado confiável, atenção, suspeito ou não classificado aparece de forma compacta no próprio card do CNPJ. Com o modo seguro ligado, um clique em qualquer grid cadastral copia apenas o valor exibido e confirma a ação discretamente. Os botões `Confiável`, `Suspeito` e `Remover` atualizam somente a classificação local de apoio e nunca escolhem a decisão do caso.
 
 Em depósito bancário, o titular analisado é lido na coluna de crédito e quem enviou é lido na coluna de origem/débito. Em pagamento bancário, o titular é lido na origem/débito e quem recebeu é lido na coluna de crédito. Assim, o CPF usado no BigData continua sendo o do titular e o CNPJ consultado pode pertencer a qualquer uma das duas partes, sem misturá-las.
 
-Uma permissiva só é criada para BANKING com decisão `NÃO FRAUDE` quando a conta está normal/ativa e não possui status SPD. Regra com `CONTENÇÃO`/`CONTENCAO` continua gerando sua pendência própria quando aplicável.
+Uma permissiva só é criada para BANKING com decisão `NÃO FRAUDE` quando a conta está normal/ativa e não possui status SPD. Regra com `CONTENÇÃO`/`CONTENCAO` continua gerando sua pendência própria quando aplicável. A regra `Alto_Risco_NEGA_CASHOUT_LIMITE_ISPB` cria simultaneamente registros independentes em `ALLOWLIST` e `CASHOUT`.
 
 ## Blocos revisados
 
@@ -47,7 +47,7 @@ Uma permissiva só é criada para BANKING com decisão `NÃO FRAUDE` quando a co
 - `CONSOLE`: recebe os dados do Falcon, complementa status, emissor, conta, cadastro, documento e campos de análise.
 - `TABULADOR`: só aplica os campos depois da decisão; Motivo Status é o único campo dependente que aguarda carregar.
 - `CONFIGURAÇÕES`: usa memória compartilhada para refletir tema, modo seguro, investigação/ajuda, fonte, assinatura e cores entre etapas.
-- `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
+- `LISTAS`: recebe apenas BANKING não fraude, com Contenção quando a regra tiver `CONTENÇÃO`/`CONTENCAO` e Cashout quando a regra for `Alto_Risco_NEGA_CASHOUT_LIMITE_ISPB`; itens inseridos ou removidos ficam baixados e não devem reaparecer por cópia antiga.
 - `HISTÓRICO`: grava a tabulação sem CPF/CNPJ visível e deve abrir igual em qualquer etapa.
 
 ## Pente fino da build 11.27
@@ -195,8 +195,8 @@ A solicitação fica vinculada ao número do caso e ao CPF titular até ser cons
 O BigData é uma consulta opcional e separada para mídia desabonadora e dados disponíveis do PID. No Falcon e no Console, o painel `Analisar` mostra somente as ações compatíveis com a página:
 
 - `CNPJ`: cruza a classificação interna, a lista SPA e o cadastro público disponível. Exibe razão social, nome fantasia, abertura, situação e porte; o estado visual fica no próprio card. Também permite marcar localmente como confiável ou suspeito e excluir essa classificação.
-- `Transacional no Console`: avalia total, valor, período, contatos, P2P emissor/pessoal, velocidade de 1/5/10 minutos, horários de atenção, recorrência e possível triangulação, além do agrupamento por CPF/CNPJ. Orientações e particularidades de emissor permanecem exclusivamente em `Ajuda`.
-- `Análise transacional no Falcon`: em BANKING/HOLD, lê as linhas visíveis e apresenta a mesma estrutura de visão geral e agrupamento. Em CARTÃO, agrupa por estabelecimento e modo de entrada. Chip e senha é sinal favorável; duas ou mais tentativas no mesmo estabelecimento por aproximação, digitado manual ou e-commerce formam alerta. O painel não altera o caso.
+- `Transacional no Console`: avalia total, valor, período, contatos, P2P emissor/pessoal, velocidade de 1/5/10 minutos, horários de atenção, recorrência, possível triangulação e depósitos por boleto explicitamente marcados como alto risco. Orientações e particularidades de emissor permanecem exclusivamente em `Ajuda`.
+- `Análise transacional no Falcon`: em BANKING/HOLD, lê as linhas visíveis e apresenta a mesma estrutura de visão geral. Em CARTÃO, agrupa por estabelecimento e modo de entrada. Chip e senha é sinal favorável; duas ou mais tentativas no mesmo estabelecimento por aproximação, digitado manual ou e-commerce formam alerta. O painel não altera o caso.
 - `Ajuda`: orientações cadastradas de regra e emissor aparecem em um painel próprio e dependem da configuração independente `Modo ajuda`.
 - `PID`: o Console continua sendo a fonte principal. Quando o BigData for executado, nome, nome da mãe, nascimento, endereço e e-mail disponíveis podem complementar o painel; cada dado ausente ainda pode ser atualizado individualmente na página do Console.
 - `Mídia desabonadora`: lê processos em `queryResult_judicialCasesHolderData`; só aceita ocorrência quando o CPF consultado coincide com a parte e ela está como réu/polo passivo. Variações de título são normalizadas por categoria. O Console recebe `sim` e as categorias automaticamente; sem ocorrência recebe `não`/`SEM MÍDIA`.
@@ -250,6 +250,8 @@ No grid de `Regra`, o ícone `!` usa palavras-chave para exibir orientações:
 - `DENYLIST_CCS`: foco em conta/cliente; validar status da conta, SPD, documentação e extrato.
 - `P2P / dispositivo diferente`: validar aparelho, vínculo do destino, conta controle e padrão transacional.
 - `CASHOUT`: avaliar saída de saldo, velocidade, horário, dispositivo, histórico e possível triangulação.
+- `Alto_Risco_NEGA_CASHOUT_LIMITE_ISPB`: quando o emissor solicitar liberação via JIRA, usar `ALLOWLIST_EMISSOR` e `ALLOWLIST_CASHOUT_LIMITE_ISPB_CRYPTO` em conjunto.
+- `NAO_TRATAR_NEGA_CASHOUT_LIMITE_ISPB`: a allowlist isolada não resolve; direcionar por JIRA ao N3 BK Regras de Fraude Alçadas e sinalizar a supervisão.
 - `PixIn DICT`: validar situação cadastral do CPF/CNPJ vinculado à chave Pix.
 - `Bloqueio Preventivo Falcon`: resume quando aplicar bloqueio em cartão, quando manter bloqueio em Banking/JIRA, e quais SPDs avaliar conforme sustentação.
 - `Bloqueios do book Falcon`: inclui `SPD 01`, `SPD 02`, `SPD 08`, `SPD 15`, `SPD 17`, `SPD 21`, `SPD 25`, `SPD 33`, `Ação Judicial`, `Conta não ativada`, `Bloqueio Preventivo Falcon 254` e `Cancelamento Definitivo Falcon`.
@@ -428,11 +430,14 @@ Regras:
 - Somente BANKING com decisão final `NÃO FRAUDE` entra em Allowlist.
 - Cartão não entra em LISTAS.
 - Se a regra contiver `CONTENÇÃO` ou variações sem acento, o caso também entra na aba `CONTENÇÃO`.
+- Se a regra for `Alto_Risco_NEGA_CASHOUT_LIMITE_ISPB`, o caso também entra na aba `CASHOUT`, que representa `ALLOWLIST_CASHOUT_LIMITE_ISPB_CRYPTO`.
 - Se depois o mesmo caso/conta for decidido como fraude ou outra decisão, o item é removido da lista pendente.
 - Os itens só saem da lista após `INSERIR` ou `REMOVER`.
 - A duplicidade da ALLOWLIST usa a combinação `número do caso + ID da conta`.
 - A duplicidade da CONTENÇÃO usa a combinação `número do caso + CPF/CNPJ`.
+- A duplicidade da CASHOUT usa a combinação `número do caso + ID da conta`.
 - Um caso de CONTENÇÃO gera registros lógicos independentes nas duas abas, para que inserir/remover uma não baixe a outra por engano.
+- Um caso de CASHOUT gera registros lógicos independentes nas abas ALLOWLIST e CASHOUT pelo mesmo motivo.
 - Um BANKING `NÃO FRAUDE` com regra de `CONTENÇÃO` aparece imediatamente nas abas `ALLOWLIST` e `CONTENÇÃO`.
 - Se ID da conta ou CPF/CNPJ estiver temporariamente ausente, o registro permanece visível e a inclusão é bloqueada até o dado ser corrigido; ele não é descartado silenciosamente.
 - A janela de tabulação não fecha se o motor não confirmar a gravação do caso em LISTAS.
@@ -441,6 +446,7 @@ Aplicação:
 
 - Allowlist usa ID da conta nos dois campos principais.
 - Contenção usa CPF/CNPJ limpo, sem pontos, traços ou barras.
+- Cashout usa ID da conta e deve ser aplicado na lista `ALLOWLIST_CASHOUT_LIMITE_ISPB_CRYPTO`.
 - A data inicial é o dia atual.
 - A data final é dois dias depois, salvo regra específica por emissor.
 - O ID do emissor é cruzado pelo nome do emissor; se não localizar, o sistema avisa para conferência manual.
@@ -503,7 +509,14 @@ O sistema mostra principalmente:
 
 O bookmarklet dedicado e o favorito universal carregam a mesma versão V11 publicada.
 
-## Pente fino da build 11.32
+## Pente fino da build 11.33
+
+- `STATUS CONTA`: o texto exibido e transportado é exatamente o valor coletado no Console; a automação não converte mais para uma lista antiga.
+- `P2P`: apenas evidência textual explícita de P2P ou marcação mapeada da linha conta como P2P. Um PIX genérico não recebe mais sinal verde.
+- `TRANSACIONAL`: removido o bloco extenso `Transacionando com`; a consulta dedicada de CNPJ permanece disponível.
+- `BOLETO`: depósito bancário com regra explicitamente marcada como boleto de alto valor recebe alerta. Para BEMOL, o texto segue a orientação de fraude/SPD 15 do book; Natura recebe orientação de conferir volume, idade da conta, histórico e documentação.
+- `LISTAS`: adicionada a aba CASHOUT com memória, deduplicação e baixa independentes. A regra `Alto_Risco_NEGA_CASHOUT_LIMITE_ISPB` grava Allowlist e Cashout em conjunto.
+- `INTERFACE`: Analisar e Ajuda usam ícones, dimensões, foco e estado expandido padronizados.
 
 - JIRA sem chamada aplica `SEM CONTATO - PLANILHA` e `SEM CHAMADA`.
 - JIRA com chamada aplica `RECEPTIVO` e `COM SUCESSO`, sem abrir o painel de PID.

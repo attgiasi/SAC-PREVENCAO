@@ -3,7 +3,7 @@
 
   if (window.SACTransactionV11) return;
 
-  const ENGINE_VERSION = "2.2.0";
+  const ENGINE_VERSION = "2.3.0";
   let provider = null;
 
   const ISSUER_PROFILES = Object.freeze([
@@ -36,6 +36,12 @@
       name: "BEMOL",
       expected: ["O perfil esperado está concentrado na região Norte."],
       cautions: ["DDD fora da região Norte é sinal de atenção.", "A regra boleto_valor_suspeito é crítica."]
+    }),
+    Object.freeze({
+      keys: ["NATURA"],
+      name: "NATURA",
+      expected: ["O histórico e a compatibilidade da movimentação com o perfil da conta devem ser considerados."],
+      cautions: ["Boletos em alto volume ou alto valor, combinados com conta nova, ausência de histórico ou documentação fora do padrão, exigem atenção reforçada."]
     }),
     Object.freeze({
       keys: ["JEITTO"],
@@ -147,7 +153,7 @@
     const holderDocument = String(input.holderDocument || input.customerDocument || "").replace(/\D/g, "");
     let issuerCount = 0;
     let personalCount = 0;
-    (Array.isArray(rows) ? rows : []).filter((row) => row?.p2p || containsP2P(`${row?.description || ""} ${row?.transactionType || ""} ${row?.rule || ""}`)).forEach((row) => {
+    (Array.isArray(rows) ? rows : []).filter((row) => row?.p2p || containsP2P(`${row?.description || ""} ${row?.transactionType || ""}`)).forEach((row) => {
       const objectValue = typeof row?.counterparty === "object" ? row.counterparty : null;
       const documentValue = String(row?.counterpartyDocument || objectValue?.document || documentInText(row?.counterparty) || "").replace(/\D/g, "");
       const context = normalizeText(`${row?.counterpartyName || ""} ${typeof row?.counterparty === "string" ? row.counterparty : ""} ${row?.payerName || ""} ${row?.description || ""}`);
@@ -308,7 +314,7 @@
         signedAmount,
         amount: Math.abs(signedAmount),
         direction: signedAmount < 0 ? "DEBIT" : "CREDIT",
-        p2p: containsP2P(description) || /PIX/.test(normalizeText(description))
+        p2p: containsP2P(description)
       })];
     });
     return Object.freeze(rows);
@@ -460,7 +466,7 @@
           amount: parseBrazilianAmount(amountText),
           signedAmount: direction === "DEBIT" ? -parseBrazilianAmount(amountText) : parseBrazilianAmount(amountText),
           direction,
-          p2p: containsP2P(`${transactionType} ${rule}`),
+          p2p: containsP2P(transactionType),
           merchant: falconFieldText(row, "merchant"),
           merchantId: falconFieldText(row, "merchantId"),
           entryModeCode: falconFieldText(row, "entryMode"),
@@ -513,7 +519,7 @@
       periodEnd: metrics.periodEnd,
       periodDurationMs: metrics.periodDurationMs,
       totalAmount,
-      p2pDetected: items.some((row) => containsP2P(`${row?.transactionType || ""} ${row?.rule || ""}`)),
+      p2pDetected: items.some((row) => row?.p2p || containsP2P(`${row?.transactionType || ""} ${row?.description || ""}`)),
       p2pCount: metrics.p2pCount,
       p2pIssuerCount: metrics.p2pIssuerCount,
       p2pPersonalCount: metrics.p2pPersonalCount,
@@ -548,6 +554,12 @@
   function rowSignals(rows, input = {}) {
     const metrics = transactionMetrics(rows, input);
     const issuer = normalizeText(input.issuer);
+    const transactionContext = normalizeText([
+      input.transactionType,
+      input.rule,
+      input.description,
+      ...rows.flatMap((row) => [row?.description, row?.category, row?.rule])
+    ].filter(Boolean).join(" | "));
     const signals = [];
     if (isCardTransaction(input, rows)) {
       const card = cardActivity(rows);
@@ -590,6 +602,20 @@
     }
     if (metrics.unusualHours >= 2) {
       signals.push(signal("attention", "UNUSUAL_HOURS", "Horário incomum", `${metrics.unusualHours} movimentações ocorreram entre 00h e 06h.`, 0));
+    }
+    const boletoDeposit = /DEPOSITO/.test(transactionContext) && /BOLETO/.test(transactionContext);
+    const highRiskBoleto = /BOLETO_VALOR_SUSPEITO|BOL_VLR_SUSPEITO|ALTO_RISCO[^|]*BOLETO|BOLETO[^|]*ALTO_RISCO|BOLETO[^|]*VALOR_SUSPEITO/.test(transactionContext);
+    if (boletoDeposit && highRiskBoleto) {
+      const bemol = issuer.includes("BEMOL");
+      signals.push(signal(
+        "alert",
+        "HIGH_VALUE_BOLETO_DEPOSIT",
+        "Depósito por boleto de alto valor",
+        bemol
+          ? "A regra boleto_valor_suspeito é de alto risco para BEMOL; o book orienta fraude e SPD 15."
+          : "A regra ou descrição identifica depósito por boleto de alto valor. Confira recorrência, histórico, idade da conta e documentação.",
+        -1
+      ));
     }
     if (issuer.includes("JEITTO")) {
       if (metrics.largestAmount > 5000) signals.push(signal("alert", "JEITTO_SINGLE_HIGH", "Valor fora do perfil Jeitto", "Há movimentação individual acima de R$ 5.000,00.", -1));
@@ -652,14 +678,15 @@
   }
 
   function analyze(input = {}) {
-    const transactionText = [input.transactionType, input.rule, input.description]
+    const transactionText = [input.transactionType, input.description]
       .map(normalizeText)
       .filter(Boolean)
       .join(" | ");
     const signals = [];
     const cardFlow = isCardTransaction(input, input.rows || []);
 
-    if (!cardFlow && containsP2P(transactionText) && !(Array.isArray(input.rows) && input.rows.some((row) => row.p2p))) {
+    const mappedRows = Array.isArray(input.rows) ? input.rows : [];
+    if (!cardFlow && containsP2P(transactionText) && mappedRows.length === 0) {
       signals.push(signal(
         "favorable",
         "P2P_PRESENT",

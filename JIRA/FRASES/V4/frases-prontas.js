@@ -5,8 +5,12 @@
   const STYLE_ID = "jira-frases-style-v4";
   const STORE = "jira_frases_v4";
   const SYNC_CHANNEL = `${STORE}:sync`;
+  const SYNC_SCOPE = "jira-frases-sync-v4";
+  const SYNC_FRAME_ID = `${PANEL_ID}-sync-frame`;
+  const SYNC_TIMEOUT = 1400;
   const CLIENT_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   const CDN_URL = "https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/JIRA/FRASES/V4/frases-prontas.min.js";
+  const SCRIPT_SRC = document.currentScript?.src || CDN_URL;
   const DATA_MARKER = "let BASE_DATA = {\"topics\":[]};";
   let BASE_DATA = {"topics":[]};
 
@@ -26,6 +30,12 @@
   let config = null;
   let firstRun = false;
   let syncChannel = null;
+  let syncFrame = null;
+  let syncReady = false;
+  let syncReadyResolve = null;
+  let syncReadyPromise = null;
+  const syncRequests = new Map();
+  let lastSharedRefresh = 0;
   let state = {
     tab: "jira",
     view: "home",
@@ -44,15 +54,20 @@
     removePanel();
     addStyle();
     const base = await loadBaseData();
-    data = normalizeData(read("data", null) || base);
+    setupSyncFrame();
+    const localData = normalizeData(read("data", null) || base);
+    const localConfig = read("config", null);
+    const shared = await loadSharedState();
+    data = normalizeData(shared?.data || localData);
     migrateData();
-    const storedConfig = read("config", null);
-    firstRun = !storedConfig;
-    config = normalizeConfig(storedConfig || {});
+    firstRun = !(shared?.config || localConfig);
+    config = normalizeConfig(shared?.config || localConfig || {});
     document.body.appendChild(createPanel());
     applyPreferences();
     renderHome();
     bindEvents();
+    if (!shared?.data) saveData();
+    if (!shared?.config && localConfig) saveConfig();
     if (firstRun) renderFirstRunModal();
   }
 
@@ -68,8 +83,11 @@
   }
 
   function dataUrl() {
-    const src = document.currentScript?.src || CDN_URL;
-    return src.replace(/frases-prontas(?:\.min)?\.js(?:\?.*)?$/, "frases-data.json");
+    return SCRIPT_SRC.replace(/frases-prontas(?:\.min)?\.js(?:\?.*)?$/, "frases-data.json");
+  }
+
+  function syncUrl() {
+    return SCRIPT_SRC.replace(/frases-prontas(?:\.min)?\.js(?:\?.*)?$/, "sync.html");
   }
 
   function normalizeData(input) {
@@ -887,9 +905,13 @@
     root().addEventListener("dragleave", onDragLeave);
     root().addEventListener("drop", onDrop);
     root().addEventListener("dragend", onDragEnd);
+    window.addEventListener("focus", refreshSharedState);
+    document.addEventListener("visibilitychange", onVisibilitySync);
     setupSync();
     window.__jiraFrasesV4Cleanup = () => {
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("focus", refreshSharedState);
+      document.removeEventListener("visibilitychange", onVisibilitySync);
       teardownSync();
       removePanel();
       document.getElementById(STYLE_ID)?.remove();
@@ -1171,7 +1193,12 @@
     if (!phraseId) return 0;
     config.usage = normalizeUsage(config.usage);
     config.usage[phraseId] = usageCount(phraseId) + 1;
-    saveConfig();
+    writeLocal("config", config);
+    publishSync("config", config);
+    syncRequest("incrementUsage", { phraseId }).then(response => {
+      const nextConfig = response?.config || response?.value;
+      if (nextConfig) applyRemoteUpdate("config", nextConfig);
+    }).catch(() => saveConfig());
     updateUsageBadges(phraseId);
     return config.usage[phraseId];
   }
@@ -1316,8 +1343,85 @@
   }
 
   function write(key, value) {
-    localStorage.setItem(keyOf(key), JSON.stringify(value));
+    writeLocal(key, value);
     publishSync(key, value);
+    syncSet(key, value);
+  }
+
+  function writeLocal(key, value) {
+    localStorage.setItem(keyOf(key), JSON.stringify(value));
+  }
+
+  function setupSyncFrame() {
+    syncReady = false;
+    syncReadyPromise = new Promise(resolve => { syncReadyResolve = resolve; });
+    window.addEventListener("message", onSyncFrameMessage);
+    document.getElementById(SYNC_FRAME_ID)?.remove();
+    syncFrame = document.createElement("iframe");
+    syncFrame.id = SYNC_FRAME_ID;
+    syncFrame.title = "Sincronização de frases prontas";
+    syncFrame.src = syncUrl();
+    syncFrame.style.cssText = "position:absolute!important;width:1px!important;height:1px!important;left:-9999px!important;top:-9999px!important;border:0!important;opacity:0!important;pointer-events:none!important;";
+    syncFrame.setAttribute("aria-hidden", "true");
+    document.body.appendChild(syncFrame);
+  }
+
+  async function loadSharedState() {
+    try {
+      await Promise.race([syncReadyPromise, wait(SYNC_TIMEOUT)]);
+      if (!syncReady) return null;
+      return await syncRequest("snapshot", {}, SYNC_TIMEOUT);
+    } catch {
+      return null;
+    }
+  }
+
+  function syncTargetOrigin() {
+    try {
+      const url = new URL(syncUrl(), location.href);
+      return url.protocol === "file:" ? "*" : url.origin;
+    } catch {
+      return "*";
+    }
+  }
+
+  function syncRequest(action, payload = {}, timeout = SYNC_TIMEOUT) {
+    if (!syncReady || !syncFrame?.contentWindow) return Promise.reject(new Error("Sincronização indisponível."));
+    const requestId = uid("sync");
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        syncRequests.delete(requestId);
+        reject(new Error("Tempo excedido na sincronização."));
+      }, timeout);
+      syncRequests.set(requestId, { resolve, reject, timer });
+      syncFrame.contentWindow.postMessage({ scope: SYNC_SCOPE, source: CLIENT_ID, requestId, action, ...payload }, syncTargetOrigin());
+    });
+  }
+
+  function syncSet(key, value) {
+    syncRequest("set", { key, value }).catch(() => {});
+  }
+
+  function onSyncFrameMessage(event) {
+    if (syncFrame?.contentWindow && event.source !== syncFrame.contentWindow) return;
+    const message = event.data || {};
+    if (message.scope !== SYNC_SCOPE || message.source === CLIENT_ID) return;
+    if (message.action === "ready") {
+      syncReady = true;
+      syncReadyResolve?.();
+      return;
+    }
+    if (message.replyTo && syncRequests.has(message.replyTo)) {
+      const request = syncRequests.get(message.replyTo);
+      clearTimeout(request.timer);
+      syncRequests.delete(message.replyTo);
+      if (message.ok === false) request.reject(new Error(message.error || "Erro na sincronização."));
+      else request.resolve(message);
+      return;
+    }
+    if (message.action === "update" && (message.key === "data" || message.key === "config")) {
+      applyRemoteUpdate(message.key, message.value);
+    }
   }
 
   function setupSync() {
@@ -1332,10 +1436,19 @@
 
   function teardownSync() {
     window.removeEventListener("storage", onStorageSync);
+    window.removeEventListener("message", onSyncFrameMessage);
     try {
       syncChannel?.close();
     } catch {}
     syncChannel = null;
+    document.getElementById(SYNC_FRAME_ID)?.remove();
+    syncRequests.forEach(request => {
+      clearTimeout(request.timer);
+      request.reject(new Error("Sincronização encerrada."));
+    });
+    syncRequests.clear();
+    syncFrame = null;
+    syncReady = false;
   }
 
   function publishSync(key, value) {
@@ -1360,17 +1473,35 @@
     applyRemoteUpdate(message.key, message.value);
   }
 
+  function onVisibilitySync() {
+    if (document.visibilityState === "visible") refreshSharedState();
+  }
+
+  function refreshSharedState() {
+    if (!syncReady || isEditingActive()) return;
+    const now = Date.now();
+    if (now - lastSharedRefresh < 900) return;
+    lastSharedRefresh = now;
+    syncRequest("snapshot", {}, SYNC_TIMEOUT).then(snapshot => {
+      if (snapshot?.data) applyRemoteUpdate("data", snapshot.data);
+      if (snapshot?.config) applyRemoteUpdate("config", snapshot.config);
+    }).catch(() => {});
+  }
+
   function applyRemoteUpdate(key, value) {
     if (!value || !root()) return;
-    if (key === "data") data = normalizeData(value);
+    if (key === "data") {
+      data = normalizeData(value);
+      writeLocal("data", data);
+    }
     if (key === "config") {
       config = normalizeConfig(value);
+      writeLocal("config", config);
       firstRun = false;
       if (qs("[data-form='first-run']", root())) closeModal();
     }
     applyPreferences();
     refreshSyncedView();
-    toast("Atualização sincronizada.");
   }
 
   function refreshSyncedView() {
@@ -1400,6 +1531,10 @@
       );
     });
     return merged;
+  }
+
+  function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   function removePanel() {

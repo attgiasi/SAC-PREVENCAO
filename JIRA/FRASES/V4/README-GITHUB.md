@@ -11,6 +11,7 @@ Repositório de hospedagem: `attgiasi/SAC-PREVENCAO`.
 - `frases-data.json`: base universal e editável das frases.
 - `frases-prontas.js`: código fonte do painel.
 - `frases-prontas.min.js`: versão gerada com o JSON embutido.
+- `sync.html`: ponte de sincronização compartilhada entre páginas.
 - `frases-prontas-github.bookmarklet.txt`: bookmarklet pronto para copiar.
 - `gerar-bookmarklet.cjs`: gera a versão final e o bookmarklet.
 
@@ -37,7 +38,7 @@ Repositório de hospedagem: `attgiasi/SAC-PREVENCAO`.
 - Botões de editar e excluir frases e tópicos.
 - Exclusão com confirmação.
 - Exportação e importação em JSON universal.
-- Sincronização automática entre abas/janelas abertas na mesma origem do navegador.
+- Sincronização automática entre abas/janelas e páginas diferentes por meio da ponte `sync.html`.
 - Tema claro/escuro.
 - Aumentar e diminuir fonte.
 - Atalhos: `M` minimiza ou maximiza, `P` restaura, `ESC` fecha e `A` copia a assinatura e fecha.
@@ -54,7 +55,7 @@ Depois disso, o nome permanece salvo no próprio navegador e pode ser alterado e
 
 ## Sincronização Entre Janelas
 
-Quando o favorito está aberto em mais de uma aba ou janela da mesma origem, qualquer alteração salva em uma delas é refletida nas demais automaticamente. Isso inclui:
+Quando o favorito está aberto em mais de uma aba, janela ou página, qualquer alteração salva em uma delas é refletida nas demais automaticamente. Isso inclui:
 
 - edição, inclusão, exclusão e reordenação de frases;
 - edição, inclusão, exclusão e reordenação de tópicos;
@@ -62,7 +63,7 @@ Quando o favorito está aberto em mais de uma aba ou janela da mesma origem, qua
 - assinatura, tema, tamanho da fonte e sugestão automática;
 - contador de uso das frases copiadas.
 
-A sincronização usa os eventos do próprio navegador (`storage` e `BroadcastChannel`). Por segurança, navegadores isolam dados por origem. Assim, páginas de domínios diferentes não conseguem compartilhar o mesmo armazenamento apenas com bookmarklet. Para sincronização entre qualquer domínio do navegador, seria necessário transformar a automação em extensão ou usar um serviço externo de sincronização.
+A sincronização usa uma ponte hospedada junto ao bookmarklet (`sync.html`). Cada página que abre o favorito conversa com essa ponte e mantém a mesma base de frases, assinatura, favoritos e contadores de uso. Se uma página tiver política de segurança que bloqueie iframes externos, o painel continua funcionando com cache local e volta a sincronizar quando aberto em páginas que permitam a ponte.
 
 ## Sugestão Automática
 

@@ -4,10 +4,11 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "loader-v12.js"), "utf8");
-const safeFallback = "76bda4a2a04d316305fefb11abe81639eb71bd14";
+const safeFallback = source.match(/const SAFE_FALLBACK_REF = "([a-f0-9]{40})"/)?.[1] || "";
 const release = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "release-v12.json"), "utf8"));
 const bookmarklet = fs.readFileSync(path.join(__dirname, "..", "bookmarklet-v12.txt"), "utf8");
 
+assert.match(safeFallback, /^[a-f0-9]{40}$/);
 assert.equal(release.build, "12.0");
 assert.match(bookmarklet, new RegExp(`@${release.commit}/ANALISE/V12/loader-v12\\.js\\?v=12\\.0\\.0`));
 

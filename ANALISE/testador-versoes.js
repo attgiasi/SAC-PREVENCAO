@@ -3,16 +3,9 @@
 
   const ID = "sac-version-tester";
   const VERSIONS = [
-    { id: "V1", files: [], preview: "V1/preview.html", note: "prévia" },
-    { id: "V2", files: ["V2/sac-prevencao.js"], preview: "V2/preview.html", note: "script único" },
-    { id: "V3", files: ["V3/sac-prevencao.js"], preview: "V3/preview.html", note: "script único" },
-    { id: "V4", files: ["V4/sac-prevencao.js"], preview: "V4/preview.html", note: "script único" },
-    { id: "V5", files: ["V5/sac-prevencao.js"], preview: "V5/preview.html", note: "script único" },
-    { id: "V6", files: ["V6/sac-prevencao-v6.js"], preview: "V6/preview.html", note: "script único" },
-    { id: "V7", files: ["V7/sac-memory-v7.js", "V7/sac-tabulator-v7.js", "V7/sac-prevencao-v7.js"], preview: "V7/preview.html", note: "motores separados" },
-    { id: "V8", files: ["V8/sac-memory-v8.js", "V8/sac-tabulator-v8.js", "V8/sac-prevencao-v8.js"], preview: "V8/preview.html", note: "motores separados" },
-    { id: "V9.18", files: ["V9/sac-memory-v9.js", "V9/sac-tabulator-v9.js", "V9/sac-prevencao-v9.js"], preview: "V9/preview.html", note: "versão anterior estável" },
-    { id: "V10.3", files: ["V10/sac-memory-v10.js", "V10/sac-tabulator-v10.js", "V10/sac-prevencao-v10.js"], preview: "V10/preview.html", note: "produção atual" }
+    { id: "V10.3", files: ["V10/sac-memory-v10.js", "V10/sac-tabulator-v10.js", "V10/sac-prevencao-v10.js"], preview: "V10/preview.html", note: "referência estável" },
+    { id: "V11.33", files: ["V11/sac-memory-v11.js", "V11/sac-counterparty-v11.js", "V11/sac-corporate-v11.js", "V11/sac-transaction-v11.js", "V11/sac-media-v11.js", "V11/sac-ddd-v11.js", "V11/sac-tabulator-v11.js", "V11/sac-prevencao-v11.js"], preview: "V11/preview.html", note: "favorito universal" },
+    { id: "V12.0", files: ["V12/sac-memory-v12.js", "V12/sac-counterparty-v12.js", "V12/sac-corporate-v12.js", "V12/sac-transaction-v12.js", "V12/sac-media-v12.js", "V12/sac-ddd-v12.js", "V12/sac-tabulator-v12.js", "V12/sac-prevencao-v12.js"], preview: "V12/preview.html", note: "homologação" }
   ];
 
   function currentBase() {
@@ -45,9 +38,9 @@
 
   function cleanupSacWindows() {
     document.querySelectorAll(
-      ".sac-panel,.sac-history-panel,.sac-choice-popover,.sac-side-panel,#sac-notices,.sacv9-window,.sacv9-side,.sacv9-toast-wrap,.sacp-panel,.sacp-modal,.sacp-toast-wrap,.sac-dock,.sac-window,.sac-side,.dock-prevention"
+      ".sac-panel,.sac-history-panel,.sac-choice-popover,.sac-side-panel,#sac-notices"
     ).forEach((node) => node.remove());
-    Object.keys(window).filter((name) => /^SAC(Memory|Tabulator)V\d+$/i.test(name)).forEach((name) => {
+    Object.keys(window).filter((name) => /^SAC(?:Memory|Tabulator|Counterparty|Corporate|Transaction|Media|Ddd)V\d+$/i.test(name)).forEach((name) => {
       try { delete window[name]; } catch (_err) { window[name] = undefined; }
     });
   }
@@ -107,7 +100,7 @@
         <button class="sact-close" data-close="1">×</button>
       </div>
       <div class="sact-body">
-        <p class="sact-info">Favorito de teste para comparar V1 a V9. Use com cuidado em página real: para evitar conflito, recarregue a página antes de trocar de versão.</p>
+        <p class="sact-info">Comparador isolado de V10, V11 e V12. Recarregue a página antes de trocar a versão executada para manter o teste previsível.</p>
         <div class="sact-tools">
           <button class="sact-btn primary" data-all="1">Abrir prévias</button>
           <button class="sact-btn warn" data-clean="1">Limpar janelas</button>

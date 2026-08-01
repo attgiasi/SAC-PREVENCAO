@@ -1,0 +1,2739 @@
+{
+  "schemaVersion": 1,
+  "version": "2026.07.16.spa",
+  "updatedAt": "2026-07-16T00:35:22-03:00",
+  "records": [
+    {
+      "id": "trusted-transporte-e-garcia",
+      "cnpj": "42040830000192",
+      "scope": "EXACT",
+      "legalName": "TRANSPORTE E GARCIA LTDA",
+      "aliases": [],
+      "classification": "TRUSTED",
+      "directions": [
+        "ORIGIN"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "OTHER",
+      "reason": "CNPJ confirmado na lista operacional de origens empresariais confiáveis.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional informada em 16/07/2026",
+        "url": ""
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 100
+    },
+    {
+      "id": "trusted-bemol",
+      "cnpj": "45445355000122",
+      "scope": "EXACT",
+      "legalName": "BEMOL",
+      "aliases": [],
+      "classification": "TRUSTED",
+      "directions": [
+        "ORIGIN"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "OTHER",
+      "reason": "CNPJ confirmado na lista operacional de origens empresariais confiáveis.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional informada em 16/07/2026",
+        "url": ""
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 100
+    },
+    {
+      "id": "trusted-tr-rodoali",
+      "cnpj": "53802152000174",
+      "scope": "EXACT",
+      "legalName": "TR RODOALI TRANSPORTES LTDA",
+      "aliases": [],
+      "classification": "TRUSTED",
+      "directions": [
+        "ORIGIN"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "OTHER",
+      "reason": "CNPJ confirmado na lista operacional de origens empresariais confiáveis.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional informada em 16/07/2026",
+        "url": ""
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 100
+    },
+    {
+      "id": "trusted-rede-frota-solutions",
+      "cnpj": "24478438000148",
+      "scope": "EXACT",
+      "legalName": "REDE FROTA SOLUTIONS LTDA",
+      "aliases": [
+        "REDE FROTA",
+        "REDEFROTA",
+        "FROTABANK"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "ORIGIN"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "OTHER",
+      "reason": "CNPJ confirmado na lista operacional de origens empresariais confiáveis.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional informada em 16/07/2026",
+        "url": ""
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 100
+    },
+    {
+      "id": "trusted-movix-express",
+      "cnpj": "11966182000176",
+      "scope": "EXACT",
+      "legalName": "MOVIX EXPRESS TRANSPORTE DE CARGAS LTDA",
+      "aliases": [],
+      "classification": "TRUSTED",
+      "directions": [
+        "ORIGIN"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "OTHER",
+      "reason": "CNPJ confirmado na lista operacional de origens empresariais confiáveis.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional informada em 16/07/2026",
+        "url": ""
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 100
+    },
+    {
+      "id": "trusted-dallagnolo-transportes",
+      "cnpj": "59259852000140",
+      "scope": "EXACT",
+      "legalName": "DALLAGNOLO TRANSPORTES LTDA",
+      "aliases": [],
+      "classification": "TRUSTED",
+      "directions": [
+        "ORIGIN"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "OTHER",
+      "reason": "CNPJ confirmado na lista operacional de origens empresariais confiáveis.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional informada em 16/07/2026",
+        "url": ""
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 100
+    },
+    {
+      "id": "trusted-getnet",
+      "cnpj": "42054886000104",
+      "scope": "EXACT",
+      "legalName": "GETNET",
+      "aliases": [],
+      "classification": "TRUSTED",
+      "directions": [
+        "ORIGIN"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "OTHER",
+      "reason": "CNPJ confirmado na lista operacional de origens empresariais confiáveis.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional informada em 16/07/2026",
+        "url": ""
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 100
+    },
+    {
+      "id": "trusted-target",
+      "cnpj": "14821124000142",
+      "scope": "EXACT",
+      "legalName": "TARGET",
+      "aliases": [],
+      "classification": "TRUSTED",
+      "directions": [
+        "ORIGIN"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "OTHER",
+      "reason": "CNPJ confirmado na lista operacional de origens empresariais confiáveis.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional informada em 16/07/2026",
+        "url": ""
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 100
+    },
+    {
+      "id": "trusted-conta-simples",
+      "cnpj": "32273196000184",
+      "scope": "EXACT",
+      "legalName": "CONTA SIMPLES",
+      "aliases": [],
+      "classification": "TRUSTED",
+      "directions": [
+        "ORIGIN"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "OTHER",
+      "reason": "CNPJ confirmado na lista operacional de origens empresariais confiáveis.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional informada em 16/07/2026",
+        "url": ""
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 100
+    },
+    {
+      "id": "attention-mello-intermediacoes",
+      "cnpj": "65629658000102",
+      "scope": "EXACT",
+      "legalName": "MELLO INTERMEDIAÇÕES LTDA",
+      "aliases": [],
+      "classification": "UNTRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_INTERNAL_DENY",
+      "reason": "CNPJ marcado pela operação como contraparte de atenção elevada e não localizado nas listas nacionais ou judiciais consultadas.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional e conferência SPA em 16/07/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 200
+    },
+    {
+      "id": "attention-cppay-intermediacoes",
+      "cnpj": "62685570000110",
+      "scope": "EXACT",
+      "legalName": "CPPAY INTERMEDIAÇÕES LTDA",
+      "aliases": [],
+      "classification": "UNTRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_INTERNAL_DENY",
+      "reason": "CNPJ marcado pela operação como contraparte de atenção elevada e não localizado nas listas nacionais ou judiciais consultadas.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional e conferência SPA em 16/07/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 200
+    },
+    {
+      "id": "attention-monarch-marketing",
+      "cnpj": "67122968000161",
+      "scope": "EXACT",
+      "legalName": "MONARCH MARKETING LTDA",
+      "aliases": [],
+      "classification": "UNTRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_INTERNAL_DENY",
+      "reason": "CNPJ marcado pela operação como contraparte de atenção elevada e não localizado nas listas nacionais ou judiciais consultadas.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional e conferência SPA em 16/07/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 200
+    },
+    {
+      "id": "attention-nelion",
+      "cnpj": "63844375000158",
+      "scope": "EXACT",
+      "legalName": "NELION LTDA",
+      "aliases": [],
+      "classification": "UNTRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_INTERNAL_DENY",
+      "reason": "CNPJ marcado pela operação como contraparte de atenção elevada e não localizado nas listas nacionais ou judiciais consultadas.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional e conferência SPA em 16/07/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 200
+    },
+    {
+      "id": "review-gamewiz-brasil",
+      "cnpj": "56195099000189",
+      "scope": "EXACT",
+      "legalName": "GAMEWIZ BRASIL LTDA",
+      "aliases": [
+        "9F",
+        "IJOGO"
+      ],
+      "classification": "REVIEW",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "Marcado internamente como atenção, porém localizado na lista nacional da SPA pelas Portarias 464 e 465, de 10/03/2025. Revisar antes da conclusão.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA consultada em 16/07/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "attention-vconnect-vasconcelos",
+      "cnpj": "65612313000146",
+      "scope": "EXACT",
+      "legalName": "VCONNECT VASCONCELOS INTERMEDIAÇÕES LTDA",
+      "aliases": [],
+      "classification": "UNTRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_INTERNAL_DENY",
+      "reason": "CNPJ marcado pela operação como contraparte de atenção elevada e não localizado nas listas nacionais ou judiciais consultadas.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional e conferência SPA em 16/07/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 200
+    },
+    {
+      "id": "attention-legacy-gaming-br",
+      "cnpj": "67209760000184",
+      "scope": "EXACT",
+      "legalName": "LEGACY GAMING BR LTDA",
+      "aliases": [],
+      "classification": "UNTRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_INTERNAL_DENY",
+      "reason": "CNPJ marcado pela operação como contraparte de atenção elevada e não localizado nas listas nacionais ou judiciais consultadas.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional e conferência SPA em 16/07/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 200
+    },
+    {
+      "id": "attention-jecv-technology",
+      "cnpj": "66935357000170",
+      "scope": "EXACT",
+      "legalName": "J E C V TECHNOLOGY LTDA",
+      "aliases": [],
+      "classification": "UNTRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_INTERNAL_DENY",
+      "reason": "CNPJ marcado pela operação como contraparte de atenção elevada e não localizado nas listas nacionais ou judiciais consultadas.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional e conferência SPA em 16/07/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 200
+    },
+    {
+      "id": "attention-vertex-marketing",
+      "cnpj": "67011602000115",
+      "scope": "EXACT",
+      "legalName": "VERTEX MARKETING LTDA",
+      "aliases": [],
+      "classification": "UNTRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_INTERNAL_DENY",
+      "reason": "CNPJ marcado pela operação como contraparte de atenção elevada e não localizado nas listas nacionais ou judiciais consultadas.",
+      "source": {
+        "type": "INTERNAL",
+        "label": "Lista operacional e conferência SPA em 16/07/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T12:00:00-03:00",
+      "active": true,
+      "priority": 200
+    },
+    {
+      "id": "spa-national-55258645000110",
+      "cnpj": "55258645000110",
+      "scope": "EXACT",
+      "legalName": "PIX NA HORA",
+      "aliases": [
+        "APOSTA1",
+        "APOSTAMAX",
+        "AVIAOBET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56431248000161",
+      "cnpj": "56431248000161",
+      "scope": "EXACT",
+      "legalName": "FOGGO ENTERTAINMENT LTDA",
+      "aliases": [
+        "BLAZE",
+        "JONBET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56195099000189",
+      "cnpj": "56195099000189",
+      "scope": "EXACT",
+      "legalName": "GAMEWIZ BRASIL LTDA",
+      "aliases": [
+        "IJOGO",
+        "9F",
+        "6R",
+        "BET.APP",
+        "FOGO777",
+        "P9"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-41590869000110",
+      "cnpj": "41590869000110",
+      "scope": "EXACT",
+      "legalName": "BIG BRAZIL TECNOLOGIA E LOTERIA S.A.",
+      "aliases": [
+        "BIG",
+        "APOSTAR",
+        "CAESARS"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-57522731000114",
+      "cnpj": "57522731000114",
+      "scope": "EXACT",
+      "legalName": "BB GAMING LTDA",
+      "aliases": [
+        "BRA"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-54068631000171",
+      "cnpj": "54068631000171",
+      "scope": "EXACT",
+      "legalName": "SC OPERATING BRAZIL LTDA",
+      "aliases": [
+        "VBET",
+        "VIVARO"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56257966000163",
+      "cnpj": "56257966000163",
+      "scope": "EXACT",
+      "legalName": "SPORTVIP GROUP INTERNATIONAL APOSTAS LTDA",
+      "aliases": [
+        "ESPORTIVAVIP",
+        "CBESPORTES",
+        "DONOSDABOLA"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55238676000100",
+      "cnpj": "55238676000100",
+      "scope": "EXACT",
+      "legalName": "TQJ-PAR PARTICIPAÇÕES SOCIETÁRIAS S.A.",
+      "aliases": [
+        "BAÚ BINGO",
+        "TELE SENA BET",
+        "BET DO MILHÃO"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-50550511000155",
+      "cnpj": "50550511000155",
+      "scope": "EXACT",
+      "legalName": "LINDAU GAMING BRASIL S.A.",
+      "aliases": [
+        "OLEYBET",
+        "SPIN",
+        "BETPARK"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56349116000195",
+      "cnpj": "56349116000195",
+      "scope": "EXACT",
+      "legalName": "LOGAME DO BRASIL LTDA",
+      "aliases": [
+        "LÍDERBET",
+        "GERALBET",
+        "B2XBET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56706701000103",
+      "cnpj": "56706701000103",
+      "scope": "EXACT",
+      "legalName": "TRACK GAMING BRASIL LTDA",
+      "aliases": [
+        "BETWARRIOR"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-51897834000182",
+      "cnpj": "51897834000182",
+      "scope": "EXACT",
+      "legalName": "F12 DO BRASIL JOGOS ELETRONICOS LTDA",
+      "aliases": [
+        "F12.BET",
+        "LUVA.BET",
+        "BRASIL.BET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56259060000188",
+      "cnpj": "56259060000188",
+      "scope": "EXACT",
+      "legalName": "BRILLIANT GAMING LTDA",
+      "aliases": [
+        "AFUN",
+        "AI",
+        "6Z"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56525936000190",
+      "cnpj": "56525936000190",
+      "scope": "EXACT",
+      "legalName": "STAKE BRAZIL LTDA",
+      "aliases": [
+        "STAKE"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-34935286000119",
+      "cnpj": "34935286000119",
+      "scope": "EXACT",
+      "legalName": "MMD TECNOLOGIA, ENTRETENIMENTO E MARKETING LTDA",
+      "aliases": [
+        "REI DO PITACO",
+        "PITACO",
+        "RdP"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55229080000143",
+      "cnpj": "55229080000143",
+      "scope": "EXACT",
+      "legalName": "NSX BETFAIR BRASIL S.A",
+      "aliases": [
+        "BETFAIR"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55927219000122",
+      "cnpj": "55927219000122",
+      "scope": "EXACT",
+      "legalName": "SKILL ON NET LTDA",
+      "aliases": [
+        "BACANAPLAY",
+        "PLAYUZU"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-47974569000111",
+      "cnpj": "47974569000111",
+      "scope": "EXACT",
+      "legalName": "DEFY LTDA",
+      "aliases": [
+        "1XBET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-47123407000170",
+      "cnpj": "47123407000170",
+      "scope": "EXACT",
+      "legalName": "HS DO BRASIL LTDA",
+      "aliases": [
+        "BET365"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55590815000160",
+      "cnpj": "55590815000160",
+      "scope": "EXACT",
+      "legalName": "BPX BETS SPORTS GROUP LTDA",
+      "aliases": [
+        "VAIDEBET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-53429401000128",
+      "cnpj": "53429401000128",
+      "scope": "EXACT",
+      "legalName": "ENSEADA SERVIÇOS E TECNOLOGIA LTDA",
+      "aliases": [
+        "KBET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-54989030000100",
+      "cnpj": "54989030000100",
+      "scope": "EXACT",
+      "legalName": "SORTENABET GAMING BRASIL S.A.",
+      "aliases": [
+        "SORTENABET",
+        "BETOU",
+        "BETFUSION"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55404799000173",
+      "cnpj": "55404799000173",
+      "scope": "EXACT",
+      "legalName": "HIPER BET TECNOLOGIA LTDA.",
+      "aliases": [
+        "HIPERBET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55881028000177",
+      "cnpj": "55881028000177",
+      "scope": "EXACT",
+      "legalName": "BETBR LOTERIAS LTDA",
+      "aliases": [
+        "APOSTOU",
+        "B1 BET",
+        "BRBET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56295104000125",
+      "cnpj": "56295104000125",
+      "scope": "EXACT",
+      "legalName": "BETESPORTE APOSTAS ON LINE LTDA",
+      "aliases": [
+        "BETESPORTE",
+        "LANCE DE SORTE"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-04426418000116",
+      "cnpj": "04426418000116",
+      "scope": "EXACT",
+      "legalName": "SABIA ADMINISTRACAO LTDA",
+      "aliases": [
+        "BR4BET",
+        "GOL DE BET",
+        "LOTOGREEN"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56268974000105",
+      "cnpj": "56268974000105",
+      "scope": "EXACT",
+      "legalName": "SEGURO BET LTDA",
+      "aliases": [
+        "SEGURO BET",
+        "KING PANDA"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-50920462000103",
+      "cnpj": "50920462000103",
+      "scope": "EXACT",
+      "legalName": "LAGUNA SERVIÇOS E TECNOLOGIA LTDA",
+      "aliases": [
+        "NOSSABET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-54071596000140",
+      "cnpj": "54071596000140",
+      "scope": "EXACT",
+      "legalName": "SPRBT INTERACTIVE BRASIL LTDA",
+      "aliases": [
+        "SUPERBET",
+        "MAGICJACKPOT",
+        "SUPER"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56212040000151",
+      "cnpj": "56212040000151",
+      "scope": "EXACT",
+      "legalName": "LUCKY GAMING LTDA",
+      "aliases": [
+        "4WIN",
+        "4PLAY",
+        "PAGOL"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-52639845000125",
+      "cnpj": "52639845000125",
+      "scope": "EXACT",
+      "legalName": "EB INTERMEDIACOES E JOGOS S.A.",
+      "aliases": [
+        "ESTRELABET",
+        "VUPI"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-24038490000183",
+      "cnpj": "24038490000183",
+      "scope": "EXACT",
+      "legalName": "CAIXA LOTERIAS S.A.",
+      "aliases": [
+        "BETCAIXA",
+        "MEGABET",
+        "XBET CAIXA"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-17385948000105",
+      "cnpj": "17385948000105",
+      "scope": "EXACT",
+      "legalName": "SIMULCASTING BRASIL SOM E IMAGEM S.A.",
+      "aliases": [
+        "BETSSON"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-31853299000150",
+      "cnpj": "31853299000150",
+      "scope": "EXACT",
+      "legalName": "GALERA GAMING JOGOS ELETRONICOS S.A.",
+      "aliases": [
+        "GALERA.BET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56197912000150",
+      "cnpj": "56197912000150",
+      "scope": "EXACT",
+      "legalName": "UX ENTERTAINMENT LTDA",
+      "aliases": [
+        "REALS",
+        "UX",
+        "BINGO"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56183358000151",
+      "cnpj": "56183358000151",
+      "scope": "EXACT",
+      "legalName": "SUPREMA BET LTDA",
+      "aliases": [
+        "SUPREMABET",
+        "MAXIMABET",
+        "ULTRABET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56061524000147",
+      "cnpj": "56061524000147",
+      "scope": "EXACT",
+      "legalName": "BETSPEED LTDA",
+      "aliases": [
+        "TIGER.BET",
+        "TIGER",
+        "PQ777",
+        "5G"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56905647000117",
+      "cnpj": "56905647000117",
+      "scope": "EXACT",
+      "legalName": "RESPONSA GAMMING BRASIL LIMITADA",
+      "aliases": [
+        "JOGA LIMPO",
+        "ENERGIA"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56636543000154",
+      "cnpj": "56636543000154",
+      "scope": "EXACT",
+      "legalName": "CDA GAMING LTDA",
+      "aliases": [
+        "CASA DE APOSTAS",
+        "BET SUL",
+        "JOGO ONLINE"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55078134000117",
+      "cnpj": "55078134000117",
+      "scope": "EXACT",
+      "legalName": "NEXUS INTERNATIONAL LTDA",
+      "aliases": [
+        "MEGAPOSTA"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55980542000160",
+      "cnpj": "55980542000160",
+      "scope": "EXACT",
+      "legalName": "FAST GAMING S.A.",
+      "aliases": [
+        "BETFAST",
+        "FAZ1BET",
+        "TIVOBET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56875122000186",
+      "cnpj": "56875122000186",
+      "scope": "EXACT",
+      "legalName": "SELECT OPERATIONS LTDA",
+      "aliases": [
+        "MMA",
+        "BETVIP",
+        "PAPIGAMES"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55933850000134",
+      "cnpj": "55933850000134",
+      "scope": "EXACT",
+      "legalName": "ANA GAMING BRASIL S.A.",
+      "aliases": [
+        "7K",
+        "CASSINO",
+        "VERA"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56195600000107",
+      "cnpj": "56195600000107",
+      "scope": "EXACT",
+      "legalName": "MERIDIAN GAMING BRASIL SPE LTDA",
+      "aliases": [
+        "MERIDIAN",
+        "PIN"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56108627000115",
+      "cnpj": "56108627000115",
+      "scope": "EXACT",
+      "legalName": "ESTADOX LTDA",
+      "aliases": [
+        "TROPINO",
+        "BZ",
+        "55W"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55459453000172",
+      "cnpj": "55459453000172",
+      "scope": "EXACT",
+      "legalName": "OIG GAMING BRAZIL LTDA",
+      "aliases": [
+        "ICE",
+        "7GAMES",
+        "BETÃO",
+        "R7"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56001749000108",
+      "cnpj": "56001749000108",
+      "scope": "EXACT",
+      "legalName": "APOSTA GANHA LOTERIAS LTDA",
+      "aliases": [
+        "APOSTA GANHA"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56147145000174",
+      "cnpj": "56147145000174",
+      "scope": "EXACT",
+      "legalName": "A2FBR S.A.",
+      "aliases": [
+        "PINNACLE",
+        "BOLSA DE APOSTA",
+        "MATCHBOOK",
+        "BETESPECIAL"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-40633348000130",
+      "cnpj": "40633348000130",
+      "scope": "EXACT",
+      "legalName": "PIXBET SOLUÇÕES TECNOLÓGICAS LTDA.",
+      "aliases": [
+        "PIXBET",
+        "GANHEIBET",
+        "BET DA SORTE"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55399607000188",
+      "cnpj": "55399607000188",
+      "scope": "EXACT",
+      "legalName": "FUTURAS APOSTAS LTDA",
+      "aliases": [
+        "BRAZINO777"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-54362120000168",
+      "cnpj": "54362120000168",
+      "scope": "EXACT",
+      "legalName": "HILGARDO GAMING LTDA",
+      "aliases": [
+        "A247",
+        "HILGARDO",
+        "HILGARDO GAMING"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56885537000130",
+      "cnpj": "56885537000130",
+      "scope": "EXACT",
+      "legalName": "VANGUARD ENTRETENIMENTO BRASIL LTDA",
+      "aliases": [
+        "ESPORTE 365",
+        "BET AKI",
+        "JOGO DE OURO"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56638458000125",
+      "cnpj": "56638458000125",
+      "scope": "EXACT",
+      "legalName": "BELL VENTURES DIGITAL LTDA",
+      "aliases": [
+        "BANDBET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56442917000109",
+      "cnpj": "56442917000109",
+      "scope": "EXACT",
+      "legalName": "7MBR LTDA",
+      "aliases": [
+        "VERT",
+        "VERTBET",
+        "CGG",
+        "FANBIT"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-46786961000174",
+      "cnpj": "46786961000174",
+      "scope": "EXACT",
+      "legalName": "KAIZEN GAMING BRASIL LTDA",
+      "aliases": [
+        "BETANO"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55988317000170",
+      "cnpj": "55988317000170",
+      "scope": "EXACT",
+      "legalName": "BLAC JOGOS LTDA",
+      "aliases": [
+        "SPORTYBET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-54923003000126",
+      "cnpj": "54923003000126",
+      "scope": "EXACT",
+      "legalName": "APOLLO OPERATIONS LTDA",
+      "aliases": [
+        "KTO"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55080231000144",
+      "cnpj": "55080231000144",
+      "scope": "EXACT",
+      "legalName": "VERSUS BRASIL LTDA",
+      "aliases": [
+        "VERSUSBET",
+        "VS - VERSUS"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-50587712000127",
+      "cnpj": "50587712000127",
+      "scope": "EXACT",
+      "legalName": "NVBT GAMING LTDA",
+      "aliases": [
+        "NOVIBET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56706644000154",
+      "cnpj": "56706644000154",
+      "scope": "EXACT",
+      "legalName": "B3T4 INTERNATIONAL GROUP LTDA",
+      "aliases": [
+        "BET4",
+        "APOSTA BET",
+        "FAZ O BET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-60828451000143",
+      "cnpj": "60828451000143",
+      "scope": "EXACT",
+      "legalName": "NOSSO TIME IGAMING LTDA",
+      "aliases": [
+        "JOGA JUNTO"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-53274124000121",
+      "cnpj": "53274124000121",
+      "scope": "EXACT",
+      "legalName": "OPEN GAMING S.A.",
+      "aliases": [
+        "BET.BET",
+        "DONALDBET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55822818000181",
+      "cnpj": "55822818000181",
+      "scope": "EXACT",
+      "legalName": "WORLD SPORTS TECHNOLOGY DO BRASIL S.A.",
+      "aliases": [
+        "BETCOPA",
+        "BRASIL DA SORTE",
+        "FYBET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-53837227000152",
+      "cnpj": "53837227000152",
+      "scope": "EXACT",
+      "legalName": "BOA LION S.A.",
+      "aliases": [
+        "BETMGM",
+        "MGM"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-37486405000191",
+      "cnpj": "37486405000191",
+      "scope": "EXACT",
+      "legalName": "BLOW MARKETPLACE LTDA",
+      "aliases": [
+        "BRAVO",
+        "TRADICIONAL",
+        "APOSTATUDO"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56873267000148",
+      "cnpj": "56873267000148",
+      "scope": "EXACT",
+      "legalName": "OLAVIR LTDA",
+      "aliases": [
+        "RIVALO"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-53570592000143",
+      "cnpj": "53570592000143",
+      "scope": "EXACT",
+      "legalName": "EA ENTRETENIMENTO E ESPORTES S.A.",
+      "aliases": [
+        "BATEU BET",
+        "ESPORTIVA BET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-23159703000162",
+      "cnpj": "23159703000162",
+      "scope": "EXACT",
+      "legalName": "RR PARTICIPAÇÕES E INTERMEDIAÇÕES DE NEGÓCIOS LTDA",
+      "aliases": [
+        "MULTIBET",
+        "RICOBET",
+        "BRXBET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55056104000100",
+      "cnpj": "55056104000100",
+      "scope": "EXACT",
+      "legalName": "NSX BRASIL S.A.",
+      "aliases": [
+        "BETNACIONAL"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56441713000145",
+      "cnpj": "56441713000145",
+      "scope": "EXACT",
+      "legalName": "LBBR APOSTAS DE QUOTA FIXA LIMITADA",
+      "aliases": [
+        "LUCK.BET",
+        "1 PRA 1",
+        "STARTBET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-54951974000180",
+      "cnpj": "54951974000180",
+      "scope": "EXACT",
+      "legalName": "BETBOOM LTDA",
+      "aliases": [
+        "BETBOOM"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-52868380000184",
+      "cnpj": "52868380000184",
+      "scope": "EXACT",
+      "legalName": "VENTMEAR BRASIL S.A.",
+      "aliases": [
+        "SPORTINGBET",
+        "BETBOO"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55045663000114",
+      "cnpj": "55045663000114",
+      "scope": "EXACT",
+      "legalName": "LEVANTE BRASIL LTDA",
+      "aliases": [
+        "SORTE ONLINE",
+        "LOTTOLAND"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56075466000100",
+      "cnpj": "56075466000100",
+      "scope": "EXACT",
+      "legalName": "ESPORTES GAMING BRASIL LTDA",
+      "aliases": [
+        "ESPORTES DA SORTE",
+        "ONABET",
+        "LOTTU"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56303755000110",
+      "cnpj": "56303755000110",
+      "scope": "EXACT",
+      "legalName": "H2 LICENSED LTDA",
+      "aliases": [
+        "SEUBET",
+        "H2 BET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-37456039000128",
+      "cnpj": "37456039000128",
+      "scope": "EXACT",
+      "legalName": "GORILLAS GROUP DO BRASIL LTDA",
+      "aliases": [
+        "BET GORILLAS",
+        "BET BUFFALOS",
+        "BET FALCONS"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56060798000111",
+      "cnpj": "56060798000111",
+      "scope": "EXACT",
+      "legalName": "DIGIPLUS BRAZIL INTERACTIVE LTDA",
+      "aliases": [
+        "ARENAPLUS",
+        "BINGOPLUS"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-06023798000173",
+      "cnpj": "06023798000173",
+      "scope": "EXACT",
+      "legalName": "SISTEMA LOTÉRICO DE PERNAMBUCO LTDA.",
+      "aliases": [
+        "MCGAMES",
+        "PLAY",
+        "MONTECARLOS"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56236761000100",
+      "cnpj": "56236761000100",
+      "scope": "EXACT",
+      "legalName": "UPBET BRASIL LTDA",
+      "aliases": [
+        "UPBETBR",
+        "9D",
+        "WJCASINO"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56302709000104",
+      "cnpj": "56302709000104",
+      "scope": "EXACT",
+      "legalName": "JOGO PRINCIPAL LTDA",
+      "aliases": [
+        "GINGABET",
+        "QGBET",
+        "VIVASORTE"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-56504413000168",
+      "cnpj": "56504413000168",
+      "scope": "EXACT",
+      "legalName": "SEVENX GAMING LTDA",
+      "aliases": [
+        "BULLSBET",
+        "JOGÃO",
+        "JOGOS"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-national-55359927000104",
+      "cnpj": "55359927000104",
+      "scope": "EXACT",
+      "legalName": "ALFA ENTRETENIMENTO S.A.",
+      "aliases": [
+        "ALFA.BET"
+      ],
+      "classification": "TRUSTED",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_AUTHORIZED",
+      "reason": "CNPJ localizado na lista nacional de empresas autorizadas pela SPA.",
+      "source": {
+        "type": "SPA",
+        "label": "Lista nacional SPA - 13/05/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 300
+    },
+    {
+      "id": "spa-judicial-55997392000105",
+      "cnpj": "55997392000105",
+      "scope": "EXACT",
+      "legalName": "ZEROUMBET PLATAFORMA DIGITAL LTDA",
+      "aliases": [
+        "ZEROUM",
+        "ENERGIA",
+        "SPORTVIP"
+      ],
+      "classification": "REVIEW",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_JUDICIAL",
+      "reason": "CNPJ localizado na lista de empresas operando por decisão judicial. Revisar o contexto antes da conclusão. 5007941-50.2025.4.03.6100, em trâmite na 14ª Vara Federal Cível da Seção Judiciária de São Paulo",
+      "source": {
+        "type": "JUDICIAL",
+        "label": "Lista judicial SPA - 04/02/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 250
+    },
+    {
+      "id": "spa-judicial-57163072000177",
+      "cnpj": "57163072000177",
+      "scope": "EXACT",
+      "legalName": "ZONA DE JOGO NEGÓCIOS E PARTICIPAÇÕES LTDA",
+      "aliases": [
+        "ZONA DE JOGO",
+        "APOSTAONLINE",
+        "ONLYBETS"
+      ],
+      "classification": "REVIEW",
+      "directions": [
+        "BOTH"
+      ],
+      "issuers": [
+        "GLOBAL"
+      ],
+      "category": "BET_JUDICIAL",
+      "reason": "CNPJ localizado na lista de empresas operando por decisão judicial. Revisar o contexto antes da conclusão. 1096849-60.2025.4.01.3400, em trâmite na 4ª Vara Federal Cível da Seção Judiciária do Distrito Federal",
+      "source": {
+        "type": "JUDICIAL",
+        "label": "Lista judicial SPA - 04/02/2026",
+        "url": "https://www.gov.br/fazenda/pt-br/composicao/orgaos/secretaria-de-premios-e-apostas/lista-de-empresas/confira-a-lista-de-empresas-autorizadas-a-ofertar-apostas-de-quota-fixa-em-2025"
+      },
+      "reviewedAt": "2026-07-16T00:35:22-03:00",
+      "active": true,
+      "priority": 250
+    }
+  ]
+}

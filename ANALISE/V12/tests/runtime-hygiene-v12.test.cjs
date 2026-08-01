@@ -1,0 +1,115 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const root = path.join(__dirname, "..");
+const runtime = fs.readFileSync(path.join(root, "sac-prevencao-v12.js"), "utf8");
+const corporate = fs.readFileSync(path.join(root, "sac-corporate-v12.js"), "utf8");
+const memory = fs.readFileSync(path.join(root, "sac-memory-v12.js"), "utf8");
+const tabulator = fs.readFileSync(path.join(root, "sac-tabulator-v12.js"), "utf8");
+const preview = fs.readFileSync(path.join(root, "preview.html"), "utf8");
+const renderTabulatorStart = runtime.indexOf("  async function renderTabulator(existingData = null) {");
+const renderTabulatorEnd = runtime.indexOf("  function startTabulatorWriting()", renderTabulatorStart);
+const renderTabulatorBlock = runtime.slice(renderTabulatorStart, renderTabulatorEnd);
+
+assert.match(runtime, /getHelpMode/);
+assert.doesNotMatch(runtime, /SETTINGS_WINDOW_NAME|readSharedSettings|writeSharedSettings/);
+assert.doesNotMatch(runtime, /Legacy/);
+assert.doesNotMatch(runtime, /\.sac-grid\.two/);
+assert.doesNotMatch(runtime, /sac-support-form|sac-support-field/);
+assert.doesNotMatch(runtime, /applyMappedTabulatorFields|tabulatorTextFieldMap|tabulatorDropdownFieldMap/);
+assert.doesNotMatch(runtime, /window\.set(?:Dirty|Value)\s*=\s*\(\)\s*=>/);
+assert.doesNotMatch(runtime, /showNotice\([^\n]+,\s*"info"/);
+assert.match(runtime, /if \(type === "info" \|\| type === "success"\) return;/);
+assert.doesNotMatch(runtime, /listMutationDepth/);
+assert.doesNotMatch(runtime, /copyText\(text, queue, history\)/);
+assert.doesNotMatch(runtime, /memory\.lists\.upsert\?\.\(item\)/);
+assert.match(runtime, /async function renderTabulator\([^)]*\)\s*\{\s*installTabulatorWriteGuard\(\);/);
+assert.ok(renderTabulatorStart >= 0 && renderTabulatorEnd > renderTabulatorStart);
+assert.match(renderTabulatorBlock, /stopTabulatorWriting\(\)/);
+assert.match(renderTabulatorBlock, /lockTabulatorFieldsUntilDecision\(\)/);
+assert.match(renderTabulatorBlock, /applyDecisionAndShowFinal\(data, button\.dataset\.decision, panel\)/);
+assert.doesNotMatch(renderTabulatorBlock, /applyTabulator\(|primeTabulatorFields\(|applyPrimaryTabulatorFields\(/);
+assert.match(runtime, /getInvestigationMode/);
+assert.match(runtime, /data-classify-counterparty="TRUSTED"/);
+assert.match(runtime, /data-classify-counterparty="UNTRUSTED"/);
+assert.doesNotMatch(runtime, /data-classify-counterparty="REVIEW"/);
+assert.match(runtime, /title: "ANÁLISES"/);
+assert.match(runtime, /title: "AJUDA"/);
+assert.match(runtime, /\.sac-investigation-drawer,\.sac-help-drawer\{width:332px/);
+assert.match(runtime, /\.sac-investigation-head\{/);
+assert.match(runtime, /\.sac-investigation-chevron\{/);
+assert.doesNotMatch(runtime, /\.sac-investigation-drawer\{width:312px/);
+assert.match(runtime, /\.sac-side-panel,\.sac-side-panel \*\{box-sizing:border-box!important\}/);
+
+for (const setting of ["theme", "safeMode", "investigationMode", "helpMode", "fontScale", "signatureName", "signatureSector"]) {
+  assert.match(runtime, new RegExp(`"${setting}"`));
+}
+assert.match(runtime, /memory\.settings\?\.set/);
+assert.match(runtime, /sharedMemory: packageMemorySnapshot\(\)/);
+assert.match(runtime, /return data;\s*}\s*function looksLikeAccountStatus/);
+assert.match(runtime, /memory\.transport\.clearAll/);
+assert.match(runtime, /__SAC_TABULATOR_NAVIGATION_GUARD__/);
+assert.match(runtime, /__sacSubmitGuardRuntime === "SAC_V12"/);
+assert.doesNotMatch(runtime, /__sacSubmitGuardInstalled/);
+assert.doesNotMatch(runtime, /__SAC_TABULATOR_NAVIGATION_GUARD_V2__/);
+assert.doesNotMatch(runtime, /__sacSubmitGuardVersion/);
+assert.match(runtime, /await memory\.hydrateFromClipboard\(\{ timeoutMs: timeout \}\)/);
+assert.match(runtime, /const savedAt = nextListRevision\(queue\)/);
+assert.match(runtime, /const updatedAt = nextListRevision\(\[item\]\);[\s\S]+?savedAt: updatedAt,[\s\S]+?updatedAt/);
+assert.match(runtime, /window\.__SAC_TABULATOR_DECISION_WRITE_ACTIVE__ = false;\s*window\.__SAC_TABULATOR_DECISION_PANEL_ACTIVE__ = false;/);
+assert.match(runtime, /const data = \{\s*type: EXPORT_CONSOLE,[\s\S]+?data\.pidData = \{ \.\.\.\(falcon\?\.pidData \|\| \{\}\), \.\.\.consolePidData \};\s*return data;/);
+assert.match(runtime, /\.sac-config\{max-height:calc\(100vh - 16px\);overflow-y:auto;overscroll-behavior:contain\}/);
+assert.match(runtime, /const width = configPanel\.offsetWidth \|\| 360;[\s\S]+?configPanel\.style\.maxHeight = `\$\{Math\.max\(180, window\.innerHeight - top - 8\)\}px`/);
+assert.match(runtime, /const tombstones = memory\.lists\.tombstones\?\.\(\) \|\| \[\]/);
+assert.match(runtime, /function closeAuxiliaryPanels[\s\S]+?\.sac-choice-popover/);
+assert.doesNotMatch(runtime, /getInvestigationMode\(\)\s*\? transactionEngine\.collectFalconTransactions/);
+assert.match(runtime, /attachInvestigationLauncher\(panel, "FALCON", data, \(\) => transactionEngine\.collectFalconTransactions/);
+assert.match(runtime, /const CARD_REVIEW = \["não", "sim", "reconhece a compra", "autofinanciamento", "ausência de dados"\]/);
+assert.match(runtime, /data-history-flow/);
+assert.match(runtime, /data-history-issuer/);
+assert.match(runtime, /data-history-decision/);
+assert.match(runtime, /all\("\.sac-panel,\.sac-history-panel,\.sac-choice-popover,\.sac-side-panel,\.sac-config"\)/);
+
+assert.doesNotMatch(corporate, /openOfficialQuery|OFFICIAL_QUERY_URL|window\.open/);
+assert.match(corporate, /lookupFromPublicData/);
+assert.match(corporate, /BRASIL_API_ENDPOINT/);
+assert.match(corporate, /const REGISTRY_TIMEOUT_MS = 3500/);
+assert.match(corporate, /releaseSession/);
+assert.doesNotMatch(corporate, /LOOKUP_CACHE_KEY/);
+
+assert.doesNotMatch(memory, /web application\/x-sac-prevencao-memory|legacyListIdentity/);
+assert.doesNotMatch(memory, /type: TYPE|bootKey: BOOT_KEY/);
+assert.match(memory, /SAC_PREVENCAO_MEMORY_V12/);
+assert.match(memory, /listTombstones/);
+assert.match(memory, /const key = normalizeText\(item\.id\) \|\| identity\(item\)/);
+assert.match(memory, /const history = \{[\s\S]+?all\(\) \{\s*mergeCurrentMirrors\(\);[\s\S]+?upsert\(item\) \{\s*mergeCurrentMirrors\(\);/);
+assert.match(memory, /const removals = tombstoneMap\(tombstones\)/);
+assert.match(memory, /TRANSPORT_STAGES/);
+assert.doesNotMatch(memory, /writeJson\(localStore, STATE_KEY/);
+assert.doesNotMatch(memory, /writeJson\(sessionStore, STATE_SESSION_KEY/);
+assert.match(memory, /clearTimeout\(timeout\)/);
+
+assert.match(preview, /document\.getElementById\("merchantHistory"\)\?\.value\|\|data\.fields\.merchantHistory\|\|""/);
+assert.match(preview, /document\.getElementById\("purchase"\)\?\.value\|\|data\.fields\.purchase\|\|""/);
+assert.match(preview, /\.config\{max-height:calc\(100vh - 16px\);overflow-y:auto;overscroll-behavior:contain\}/);
+assert.match(preview, /width=box\.offsetWidth\|\|360[\s\S]+?box\.style\.maxHeight=`\$\{Math\.max\(180,innerHeight-top-8\)\}px`/);
+assert.match(preview, /investigation:false,help:false/);
+assert.match(preview, />Modo investigação</);
+assert.match(preview, />Modo ajuda</);
+assert.match(preview, /\.investigation-launcher\.help-launcher\{top:84px\}/);
+assert.match(preview, /reserve=side\.matches\("\[data-investigation-menu\],\[data-help-menu\]"\)\?100:0/);
+assert.match(preview, /\[data-preview-cnpj-result\] \.side-help-card\.copied/);
+assert.match(preview, /\.cnpj-selector strong\{color:var\(--muted\);font-size:7\.6px/);
+assert.match(preview, /event\.target\.closest\("\[data-preview-cnpj-result\] \.side-help-card"\)/);
+assert.doesNotMatch(preview, /document\.addEventListener\("mouseover"/);
+assert.match(preview, /const CARD_REVIEW=\["não","sim","reconhece a compra","autofinanciamento","ausência de dados"\]/);
+assert.match(preview, /function cardReviewAlert\(value\)/);
+assert.match(preview, /id="historyFlow"/);
+assert.match(preview, /id="historyIssuer"/);
+assert.match(preview, /id="historyDecision"/);
+
+assert.doesNotMatch(tabulator, /applyMap|fillNow|setNativeValue/);
+assert.match(tabulator, /Object\.freeze\(\{\s*selectNow\s*\}\)/);
+
+console.log("OK - resíduos obsoletos não retornaram ao runtime V12");

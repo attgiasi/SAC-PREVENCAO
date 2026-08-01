@@ -1,1 +1,0 @@
-javascript:(()=>{const b='https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/ANALISE/V6/';const s=document.createElement('script');s.src=b+'sac-prevencao-v6.js?cache='+Date.now();document.documentElement.appendChild(s);})();

@@ -53,6 +53,10 @@
     });
   }
 
+  function optionExactMatches(option, wanted) {
+    return optionMatches(option, wanted, true);
+  }
+
   function strictDropdownTarget(target) {
     return target === "FRAUDE"
       || target === "NAO FRAUDE"
@@ -100,6 +104,10 @@
   }
 
   window.SACTabulatorV12 = Object.freeze({
+    optionTargets,
+    optionMatches,
+    optionExactMatches,
+    strictDropdownTarget,
     selectNow
   });
 })();

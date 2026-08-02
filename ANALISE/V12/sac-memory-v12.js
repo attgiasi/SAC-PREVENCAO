@@ -5,7 +5,7 @@
 
   const HTML_TYPE = "text/html";
   const HTML_MARKER = "SAC_PREVENCAO_MEMORY_V12";
-  const BOOT_KEY = "__SAC_PREVENCAO_SHARED_MEMORY__";
+  const BOOT_KEY = "__SAC_PREVENCAO_V12_SHARED_MEMORY__";
   const HISTORY_KEY = "sac_prevencao_V12:history";
   const LISTS_VAULT_KEY = "sac_prevencao_V12:lists_vault";
   const LIST_TOMBSTONES_KEY = "sac_prevencao_V12:list_tombstones";
@@ -389,7 +389,7 @@
     document.addEventListener("copy", onCopy, { once: true });
     try {
       const copied = document.execCommand("copy");
-      if (!copied) document.removeEventListener("copy", onCopy);
+      document.removeEventListener("copy", onCopy);
       return copied;
     } catch (_error) {
       document.removeEventListener("copy", onCopy);
@@ -476,10 +476,27 @@
     }
   }
 
-  async function commitCurrentText() {
-    let text = "";
-    try { text = await navigator.clipboard.readText(); } catch (_error) {}
-    return commit(text);
+  async function commitCurrentText(options = {}) {
+    if (!navigator.clipboard?.readText) {
+      return { textCopied: false, memoryCopied: false, method: "read-unavailable" };
+    }
+    const timeoutMs = Math.max(50, Number(options.timeoutMs) || 700);
+    const unavailable = Symbol("clipboard-unavailable");
+    let timeout = 0;
+    try {
+      const text = await Promise.race([
+        navigator.clipboard.readText(),
+        new Promise((resolve) => { timeout = setTimeout(() => resolve(unavailable), timeoutMs); })
+      ]);
+      if (text === unavailable) {
+        return { textCopied: false, memoryCopied: false, method: "read-timeout" };
+      }
+      return commit(String(text ?? ""));
+    } catch (_error) {
+      return { textCopied: false, memoryCopied: false, method: "read-denied" };
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   const transport = {
@@ -511,6 +528,7 @@
 
   const lists = {
     all() {
+      mergeCurrentMirrors();
       memory.lists = mergeLists(memory.lists, memory.listsVault);
       memory.listsVault = memory.lists;
       return memory.lists.map((item) => ({ ...item }));
@@ -519,6 +537,7 @@
       return listIdentity(item, listType);
     },
     upsert(item) {
+      mergeCurrentMirrors();
       const nextItem = {
         ...item,
         savedAt: Number(item?.savedAt || now()),
@@ -533,6 +552,14 @@
     replace(items) {
       mergeCurrentMirrors();
       memory.lists = mergeLists(Array.isArray(items) ? items : []);
+      memory.listsVault = memory.lists;
+      memory.savedAt = now();
+      persistMirrors();
+      return this.all();
+    },
+    reconcile(items) {
+      mergeCurrentMirrors();
+      memory.lists = mergeLists(Array.isArray(items) ? items : [], memory.lists, memory.listsVault);
       memory.listsVault = memory.lists;
       memory.savedAt = now();
       persistMirrors();
@@ -572,15 +599,18 @@
 
   const settings = {
     get(name) {
+      mergeCurrentMirrors();
       return String(memory.settings?.[name]?.value ?? "");
     },
     set(name, value) {
+      mergeCurrentMirrors();
       memory.settings = mergeSettings(memory.settings, { [name]: { value: String(value ?? ""), updatedAt: now() } });
       memory.savedAt = now();
       persistMirrors();
       return String(value ?? "");
     },
     remove(name) {
+      mergeCurrentMirrors();
       const next = { ...(memory.settings || {}) };
       delete next[name];
       memory.settings = next;
@@ -589,6 +619,7 @@
       return true;
     },
     all() {
+      mergeCurrentMirrors();
       return Object.fromEntries(Object.entries(memory.settings || {}).map(([name, entry]) => [name, String(entry.value ?? "")]));
     }
   };

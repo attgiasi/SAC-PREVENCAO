@@ -85,6 +85,16 @@ assert.equal(falconSummary.velocity5m, 0);
 assert.equal(falconSummary.velocity10m, 0);
 assert.equal(falconSummary.p2pIssuerCount, 0);
 
+const blockedP2pRows = [
+  { timestamp: Date.parse("2026-07-16T10:00:00"), amount: 800, direction: "CREDIT", p2p: true, blocked: true, counterpartyDocument: "11111111111" },
+  { timestamp: Date.parse("2026-07-16T10:01:00"), amount: 700, direction: "DEBIT", p2p: true, blocked: true, counterpartyDocument: "11111111111" }
+];
+const blockedP2pMetrics = engine.transactionMetrics(blockedP2pRows, { holderDocument: "11111111111" });
+const blockedP2pSummary = engine.summarizeFalconTransactions(blockedP2pRows, { holderDocument: "11111111111" });
+assert.equal(blockedP2pMetrics.p2pCount, 0, "tentativa barrada não pode gerar sinal verde de P2P");
+assert.equal(blockedP2pMetrics.p2pPersonalCount, 0, "tentativa barrada não pode contar como P2P pessoal");
+assert.equal(blockedP2pSummary.p2pDetected, false, "resumo não pode anunciar P2P quando todas as tentativas foram barradas");
+
 const velocityRows = [
   { timestamp: Date.parse("2026-07-16T10:00:00"), amount: 100, direction: "CREDIT", p2p: true, counterparty: "111.111.111-11", counterpartyDocument: "11111111111" },
   { timestamp: Date.parse("2026-07-16T10:00:30"), amount: 200, direction: "DEBIT", p2p: true, counterparty: "111.111.111-11", counterpartyDocument: "11111111111" },

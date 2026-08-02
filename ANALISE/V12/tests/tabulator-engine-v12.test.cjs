@@ -107,6 +107,13 @@ const reason = addSelect("ddl_motivostatus", [
 assert.equal(engine.selectNow("ddl_motivostatus", "DADOS INSUFICIENTES PARA ANÁLISE"), true);
 assert.equal(reason.value, "DADOS INSUFICIENTES PARA ANÁLISE");
 assert.ok(reason.events.includes("change"));
-assert.deepEqual(Object.keys(engine), ["selectNow"], "o motor auxiliar deve expor apenas o contrato usado pelo runtime");
+assert.equal(engine.optionMatches(queue.options[2], "CARTÕES APROVADAS"), true);
+assert.equal(engine.optionExactMatches(status.options[1], "FRAUDE"), true);
+assert.equal(engine.strictDropdownTarget("FRAUDE"), true);
+assert.deepEqual(
+  Object.keys(engine),
+  ["optionTargets", "optionMatches", "optionExactMatches", "strictDropdownTarget", "selectNow"],
+  "o runtime deve reutilizar uma única fonte de equivalência dos dropdowns"
+);
 
 console.log("OK - motor de dropdowns do Tabulador V12 validado");

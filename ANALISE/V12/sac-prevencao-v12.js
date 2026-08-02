@@ -110,9 +110,16 @@
   const transactionEngine = window.SACTransactionV12;
   const mediaEngine = window.SACMediaV12;
   const dddEngine = window.SACDddV12;
+  const RUNTIME_SLOT = "__SAC_PREVENCAO_V12_RUNTIME__";
   if (!memory || !tabulatorEngine || !counterpartyEngine || !corporateEngine || !transactionEngine || !mediaEngine || !dddEngine) {
     throw new Error("Motores da V12 não foram carregados.");
   }
+  Object.getOwnPropertyNames(window)
+    .filter((name) => /^__SAC_PREVENCAO_V\d+_RUNTIME__$/.test(name))
+    .forEach((name) => {
+      try { window[name]?.dispose?.(); } catch (_error) {}
+      try { delete window[name]; } catch (_error) { window[name] = undefined; }
+    });
   await memory.hydrateFromClipboard({ timeoutMs: 1100 });
 
   const counterpartySessionResults = new Map();
@@ -177,8 +184,6 @@
   }[char]));
   const cssEscape = (value) => window.CSS?.escape ? CSS.escape(String(value)) : String(value).replace(/["\\]/g, "\\$&");
 
-  const RUNTIME_SLOT = "__SAC_PREVENCAO_V12_RUNTIME__";
-  try { window[RUNTIME_SLOT]?.dispose?.(); } catch (_err) {}
   const runtimeController = new AbortController();
   const runtimeCleanups = [];
   let runtimeDisposed = false;
@@ -330,12 +335,27 @@
     const name = String(node.name || node.getAttribute?.("name") || "");
     return TABULATOR_PROTECTED_IDS.includes(id) || /^_partial_Falcon\./i.test(name);
   }
+  const TABULATOR_WRITE_GUARD_SLOT = "__SAC_TABULATOR_WRITE_GUARD__";
+  function restoreTabulatorWriteGuard() {
+    const guard = window[TABULATOR_WRITE_GUARD_SLOT];
+    if (!guard?.installed) return;
+    const restore = (prototype, property, descriptor) => {
+      if (!prototype || !descriptor) return;
+      try { Object.defineProperty(prototype, property, descriptor); } catch (_error) {}
+    };
+    restore(window.HTMLInputElement?.prototype, "value", guard.input);
+    restore(window.HTMLTextAreaElement?.prototype, "value", guard.textarea);
+    restore(window.HTMLSelectElement?.prototype, "value", guard.select);
+    restore(window.HTMLOptionElement?.prototype, "selected", guard.option);
+    try { delete window[TABULATOR_WRITE_GUARD_SLOT]; } catch (_error) { window[TABULATOR_WRITE_GUARD_SLOT] = undefined; }
+  }
   function installTabulatorWriteGuard() {
-    const guard = window.__SAC_TABULATOR_WRITE_GUARD__ || {};
-    if (guard.installed) {
+    const guard = window[TABULATOR_WRITE_GUARD_SLOT] || {};
+    if (guard.installed && guard.owner === BUILD_FAMILY) {
       window.__SAC_TABULATOR_DECISION_WRITE_ACTIVE__ = false;
       return;
     }
+    if (guard.installed) restoreTabulatorWriteGuard();
     const shouldBlock = (node) => Boolean(
       (window.__SAC_TABULATOR_DECISION_PANEL_ACTIVE__ || document.getElementById("sac-panel-tabulador"))
       && !window.__SAC_TABULATOR_DECISION_WRITE_ACTIVE__
@@ -365,8 +385,9 @@
         }
       });
     }
-    window.__SAC_TABULATOR_WRITE_GUARD__ = {
+    window[TABULATOR_WRITE_GUARD_SLOT] = {
       installed: true,
+      owner: BUILD_FAMILY,
       input: patchValue(HTMLInputElement.prototype),
       textarea: patchValue(HTMLTextAreaElement.prototype),
       select: patchValue(HTMLSelectElement.prototype),
@@ -374,6 +395,9 @@
     };
     window.__SAC_TABULATOR_DECISION_WRITE_ACTIVE__ = false;
   }
+  registerRuntimeCleanup(() => {
+    if (window[TABULATOR_WRITE_GUARD_SLOT]?.owner === BUILD_FAMILY) restoreTabulatorWriteGuard();
+  });
   let tabulatorFieldLock = null;
   function tabulatorProtectedElements() {
     return all("input,textarea,select").filter(isTabulatorProtectedField);
@@ -440,6 +464,7 @@
   }
 
   const TABULATOR_NAVIGATION_GUARD_SLOT = "__SAC_TABULATOR_NAVIGATION_GUARD__";
+  const TABULATOR_FORM_GUARD_SLOT = "__SAC_TABULATOR_FORM_GUARD_V12__";
   const tabulatorNavigationState = window[TABULATOR_NAVIGATION_GUARD_SLOT] || { active: false, until: 0 };
   window[TABULATOR_NAVIGATION_GUARD_SLOT] = tabulatorNavigationState;
   let tabulatorNavigationGuardInstalled = false;
@@ -454,6 +479,16 @@
     event?.stopImmediatePropagation?.();
     event?.stopPropagation?.();
     return true;
+  }
+  function restoreTabulatorFormGuard() {
+    const guard = window[TABULATOR_FORM_GUARD_SLOT];
+    if (!guard?.installed || !guard.prototype) return;
+    try {
+      if (guard.guardedSubmit && guard.prototype.submit === guard.guardedSubmit) guard.prototype.submit = guard.nativeSubmit;
+      if (guard.guardedRequestSubmit && guard.prototype.requestSubmit === guard.guardedRequestSubmit) guard.prototype.requestSubmit = guard.nativeRequestSubmit;
+      if (guard.prototype.__sacSubmitGuardRuntime === "SAC_V12") delete guard.prototype.__sacSubmitGuardRuntime;
+    } catch (_error) {}
+    try { delete window[TABULATOR_FORM_GUARD_SLOT]; } catch (_error) { window[TABULATOR_FORM_GUARD_SLOT] = undefined; }
   }
   function ensureTabulatorNavigationGuard() {
     if (tabulatorNavigationGuardInstalled) return;
@@ -470,28 +505,34 @@
     const proto = window.HTMLFormElement?.prototype;
     if (!proto) return;
     tabulatorNavigationState.isActive = isTabulatorNavigationGuardActive;
-    if (proto.__sacSubmitGuardRuntime === "SAC_V12") return;
+    if (window[TABULATOR_FORM_GUARD_SLOT]?.installed) return;
     const nativeSubmit = proto.submit;
     const nativeRequestSubmit = proto.requestSubmit;
     Object.defineProperty(proto, "__sacSubmitGuardRuntime", { value: "SAC_V12", configurable: true });
-    if (typeof nativeSubmit === "function") {
-      proto.submit = function sacGuardedSubmit(...args) {
+    const guardedSubmit = typeof nativeSubmit === "function"
+      ? function sacGuardedSubmit(...args) {
         const state = window[TABULATOR_NAVIGATION_GUARD_SLOT];
-        if (state?.isActive?.()) {
-          return undefined;
-        }
+        if (state?.isActive?.()) return undefined;
         return nativeSubmit.apply(this, args);
-      };
-    }
-    if (typeof nativeRequestSubmit === "function") {
-      proto.requestSubmit = function sacGuardedRequestSubmit(...args) {
+      }
+      : null;
+    const guardedRequestSubmit = typeof nativeRequestSubmit === "function"
+      ? function sacGuardedRequestSubmit(...args) {
         const state = window[TABULATOR_NAVIGATION_GUARD_SLOT];
-        if (state?.isActive?.()) {
-          return undefined;
-        }
+        if (state?.isActive?.()) return undefined;
         return nativeRequestSubmit.apply(this, args);
-      };
-    }
+      }
+      : null;
+    if (guardedSubmit) proto.submit = guardedSubmit;
+    if (guardedRequestSubmit) proto.requestSubmit = guardedRequestSubmit;
+    window[TABULATOR_FORM_GUARD_SLOT] = {
+      installed: true,
+      prototype: proto,
+      nativeSubmit,
+      nativeRequestSubmit,
+      guardedSubmit,
+      guardedRequestSubmit
+    };
   }
   function startTabulatorNavigationGuard() {
     ensureTabulatorNavigationGuard();
@@ -505,6 +546,10 @@
   registerRuntimeCleanup(() => {
     tabulatorNavigationState.active = false;
     tabulatorNavigationState.until = 0;
+    restoreTabulatorFormGuard();
+    if (window[TABULATOR_NAVIGATION_GUARD_SLOT] === tabulatorNavigationState) {
+      try { delete window[TABULATOR_NAVIGATION_GUARD_SLOT]; } catch (_error) { window[TABULATOR_NAVIGATION_GUARD_SLOT] = undefined; }
+    }
   });
 
   // ========================= CONFIGURAÇÕES ==========================
@@ -1344,6 +1389,15 @@
     if (historyPanel) {
       historyPanel.__sacDragDispose?.();
       historyPanel.remove();
+      return true;
+    }
+    const config = all(".sac-config.open").at(-1);
+    if (config) {
+      const owner = config.closest(".sac-panel");
+      config.hidden = true;
+      config.classList.remove("open");
+      if (owner) owner.style.zIndex = "";
+      if (owner?.id === "sac-panel-console") placePidPanel();
       return true;
     }
     const panel = all(".sac-panel").at(-1);
@@ -4062,50 +4116,10 @@
   async function waitForTabulatorFields() {
     return waitForField(() => byId("txt_ValorTransacao") || byId("ddl_status") || elementByName("_partial_Falcon.NumeroCaso"), 45, 45);
   }
-  const TABULATOR_OPTION_ALIASES = new Map([
-      ["CARTOES APROVADAS", ["CARTOES APROVADOS", "CARTAO APROVADO", "APROVADAS", "APPROVE", "APROVADA", "AUTHORIZED", "AUTORIZADA"]],
-      ["CARTOES RECUSADAS", ["CARTOES REPROVADAS", "CARTOES RECUSADOS", "CARTOES REPROVADOS", "CARTAO RECUSADO", "DECLINE", "DECLINADA", "RECUSADA", "REPROVADA", "DENIED", "NEGADA"]],
-      ["CARTOES REPROVADAS", ["CARTOES RECUSADAS", "CARTOES RECUSADOS", "CARTOES REPROVADOS", "CARTAO RECUSADO", "DECLINE", "DECLINADA", "RECUSADA", "REPROVADA", "DENIED", "NEGADA"]],
-      ["APPROVE", ["CARTOES APROVADAS", "CARTOES APROVADOS", "APROVADA", "AUTHORIZED", "AUTORIZADA"]],
-      ["AUTHORIZED", ["CARTOES APROVADAS", "CARTOES APROVADOS", "APPROVE", "APROVADA", "AUTORIZADA"]],
-      ["DECLINE", ["CARTOES RECUSADAS", "CARTOES REPROVADAS", "RECUSADA", "REPROVADA", "DENIED", "NEGADA"]],
-      ["DENIED", ["CARTOES RECUSADAS", "CARTOES REPROVADAS", "DECLINE", "RECUSADA", "REPROVADA", "NEGADA"]],
-      ["ATIVA - PLANILHA", ["ATIVO - PLANILHA", "ATIVA PLANILHA", "ATIVO PLANILHA"]],
-      ["SEM CONTATO - PLANILHA", ["SEM CONTATO PLANILHA", "SEM CHAMADA - PLANILHA"]],
-      ["SEM CHAMADA", ["SEM CONTATO", "SEM CONTATO - PLANILHA", "SEM CONTATO PLANILHA", "AUSENCIA DE CHAMADA"]],
-      ["COM SUCESSO", ["SUCESSO"]],
-      ["SEM SUCESSO", ["INSUCESSO", "SEM EXITO"]],
-      ["DADOS INSUFICIENTES PARA ANALISE", ["DADOS INSUFICIENTES", "DADOS INSUFICIENTES PARA DECISAO"]],
-      ["CLIENTE NAO ATENDE", ["CLIENTE NAO ATENDEU"]],
-      ["CLIENTE SOFREU FRAUDE", ["CLIENTE VITIMA DE FRAUDE", "CLIENTE SOFREU A FRAUDE"]],
-      ["FRAUDE TRANSACIONAL", []],
-      ["SEM SUSPEITAS", ["SEM SUSPEITA"]]
-  ]);
-  function optionTargets(wanted) {
-    const target = normalize(wanted);
-    return Array.from(new Set([target, ...(TABULATOR_OPTION_ALIASES.get(target) || [])].filter(Boolean)));
-  }
-  function strictDropdownTarget(target) {
-    return target === "FRAUDE"
-      || target === "NAO FRAUDE"
-      || target.startsWith("NAO FOI POSSIVEL CONFIRMAR");
-  }
-  function optionMatches(option, wanted) {
-    const targets = optionTargets(wanted);
-    const text = normalize(option.textContent || "");
-    const value = normalize(option.value || "");
-    return targets.some((target) => {
-      if (text === target || value === target) return true;
-      if (strictDropdownTarget(target)) return false;
-      return text.includes(target) || value.includes(target);
-    });
-  }
-  function optionExactMatches(option, wanted) {
-    const targets = optionTargets(wanted);
-    const text = normalize(option.textContent || "");
-    const value = normalize(option.value || "");
-    return targets.some((target) => text === target || value === target);
-  }
+  const optionTargets = tabulatorEngine.optionTargets;
+  const optionMatches = tabulatorEngine.optionMatches;
+  const optionExactMatches = tabulatorEngine.optionExactMatches;
+  const strictDropdownTarget = tabulatorEngine.strictDropdownTarget;
   function applySelectValue(select, option) {
     if (!select || !option) return false;
     return withTabulatorGuardBypass(() => {
@@ -4538,10 +4552,24 @@
 
     const queue = queueFor(data);
     if (!prevention) {
+      const callValues = tabulatorCallValues(data);
       tasks.push(selectIssuerDropdown(data.issuer, data.issuerId, isActive).then((ok) => {
         if (!ok) addPending("Emissor");
         return ok;
       }));
+      tasks.push(selectDependentDropdown("ddl_TipoChamada", callValues.type, "ddl_ChamadaAtiva", callValues.result, 70, isActive).then((ok) => {
+        if (!ok) {
+          addPending("Tipo de chamada");
+          addPending("Status chamada");
+        }
+        return ok;
+      }));
+      if (queue) {
+        tasks.push(selectDropdown("ddl_Fila", queue, 32, isActive).then((ok) => {
+          if (!ok) addPending("Fila");
+          return ok;
+        }));
+      }
     } else {
       const transactionValue = clean(f.value, "").replace("R$", "").trim();
       const establishment = data.flow === "card" ? f.merchant : f.transactionType;
@@ -4798,7 +4826,7 @@
       await hydrateListClipboardFast(Boolean(merged.length), options.hydrateClipboard === "full" ? "full" : "fast");
       merged = validPendingListItems([...merged, ...memory.lists.all()]);
     }
-    memory.lists.replace(validPendingListItems(merged));
+    memory.lists.reconcile(validPendingListItems(merged));
     return validPendingListItems(memory.lists.all());
   }
   function hasPendingListApplication(item) {
@@ -4810,7 +4838,7 @@
   }
   async function writeListQueue(list) {
     const expected = validPendingListItems(list);
-    memory.lists.replace(expected);
+    memory.lists.reconcile(expected);
     let persisted = validPendingListItems(memory.lists.all());
     const missing = expected.filter((item) => {
       const listType = pendingListType(item);
@@ -4851,9 +4879,6 @@
       if (item.lists?.cashout) memory.lists.markDone?.(item, "cashout");
     });
     return queue.filter((item) => !sameCaseIdentity(item, data));
-  }
-  async function retireCurrentCaseFromLists(queue, data) {
-    return writeListQueue(markCurrentCaseListsDone(queue, data));
   }
   function nextListRevision(queue = []) {
     const tombstones = memory.lists.tombstones?.() || [];
@@ -4903,14 +4928,14 @@
     const queue = validPendingListItems(memory.lists.all());
     const withoutCurrentCase = markCurrentCaseListsDone(queue, data);
     if (!isNoFraudDecision(decision)) {
-      return validPendingListItems(memory.lists.replace(withoutCurrentCase));
+      return validPendingListItems(memory.lists.reconcile(withoutCurrentCase));
     }
     const lists = listTypesFor(data);
     if (!lists.allowlist && hasBlockingOrSpdStatus(data) && !isJiraCase(data)) {
       showNotice("Conta bloqueada ou com SPD: o caso não foi adicionado à permissiva.", "warn", 10000);
     }
     if (!lists.allowlist && !lists.contencao && !lists.cashout) {
-      return validPendingListItems(memory.lists.replace(withoutCurrentCase));
+      return validPendingListItems(memory.lists.reconcile(withoutCurrentCase));
     }
     const savedAt = nextListRevision(queue);
     const listItems = listItemsForDecision(data, lists, savedAt);
@@ -4920,7 +4945,7 @@
     if (lists.contencao && !documentFieldValue(data.cpfCnpj)) {
       showNotice("Caso guardado nas abas elegíveis, mas falta CPF/CNPJ para concluir a Contenção.", "warn", 12000);
     }
-    let persisted = validPendingListItems(memory.lists.replace([...listItems, ...withoutCurrentCase]));
+    let persisted = validPendingListItems(memory.lists.reconcile([...listItems, ...withoutCurrentCase]));
     listItems.forEach((item) => {
       const listType = pendingListType(item);
       const found = persisted.some((entry) => sameCompositeListIdentity(entry, data, listType));

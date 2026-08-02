@@ -47,7 +47,11 @@ const context = {
   window: {
     name: "",
     localStorage: storageMock(),
-    sessionStorage: storageMock()
+    sessionStorage: storageMock(),
+    __SAC_PREVENCAO_SHARED_MEMORY__: {
+      savedAt: Date.now(),
+      history: [{ id: "v11-stale", caseNumber: "11111111", savedAt: Date.now() }]
+    }
   }
 };
 context.window.window = context.window;
@@ -56,6 +60,8 @@ vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "sac-memory-v12.js"), "utf8"), context, { filename: "sac-memory-v12.js" });
 
 const memory = context.window.SACMemoryV12;
+assert.equal(memory.history.all().length, 0, "a V12 não pode herdar a memória global de uma versão anterior");
+assert.ok(context.window.__SAC_PREVENCAO_V12_SHARED_MEMORY__, "a memória de partida precisa ser exclusiva da V12");
 memory.settings.set("theme", "light");
 memory.settings.set("investigationMode", "on");
 memory.settings.set("flowTone:banking", "#22c55e");
@@ -200,8 +206,50 @@ crossOriginContext.window.navigator = crossOriginContext.navigator;
 vm.createContext(crossOriginContext);
 vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "sac-memory-v12.js"), "utf8"), crossOriginContext, { filename: "sac-memory-v12-cross-origin.js" });
 assert.equal(crossOriginContext.window.SACMemoryV12.lists.all().length, 2, "LISTAS devem aparecer imediatamente em outra etapa/origem pelo cofre de window.name");
+assert.equal(crossOriginContext.window.SACMemoryV12.settings.get("theme"), "light", "Configurações devem acompanhar o pacote entre etapas/origens");
+assert.equal(crossOriginContext.window.SACMemoryV12.history.all().length, 1, "Histórico deve ser o mesmo em qualquer etapa/origem");
+
+const concurrentLocalStorage = storageMock();
+function concurrentMemoryContext() {
+  const next = {
+    console,
+    Date,
+    JSON,
+    encodeURIComponent,
+    decodeURIComponent,
+    setTimeout,
+    clearTimeout,
+    document: documentMock,
+    navigator: { clipboard: {} },
+    window: { name: "", localStorage: concurrentLocalStorage, sessionStorage: storageMock() }
+  };
+  next.window.window = next.window;
+  next.window.navigator = next.navigator;
+  vm.createContext(next);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "sac-memory-v12.js"), "utf8"), next, { filename: "sac-memory-v12-concurrent.js" });
+  return next;
+}
+const concurrentA = concurrentMemoryContext();
+const concurrentB = concurrentMemoryContext();
+concurrentA.window.SACMemoryV12.lists.upsert({ ...base, id: "concurrent-a", caseNumber: "50000001", account: "ACC-A", savedAt: Date.now() + 500 });
+concurrentB.window.SACMemoryV12.lists.upsert({ ...base, id: "concurrent-b", caseNumber: "50000002", account: "ACC-B", savedAt: Date.now() + 501 });
+assert.equal(concurrentA.window.SACMemoryV12.lists.all().length, 2, "duas abas da mesma origem não podem sobrescrever casos de LISTAS");
+assert.equal(concurrentB.window.SACMemoryV12.lists.all().length, 2, "LISTAS deve reconciliar o espelho estável antes de ler");
+const concurrentSnapshot = concurrentA.window.SACMemoryV12.lists.all();
+concurrentB.window.SACMemoryV12.lists.upsert({ ...base, id: "concurrent-c", caseNumber: "50000003", account: "ACC-C", savedAt: Date.now() + 502 });
+concurrentA.window.SACMemoryV12.lists.reconcile(concurrentSnapshot);
+assert.equal(concurrentA.window.SACMemoryV12.lists.all().length, 3, "reconciliar uma leitura antiga não pode apagar o caso recém-gravado por outra aba");
+assert.equal(concurrentB.window.SACMemoryV12.lists.all().length, 3, "a fila concorrente deve permanecer igual em todas as abas da mesma origem");
+concurrentA.window.SACMemoryV12.settings.set("theme", "dark");
+concurrentB.window.SACMemoryV12.settings.set("safeMode", "off");
+assert.equal(concurrentA.window.SACMemoryV12.settings.get("safeMode"), "off", "Configurações concorrentes devem ser reconciliadas antes da leitura");
+assert.equal(concurrentB.window.SACMemoryV12.settings.get("theme"), "dark", "uma configuração não pode apagar outra definida em uma segunda aba");
 
 (async () => {
+  const clipboardBefore = copiedTypes.size;
+  const unavailableCopy = await memory.commitCurrentText({ timeoutMs: 25 });
+  assert.equal(unavailableCopy.method, "read-unavailable");
+  assert.equal(copiedTypes.size, clipboardBefore, "sincronizar configurações não pode apagar a área de transferência sem permissão de leitura");
   context.navigator.clipboard.read = () => new Promise(() => {});
   const startedAt = Date.now();
   const hydrated = await memory.hydrateFromClipboard({ timeoutMs: 25 });

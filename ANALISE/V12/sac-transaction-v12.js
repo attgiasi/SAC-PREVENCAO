@@ -351,7 +351,7 @@
     const counterparties = new Set(effectiveItems.map((row) => normalizeText(
       typeof row.counterparty === "object" ? row.counterparty?.document || row.counterpartyName : row.counterparty
     )).filter(Boolean));
-    const p2pRows = items.filter((row) => row.p2p);
+    const p2pRows = effectiveItems.filter((row) => row.p2p);
     const unusualHourRows = effectiveItems.filter((row) => Number.isFinite(row.timestamp) && new Date(row.timestamp).getHours() < 6);
     const unusualHours = unusualHourRows.length;
     const unusualHoursAmount = unusualHourRows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
@@ -413,7 +413,7 @@
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       monthlyTotals.set(key, Number(monthlyTotals.get(key) || 0) + Number(row.amount || 0));
     });
-    const p2pRelationships = p2pRelationshipMetrics(items, input);
+    const p2pRelationships = p2pRelationshipMetrics(effectiveItems, input);
     const groupedCounterparties = transactionCounterparties(effectiveItems);
     const repeatedCounterpartyCount = groupedCounterparties.filter((item) => item.transactionCount >= 2).length;
     const blockedAttemptCount = items.filter(transactionIsBlocked).length;
@@ -515,6 +515,7 @@
 
   function summarizeFalconTransactions(rows = [], input = {}) {
     const items = Array.isArray(rows) ? rows : [];
+    const effectiveItems = items.filter((row) => !transactionIsBlocked(row));
     const metrics = transactionMetrics(items, input);
     const card = cardActivity(items);
     const counterparties = new Map();
@@ -551,7 +552,7 @@
       periodEnd: metrics.periodEnd,
       periodDurationMs: metrics.periodDurationMs,
       totalAmount,
-      p2pDetected: items.some((row) => row?.p2p || containsP2P(`${row?.transactionType || ""} ${row?.description || ""}`)),
+      p2pDetected: effectiveItems.some((row) => row?.p2p || containsP2P(`${row?.transactionType || ""} ${row?.description || ""}`)),
       p2pCount: metrics.p2pCount,
       p2pIssuerCount: metrics.p2pIssuerCount,
       p2pPersonalCount: metrics.p2pPersonalCount,

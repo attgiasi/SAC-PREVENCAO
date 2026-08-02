@@ -7,10 +7,13 @@ const source = fs.readFileSync(path.join(__dirname, "..", "loader-v12.js"), "utf
 const safeFallback = source.match(/const SAFE_FALLBACK_REF = "([a-f0-9]{40})"/)?.[1] || "";
 const release = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "release-v12.json"), "utf8"));
 const bookmarklet = fs.readFileSync(path.join(__dirname, "..", "bookmarklet-v12.txt"), "utf8");
+const bookmarkletLoaderRef = bookmarklet.match(/@([a-f0-9]{40})\/ANALISE\/V12\/loader-v12\.js\?v=12\.0\.0/)?.[1] || "";
 
 assert.match(safeFallback, /^[a-f0-9]{40}$/);
 assert.equal(release.build, "12.0");
-assert.match(bookmarklet, new RegExp(`@${release.commit}/ANALISE/V12/loader-v12\\.js\\?v=12\\.0\\.0`));
+assert.match(release.commit, /^[a-f0-9]{40}$/);
+assert.match(bookmarkletLoaderRef, /^[a-f0-9]{40}$/, "o favorito deve fixar um loader imutável e válido");
+assert.match(source, /async function latestCommit\(\)/, "o loader imutável deve resolver a revisão atual do código-fonte");
 
 async function executeLoader(fetchImpl) {
   const loaded = [];

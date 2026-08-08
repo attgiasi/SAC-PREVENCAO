@@ -27,6 +27,7 @@
       ".sac-history-panel",
       ".sac-choice-popover",
       ".sac-side-panel",
+      ".sac-pid-panel",
       "#sac-notices",
       "#sac-loader-v12-error"
     ].join(",")).forEach((node) => node.remove());

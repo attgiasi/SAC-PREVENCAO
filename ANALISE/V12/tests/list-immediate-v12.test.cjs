@@ -18,8 +18,10 @@ assert.ok(
 );
 assert.match(source, /function stageListsForFinalDecision\(data, decision\)/);
 assert.doesNotMatch(source, /async function stageListsForFinalDecision/);
-assert.match(source, /hydrateClipboard: "full"/);
-assert.match(source, /hasLocalItems \? 1200 : 1600/);
+assert.doesNotMatch(source, /hydrateListClipboardFast|hydrateClipboard:\s*"full"/);
+assert.match(source, /await memory\.hydrateFromClipboard\(\{ timeoutMs: 1100 \}\)/);
+assert.match(source, /if \(!await markListDone\(target\.id, activeTab\)\)/);
+assert.doesNotMatch(source, /markListBatchDone/);
 assert.match(source, /LISTAS_PERSISTENCE_NOT_CONFIRMED/);
 assert.match(source, /return text\.includes\("ISPB"\)/);
 

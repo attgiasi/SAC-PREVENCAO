@@ -12,6 +12,7 @@ function storageMock() {
 }
 
 const cnpj = "42040830000192";
+let publicFetches = 0;
 const context = {
   URL,
   Date,
@@ -23,6 +24,7 @@ const context = {
       return { ok: true, json: async () => ({ schemaVersion: 1, version: "empty-test", updatedAt: "2026-07-16", records: [] }) };
     }
     if (String(url).includes("brasilapi.com.br")) {
+      publicFetches += 1;
       return {
         ok: true,
         json: async () => ({
@@ -50,8 +52,13 @@ vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "sac-corporate-v12.js"), "utf8"), context, { filename: "sac-corporate-v12.js" });
 
 (async () => {
-  const result = await context.window.SACCorporateV12.lookup(cnpj);
+  const [result, simultaneous] = await Promise.all([
+    context.window.SACCorporateV12.lookup(cnpj),
+    context.window.SACCorporateV12.lookup(cnpj)
+  ]);
   assert.equal(result.found, true);
+  assert.equal(simultaneous.found, true);
+  assert.equal(publicFetches, 1, "consultas simultâneas do mesmo CNPJ devem compartilhar uma requisição pública");
   assert.equal(result.tradeName, "GARCIA TRANSPORTES");
   assert.equal(result.openedAt, "2022-05-18");
   assert.equal(result.registrationStatus, "ATIVA");

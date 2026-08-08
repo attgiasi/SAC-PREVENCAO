@@ -4,8 +4,8 @@
   const ID = "sac-version-tester";
   const VERSIONS = [
     { id: "V10.3", files: ["V10/sac-memory-v10.js", "V10/sac-tabulator-v10.js", "V10/sac-prevencao-v10.js"], preview: "V10/preview.html", note: "referência estável" },
-    { id: "V11.33", files: ["V11/sac-memory-v11.js", "V11/sac-counterparty-v11.js", "V11/sac-corporate-v11.js", "V11/sac-transaction-v11.js", "V11/sac-media-v11.js", "V11/sac-ddd-v11.js", "V11/sac-tabulator-v11.js", "V11/sac-prevencao-v11.js"], preview: "V11/preview.html", note: "favorito universal" },
-    { id: "V12.0", files: ["V12/sac-memory-v12.js", "V12/sac-counterparty-v12.js", "V12/sac-corporate-v12.js", "V12/sac-transaction-v12.js", "V12/sac-media-v12.js", "V12/sac-ddd-v12.js", "V12/sac-tabulator-v12.js", "V12/sac-prevencao-v12.js"], preview: "V12/preview.html", note: "homologação" }
+    { id: "V11.33", files: ["V11/sac-memory-v11.js", "V11/sac-counterparty-v11.js", "V11/sac-corporate-v11.js", "V11/sac-transaction-v11.js", "V11/sac-media-v11.js", "V11/sac-ddd-v11.js", "V11/sac-tabulator-v11.js", "V11/sac-prevencao-v11.js"], preview: "V11/preview.html", note: "referência anterior" },
+    { id: "V12.0", files: ["V12/sac-memory-v12.js", "V12/sac-counterparty-v12.js", "V12/sac-corporate-v12.js", "V12/sac-transaction-v12.js", "V12/sac-media-v12.js", "V12/sac-ddd-v12.js", "V12/sac-tabulator-v12.js", "V12/sac-prevencao-v12.js"], preview: "V12/preview.html", note: "favorito universal" }
   ];
 
   function currentBase() {

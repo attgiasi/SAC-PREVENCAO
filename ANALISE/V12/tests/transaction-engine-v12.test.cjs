@@ -32,6 +32,11 @@ assert.equal(engine.containsP2P("P2P_OUT_DIF_CONTA"), true);
 assert.equal(engine.containsP2P("Depósito bancário"), false);
 assert.equal(engine.containsP2P("PIX recebido"), false, "PIX genérico não pode ser classificado como P2P");
 assert.equal(engine.parseBrazilianAmount("R$ 1.400,50"), 1400.5);
+assert.equal(engine.parseBrazilianAmount("- R$ 240,00 Data de Autorização: 15/07/2026"), -240);
+assert.equal(engine.parseSignedAmount("- R$ 240,00 Data de Autorização: 15/07/2026"), -240);
+assert.equal(engine.parseSignedAmount("+ R$ 10,87 Data de Autorização: 15/07/2026"), 10.87);
+assert.equal(engine.parseBrazilianAmount("1.400"), 1400);
+assert.equal(engine.parseBrazilianAmount("1400.50"), 1400.5);
 
 function falconNode(id, text) {
   return { id, innerText: text, textContent: text };
@@ -248,17 +253,28 @@ const cardRoot = {
   ]
 };
 const cardRows = engine.collectFalconTransactions({ root: cardRoot, transactionType: "Autorização ou lançamento de crédito" });
-const cardSummary = engine.summarizeFalconTransactions(cardRows);
-const cardAnalysis = engine.analyze({ flow: "card", transactionType: "Autorização ou lançamento de crédito", rows: cardRows });
+const cardContext = {
+  flow: "card",
+  transactionType: "Autorização ou lançamento de crédito",
+  alertRowIndex: "3",
+  alertDateTime: "16/07/2026 11:03:00"
+};
+const cardSummary = engine.summarizeFalconTransactions(cardRows, cardContext);
+const cardAnalysis = engine.analyze({ ...cardContext, rows: cardRows });
 assert.equal(cardRows.length, 3);
 assert.equal(cardSummary.merchantCount, 2);
 assert.equal(cardSummary.chipPinCount, 1);
 assert.equal(cardSummary.attentionModeCount, 2);
 assert.equal(cardSummary.repeatedAttentionMerchantCount, 1);
+assert.equal(cardSummary.approvedChipAfterAlert, true);
+assert.equal(cardSummary.approvedChipAfterAlertCount, 1);
 assert.equal(cardAnalysis.classification, "REVIEW");
-assert.ok(cardAnalysis.signals.some((item) => item.code === "CARD_CHIP_PIN"));
+assert.ok(cardAnalysis.signals.some((item) => item.code === "CARD_APPROVED_CHIP_AFTER_ALERT"));
 assert.ok(cardAnalysis.signals.some((item) => item.code === "CARD_REPEATED_RISKY_MERCHANT"));
 assert.equal(cardAnalysis.p2pDetected, false);
+
+const cardBeforeAlert = engine.analyze({ ...cardContext, alertRowIndex: "4", alertDateTime: "16/07/2026 11:10:00", rows: cardRows });
+assert.equal(cardBeforeAlert.signals.some((item) => item.code === "CARD_APPROVED_CHIP_AFTER_ALERT"), false, "chip aprovado anterior ou igual ao alerta não é evidência posterior");
 
 (async () => {
   const pending = await engine.analyzeConsole({ transactionType: "P2P" });

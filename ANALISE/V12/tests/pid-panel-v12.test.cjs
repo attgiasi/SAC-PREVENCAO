@@ -28,6 +28,8 @@ assert.match(source, /Análise transacional de cartão/);
 assert.match(source, /Estabelecimentos/);
 assert.match(source, /sac-transaction-view/);
 assert.match(source, /placePidPanel\(\);/);
+assert.match(source, /const launcherReserve = anchor === host && host\.querySelector\("\.sac-investigation-launcher"\) \? 100 : 0;/);
+assert.match(source, /const leftOfAnchor = rect\.left - width - launcherReserve - 8;/);
 assert.match(source, /id="sac-call-mode-toggle" class="sac-toggle/);
 assert.match(source, /byId\("sac-call-mode-toggle"\)\?\.addEventListener\("click"/);
 assert.match(source, /button\.dataset\.active = button\.dataset\.active === "true" \? "false" : "true"/);
@@ -99,6 +101,7 @@ vm.runInContext(`
   const byId = (id) => elements.get(id) || null;
   const normalize = (value) => String(value || "").toUpperCase();
   const documentKind = () => "CPF";
+  const documentFieldValue = (value) => String(value || "").replace(/\\D/g, "");
   const clean = (value, fallback = "") => String(value || "").trim() || fallback;
   const all = () => [];
   const pidProfileFor = () => ({ title: "PID TESTE", required: [], complementary: [], note: "" });

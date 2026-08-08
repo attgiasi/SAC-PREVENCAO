@@ -14,7 +14,18 @@ assert.match(source, /if \(enabled && !jira\) openPidPanel\(data\);/);
 assert.match(source, /syncCallToggles\(\);/);
 assert.match(source, /const jiraCall = Boolean\(data\.jiraActive\) && callModeActive;/);
 assert.match(source, /resultToggle\.disabled = !enabled \|\| jira;/);
+assert.match(source, /function normalizeJiraReference\(value\)/);
+assert.match(source, /id="sac-jira-reference"/);
+assert.match(source, /`JIRA: \$\{data\.jiraReference\}`/);
+assert.match(source, /\["Chamado JIRA", data\.jiraReference\]/);
+assert.equal(
+  (source.match(/section\("Chamada", consoleFlagControls\(data\), "opcional"\)/g) || []).length,
+  2,
+  "JIRA, chamada e o campo do chamado devem existir nos modos normal e invisível"
+);
 assert.match(preview, /if\(active&&!jira\)openPid\(data\);else closePid\(\)/);
+assert.match(preview, /id="jiraReference"/);
+assert.match(preview, /function normalizeJiraReference\(value\)/);
 assert.match(preview, /JIRA sem chamada: SEM CONTATO - FILA e SEM CHAMADA aplicados/);
 assert.match(preview, /JIRA com chamada: RECEPTIVO e COM SUCESSO aplicados/);
 
@@ -45,5 +56,20 @@ assert.deepEqual(JSON.parse(JSON.stringify(sandbox.tabulatorCallValues({ jiraAct
   type: "SEM CONTATO - PLANILHA",
   result: "SEM CHAMADA"
 });
+
+const jiraStart = source.indexOf("  function normalizeJiraReference(value) {");
+const jiraEnd = source.indexOf("  function cardFields", jiraStart);
+assert.ok(jiraStart >= 0 && jiraEnd > jiraStart, "normalizador JIRA não localizado");
+const jiraSandbox = {
+  normalize(value) {
+    return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toUpperCase();
+  },
+  decodeURIComponent
+};
+vm.createContext(jiraSandbox);
+vm.runInContext(`${source.slice(jiraStart, jiraEnd)}\nthis.normalizeJiraReference = normalizeJiraReference;`, jiraSandbox);
+assert.equal(jiraSandbox.normalizeJiraReference("https://jira.exemplo/browse/SERVICO-12345"), "SERVICO-12345");
+assert.equal(jiraSandbox.normalizeJiraReference("https://jira.exemplo/INCIDENTE/9876?origem=console"), "INCIDENTE-9876");
+assert.equal(jiraSandbox.normalizeJiraReference("link sem identificador"), "");
 
 console.log("OK - JIRA roteia chamada, PID e Tabulador sem conflito");

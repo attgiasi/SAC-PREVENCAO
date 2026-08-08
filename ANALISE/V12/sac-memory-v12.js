@@ -370,6 +370,13 @@
     return snapshot();
   }
 
+  function mergeCurrentSettings() {
+    const localSettingsNow = readStable(SETTINGS_KEY, {});
+    const windowNameNow = readWindowNameMemory();
+    memory.settings = mergeSettings(localSettingsNow, windowNameNow.settings, memory.settings);
+    return memory.settings;
+  }
+
   function encodeMemoryPayload(value = memory) {
     return encodeURIComponent(JSON.stringify(portableMemory(value)));
   }
@@ -378,6 +385,7 @@
     return `<div>${escapeHtml(String(text ?? "")).replace(/\n/g, "<br>")}</div><!--${HTML_MARKER}:${encodeMemoryPayload()}-->`;
   }
 
+  let internalCopyActive = false;
   function copyEnvelopeSynchronously(plain, html) {
     if (typeof document === "undefined" || typeof document.execCommand !== "function") return false;
     const onCopy = (event) => {
@@ -388,13 +396,60 @@
     };
     document.addEventListener("copy", onCopy, { once: true });
     try {
+      internalCopyActive = true;
       const copied = document.execCommand("copy");
       document.removeEventListener("copy", onCopy);
       return copied;
     } catch (_error) {
       document.removeEventListener("copy", onCopy);
       return false;
+    } finally {
+      internalCopyActive = false;
     }
+  }
+
+  function selectedCopyText(event) {
+    const existing = String(event?.clipboardData?.getData?.("text/plain") || "");
+    if (existing) return existing;
+    const active = document?.activeElement;
+    if (active && typeof active.value === "string" && Number.isInteger(active.selectionStart) && Number.isInteger(active.selectionEnd)) {
+      const selected = active.value.slice(active.selectionStart, active.selectionEnd);
+      if (selected) return selected;
+    }
+    try { return String(window.getSelection?.().toString() || ""); }
+    catch (_error) { return ""; }
+  }
+
+  function preserveCopyEvent(event) {
+    if (internalCopyActive || event?.defaultPrevented || !event?.clipboardData) return false;
+    const plain = selectedCopyText(event);
+    if (!plain) return false;
+    mergeCurrentMirrors();
+    memory.savedAt = now();
+    persistMirrors();
+    event.clipboardData.setData("text/plain", plain);
+    event.clipboardData.setData(HTML_TYPE, htmlClipboardPayload(plain));
+    event.preventDefault?.();
+    return true;
+  }
+
+  async function preserveProgrammaticText(text, nativeWriteText) {
+    const plain = String(text ?? "");
+    mergeCurrentMirrors();
+    memory.savedAt = now();
+    persistMirrors();
+    if (navigator.clipboard?.write && window.ClipboardItem && typeof Blob === "function") {
+      try {
+        const html = htmlClipboardPayload(plain);
+        await navigator.clipboard.write([new ClipboardItem({
+          "text/plain": new Blob([plain], { type: "text/plain" }),
+          [HTML_TYPE]: new Blob([html], { type: HTML_TYPE })
+        })]);
+        return;
+      } catch (_error) {}
+    }
+    if (typeof nativeWriteText === "function") return nativeWriteText(plain);
+    throw new Error("CLIPBOARD_WRITE_UNAVAILABLE");
   }
 
   function memoryFromHtml(html) {
@@ -452,6 +507,9 @@
   }
 
   async function commit(text = "") {
+    // A cópia pode acontecer em uma aba que ainda não leu a última LISTAS.
+    // Reconcilie todos os espelhos antes de gerar o envelope do clipboard.
+    mergeCurrentMirrors();
     memory.savedAt = now();
     persistMirrors();
     const plain = String(text ?? "");
@@ -501,6 +559,7 @@
 
   const transport = {
     get(stage) {
+      mergeCurrentMirrors();
       const item = memory.transport?.[stage];
       if (validAge(item)) return item;
       if (item) this.clear(stage);
@@ -508,18 +567,21 @@
     },
     set(stage, value) {
       if (!TRANSPORT_STAGES.has(stage)) return null;
+      mergeCurrentMirrors();
       memory.transport = { ...memory.transport, [stage]: value };
       memory.savedAt = now();
       persistMirrors();
       return value;
     },
     clear(stage) {
+      mergeCurrentMirrors();
       const next = { ...memory.transport };
       delete next[stage];
       memory.transport = next;
       persistMirrors();
     },
     clearAll() {
+      mergeCurrentMirrors();
       memory.transport = {};
       memory.savedAt = now();
       persistMirrors();
@@ -593,16 +655,19 @@
       return this.all();
     },
     tombstones() {
+      mergeCurrentMirrors();
       return memory.listTombstones.map((item) => ({ ...item }));
     }
   };
 
   const settings = {
     get(name) {
-      mergeCurrentMirrors();
+      mergeCurrentSettings();
       return String(memory.settings?.[name]?.value ?? "");
     },
     set(name, value) {
+      // Uma gravação de configuração também persiste os demais espelhos.
+      // Reconcilie-os antes para não sobrescrever LISTAS/Histórico de outra aba.
       mergeCurrentMirrors();
       memory.settings = mergeSettings(memory.settings, { [name]: { value: String(value ?? ""), updatedAt: now() } });
       memory.savedAt = now();
@@ -619,7 +684,7 @@
       return true;
     },
     all() {
-      mergeCurrentMirrors();
+      mergeCurrentSettings();
       return Object.fromEntries(Object.entries(memory.settings || {}).map(([name, entry]) => [name, String(entry.value ?? "")]));
     }
   };
@@ -630,7 +695,9 @@
       return memory.history.map((item) => ({ ...item }));
     },
     replace(items) {
+      mergeCurrentMirrors();
       memory.history = mergeHistory(Array.isArray(items) ? items : []);
+      memory.savedAt = now();
       persistMirrors();
       return this.all();
     },
@@ -665,6 +732,8 @@
     snapshot,
     commit,
     commitCurrentText,
+    preserveCopyEvent,
+    preserveProgrammaticText,
     transport,
     state,
     lists,

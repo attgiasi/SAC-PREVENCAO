@@ -250,8 +250,13 @@
   }
 
   function parseBrazilianAmount(value) {
-    const source = String(value ?? "").replace(/[^0-9,.-]/g, "");
-    const normalized = source.includes(",") ? source.replace(/\./g, "").replace(",", ".") : source;
+    const text = String(value ?? "");
+    const currencyToken = text.match(/[+-]?\s*R\$\s*\d+(?:\.\d{3})*(?:,\d{1,2})?/i)?.[0];
+    const numericToken = text.match(/[+-]?\s*(?:\d{1,3}(?:\.\d{3})+|\d+)(?:[,.]\d{1,2})?/)?.[0];
+    const source = String(currencyToken || numericToken || "").replace(/[^0-9,.-]/g, "");
+    const normalized = source.includes(",")
+      ? source.replace(/\./g, "").replace(",", ".")
+      : /^[-+]?\d{1,3}(?:\.\d{3})+$/.test(source) ? source.replace(/\./g, "") : source;
     const amount = Number.parseFloat(normalized);
     return Number.isFinite(amount) ? amount : 0;
   }
@@ -273,6 +278,42 @@
     if (typeof row.blocked === "boolean") return row.blocked;
     const state = normalizeText(`${row.status || ""} ${row.decision || ""} ${row.authorizationResponse || ""}`);
     return /NEGAD|RECUSAD|DECLIN|BLOQUEAD|FALH|ERRO|NAO PROCESSAD|CANCELAD/.test(state);
+  }
+
+  function transactionIsApproved(row = {}) {
+    if (transactionIsBlocked(row)) return false;
+    const state = normalizeText(`${row.status || ""} ${row.decision || ""} ${row.authorizationResponse || ""}`);
+    return /APPROV|APROVAD|AUTORIZAD/.test(state);
+  }
+
+  function cardTimeline(rows = [], input = {}) {
+    const items = Array.isArray(rows) ? rows : [];
+    const requestedRowIndex = String(input.alertRowIndex ?? "").trim();
+    const explicitTimestamp = [input.alertTimestamp, input.alertDateTime, input.transactionDate]
+      .map((value) => Number.isFinite(Number(value)) ? Number(value) : parseTransactionDate(value))
+      .find(Number.isFinite);
+    const indexedAlert = requestedRowIndex
+      ? items.find((row) => String(row?.rowIndex ?? "") === requestedRowIndex && Number.isFinite(Number(row?.timestamp)))
+      : null;
+    const expectedRule = normalizeText(input.rule);
+    const ruleAlert = expectedRule
+      ? items.find((row) => normalizeText(row?.rule) === expectedRule && Number.isFinite(Number(row?.timestamp)))
+      : null;
+    const alertTimestamp = Number(indexedAlert?.timestamp ?? explicitTimestamp ?? ruleAlert?.timestamp);
+    if (!Number.isFinite(alertTimestamp)) {
+      return Object.freeze({ alertTimestamp: Number.NaN, approvedChipAfterAlert: false, approvedChipAfterAlertCount: 0, approvedChipAfterAlertLatestAt: Number.NaN });
+    }
+    const approvedChipRows = items
+      .filter((row) => Number(row?.timestamp) > alertTimestamp)
+      .filter((row) => cardEntryMode(row?.entryMode || row?.entryModeCode) === "CHIP E SENHA")
+      .filter(transactionIsApproved)
+      .sort((left, right) => Number(left.timestamp) - Number(right.timestamp));
+    return Object.freeze({
+      alertTimestamp,
+      approvedChipAfterAlert: approvedChipRows.length > 0,
+      approvedChipAfterAlertCount: approvedChipRows.length,
+      approvedChipAfterAlertLatestAt: approvedChipRows.length ? Number(approvedChipRows.at(-1).timestamp) : Number.NaN
+    });
   }
 
   function collectConsoleTransactions(root = document) {
@@ -518,6 +559,7 @@
     const effectiveItems = items.filter((row) => !transactionIsBlocked(row));
     const metrics = transactionMetrics(items, input);
     const card = cardActivity(items);
+    const timeline = cardTimeline(items, input);
     const counterparties = new Map();
     let totalAmount = 0;
 
@@ -552,6 +594,10 @@
       periodEnd: metrics.periodEnd,
       periodDurationMs: metrics.periodDurationMs,
       totalAmount,
+      creditCount: metrics.creditCount,
+      debitCount: metrics.debitCount,
+      creditAmount: metrics.creditAmount,
+      debitAmount: metrics.debitAmount,
       p2pDetected: effectiveItems.some((row) => row?.p2p || containsP2P(`${row?.transactionType || ""} ${row?.description || ""}`)),
       p2pCount: metrics.p2pCount,
       p2pIssuerCount: metrics.p2pIssuerCount,
@@ -573,6 +619,10 @@
       attentionModeCount: card.attentionModeCount,
       repeatedMerchantCount: card.repeatedMerchantCount,
       repeatedAttentionMerchantCount: card.repeatedAttentionMerchantCount,
+      alertTimestamp: timeline.alertTimestamp,
+      approvedChipAfterAlert: timeline.approvedChipAfterAlert,
+      approvedChipAfterAlertCount: timeline.approvedChipAfterAlertCount,
+      approvedChipAfterAlertLatestAt: timeline.approvedChipAfterAlertLatestAt,
       merchants: card.merchants,
       counterparties: Object.freeze(Array.from(counterparties.values(), (item) => Object.freeze({
         ...item,
@@ -597,8 +647,9 @@
     const signals = [];
     if (isCardTransaction(input, rows)) {
       const card = cardActivity(rows);
-      if (card.chipPinCount > 0) {
-        signals.push(signal("favorable", "CARD_CHIP_PIN", "Chip e senha identificado", `${card.chipPinCount} tentativa${card.chipPinCount === 1 ? "" : "s"} com chip e senha foram identificadas. Esse modo é um sinal favorável de autenticação.`, 1));
+      const timeline = cardTimeline(rows, input);
+      if (timeline.approvedChipAfterAlert) {
+        signals.push(signal("favorable", "CARD_APPROVED_CHIP_AFTER_ALERT", "Transação segura posterior", `${timeline.approvedChipAfterAlertCount} transação aprovada com chip e senha ocorreu após a transação alertada. É um sinal favorável de autenticação.`, 1));
       }
       const riskyRepeated = card.merchants.filter((item) => item.attentionModeCount >= 2);
       if (riskyRepeated.length) {
@@ -617,7 +668,11 @@
           chipPinCount: card.chipPinCount,
           attentionModeCount: card.attentionModeCount,
           repeatedMerchantCount: card.repeatedMerchantCount,
-          repeatedAttentionMerchantCount: card.repeatedAttentionMerchantCount
+          repeatedAttentionMerchantCount: card.repeatedAttentionMerchantCount,
+          alertTimestamp: timeline.alertTimestamp,
+          approvedChipAfterAlert: timeline.approvedChipAfterAlert,
+          approvedChipAfterAlertCount: timeline.approvedChipAfterAlertCount,
+          approvedChipAfterAlertLatestAt: timeline.approvedChipAfterAlertLatestAt
         }),
         signals
       };
@@ -819,6 +874,8 @@
     collectConsoleTransactions,
     transactionCounterparties,
     transactionMetrics,
+    transactionIsApproved,
+    cardTimeline,
     issuerProfileFor,
     collectFalconTransactions,
     summarizeFalconTransactions,

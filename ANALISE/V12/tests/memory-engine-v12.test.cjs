@@ -245,7 +245,83 @@ concurrentB.window.SACMemoryV12.settings.set("safeMode", "off");
 assert.equal(concurrentA.window.SACMemoryV12.settings.get("safeMode"), "off", "Configurações concorrentes devem ser reconciliadas antes da leitura");
 assert.equal(concurrentB.window.SACMemoryV12.settings.get("theme"), "dark", "uma configuração não pode apagar outra definida em uma segunda aba");
 
+const settingsRaceStorage = storageMock();
+function settingsRaceContext() {
+  const next = {
+    console,
+    Date,
+    JSON,
+    encodeURIComponent,
+    decodeURIComponent,
+    setTimeout,
+    clearTimeout,
+    document: documentMock,
+    navigator: { clipboard: {} },
+    window: { name: "", localStorage: settingsRaceStorage, sessionStorage: storageMock() }
+  };
+  next.window.window = next.window;
+  next.window.navigator = next.navigator;
+  vm.createContext(next);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "sac-memory-v12.js"), "utf8"), next, { filename: "sac-memory-v12-settings-race.js" });
+  return next;
+}
+const settingsRaceA = settingsRaceContext();
+const settingsRaceB = settingsRaceContext();
+settingsRaceB.window.SACMemoryV12.lists.upsert({ ...base, id: "settings-race-list", caseNumber: "50000009", account: "ACC-RACE", savedAt: Date.now() + 600 });
+settingsRaceA.window.SACMemoryV12.settings.set("theme", "light");
+assert.equal(settingsRaceB.window.SACMemoryV12.lists.all().length, 1, "salvar configuração em outra aba não pode apagar uma pendência de LISTAS ainda não lida");
+
+const copyRaceStorage = storageMock();
+const copyRaceSession = storageMock();
+function copyRaceContext() {
+  const next = {
+    console,
+    Date,
+    JSON,
+    encodeURIComponent,
+    decodeURIComponent,
+    setTimeout,
+    clearTimeout,
+    document: documentMock,
+    navigator: { clipboard: {} },
+    window: { name: "", localStorage: copyRaceStorage, sessionStorage: copyRaceSession }
+  };
+  next.window.window = next.window;
+  next.window.navigator = next.navigator;
+  vm.createContext(next);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "sac-memory-v12.js"), "utf8"), next, { filename: "sac-memory-v12-copy-race.js" });
+  return next;
+}
+const copyRaceA = copyRaceContext();
+const copyRaceB = copyRaceContext();
+copyRaceB.window.SACMemoryV12.lists.upsert({ ...base, id: "copy-race-list", caseNumber: "50000010", account: "ACC-COPY", savedAt: Date.now() + 700 });
+copyRaceB.window.SACMemoryV12.history.upsert({ id: "copy-race-history", caseNumber: "50000010", account: "ACC-COPY", tabulation: "Teste", savedAt: Date.now() + 700 });
+
 (async () => {
+  await copyRaceA.window.SACMemoryV12.commit("Texto copiado depois da decisão");
+  assert.equal(copyRaceB.window.SACMemoryV12.lists.all().length, 1, "copiar outro conteúdo não pode apagar um caso recém-gravado em LISTAS");
+  assert.equal(copyRaceB.window.SACMemoryV12.history.all().length, 1, "copiar outro conteúdo não pode apagar o Histórico recém-gravado");
+  const nativeCopyTypes = new Map();
+  const nativeCopyPreserved = copyRaceA.window.SACMemoryV12.preserveCopyEvent({
+    clipboardData: {
+      getData: (type) => type === "text/plain" ? "Conteúdo copiado manualmente" : "",
+      setData: (type, value) => nativeCopyTypes.set(type, String(value))
+    },
+    preventDefault() {}
+  });
+  assert.equal(nativeCopyPreserved, true, "uma cópia manual deve preservar o envelope da V12");
+  assert.equal(nativeCopyTypes.get("text/plain"), "Conteúdo copiado manualmente", "o texto visível copiado não pode ser alterado");
+  assert.match(nativeCopyTypes.get("text/html"), /SAC_PREVENCAO_MEMORY_V12/, "a cópia manual deve continuar transportando LISTAS e Histórico");
+  const programmaticWrites = [];
+  await copyRaceA.window.SACMemoryV12.preserveProgrammaticText("Conteúdo de um botão da página", async (value) => { programmaticWrites.push(value); });
+  assert.deepEqual(programmaticWrites, ["Conteúdo de um botão da página"], "a cópia programática deve manter o texto solicitado pela página");
+  assert.equal(copyRaceB.window.SACMemoryV12.lists.all().length, 1, "um botão de copiar da página não pode apagar LISTAS");
+  assert.equal(copyRaceB.window.SACMemoryV12.history.all().length, 1, "um botão de copiar da página não pode apagar o Histórico");
+  copyRaceA.window.SACMemoryV12.transport.set("falcon", { type: "SAC_FALCON", savedAt: Date.now() + 701 });
+  assert.equal(copyRaceB.window.SACMemoryV12.lists.all().length, 1, "atualizar o transporte não pode sobrescrever LISTAS com uma leitura antiga");
+  copyRaceA.window.SACMemoryV12.transport.clearAll();
+  assert.equal(copyRaceB.window.SACMemoryV12.history.all().length, 1, "limpar o caso temporário não pode apagar o Histórico persistente");
+
   const clipboardBefore = copiedTypes.size;
   const unavailableCopy = await memory.commitCurrentText({ timeoutMs: 25 });
   assert.equal(unavailableCopy.method, "read-unavailable");

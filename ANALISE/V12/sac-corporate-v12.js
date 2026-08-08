@@ -17,6 +17,7 @@
   let provider = null;
   let sessionGeneration = 0;
   const lookupCache = new Map();
+  const pendingLookups = new Map();
   let state = {
     registry: null,
     loadedAt: 0,
@@ -285,41 +286,50 @@
     if (!options.forceRefresh) {
       const cached = cachedLookup(normalized);
       if (cached) return { ...cached, cacheHit: true };
+      const pending = pendingLookups.get(normalized);
+      if (pending) return pending;
     }
-    const controller = typeof AbortController === "function" ? new AbortController() : null;
-    const timeout = setTimeout(() => controller?.abort(), 7000);
-    try {
-      const response = await fetch(`${BRASIL_API_ENDPOINT}${normalized}`, {
-        cache: "no-store",
-        credentials: "omit",
-        signal: controller?.signal
-      });
-      if (!response.ok) throw new Error(`BRASIL_API_HTTP_${response.status}`);
-      const record = normalizeBrasilApiRecord(await response.json());
-      if (generation !== sessionGeneration) return lookupFromRegistry(normalized);
-      const presentation = statusPresentation(record.registrationStatus);
-      const result = {
-        found: true,
-        ...record,
-        activityAge: activityAge(record.openedAt),
-        label: presentation.label,
-        severity: presentation.severity,
-        registryVersion: "consulta-publica",
-        registryUpdatedAt: record.source.referenceDate,
-        registryStale: false,
-        lookupSource: "BRASIL_API"
-      };
-      storeLookup(normalized, result);
-      return result;
-    } catch (error) {
-      return {
-        ...lookupFromRegistry(normalized),
-        label: "CONSULTA CADASTRAL INDISPONÍVEL",
-        severity: "warning",
-        lookupError: String(error?.message || error || "PUBLIC_LOOKUP_FAILED")
-      };
-    } finally {
-      clearTimeout(timeout);
+    const request = (async () => {
+      const controller = typeof AbortController === "function" ? new AbortController() : null;
+      const timeout = setTimeout(() => controller?.abort(), 7000);
+      try {
+        const response = await fetch(`${BRASIL_API_ENDPOINT}${normalized}`, {
+          cache: "no-store",
+          credentials: "omit",
+          signal: controller?.signal
+        });
+        if (!response.ok) throw new Error(`BRASIL_API_HTTP_${response.status}`);
+        const record = normalizeBrasilApiRecord(await response.json());
+        if (generation !== sessionGeneration) return lookupFromRegistry(normalized);
+        const presentation = statusPresentation(record.registrationStatus);
+        const result = {
+          found: true,
+          ...record,
+          activityAge: activityAge(record.openedAt),
+          label: presentation.label,
+          severity: presentation.severity,
+          registryVersion: "consulta-publica",
+          registryUpdatedAt: record.source.referenceDate,
+          registryStale: false,
+          lookupSource: "BRASIL_API"
+        };
+        storeLookup(normalized, result);
+        return result;
+      } catch (error) {
+        return {
+          ...lookupFromRegistry(normalized),
+          label: "CONSULTA CADASTRAL INDISPONÍVEL",
+          severity: "warning",
+          lookupError: String(error?.message || error || "PUBLIC_LOOKUP_FAILED")
+        };
+      } finally {
+        clearTimeout(timeout);
+      }
+    })();
+    pendingLookups.set(normalized, request);
+    try { return await request; }
+    finally {
+      if (pendingLookups.get(normalized) === request) pendingLookups.delete(normalized);
     }
   }
 
@@ -366,6 +376,7 @@
   function releaseSession() {
     sessionGeneration += 1;
     lookupCache.clear();
+    pendingLookups.clear();
     state = { ...state, registry: null, loadedAt: 0, source: "empty", stale: true, error: "" };
   }
 

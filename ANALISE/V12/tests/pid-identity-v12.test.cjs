@@ -8,13 +8,15 @@ const start = source.indexOf("  function collectConsolePidIdentity(data = {}) {"
 const end = source.indexOf("  function collectConsolePidField", start);
 assert.ok(start >= 0 && end > start, "função de identidade PID não localizada");
 
-const sandbox = { labels: {}, headerName: "", pageText: "" };
+const sandbox = { labels: {}, headerName: "", pageText: "", partnerIdentity: { name: "", cpf: "" } };
 vm.createContext(sandbox);
 vm.runInContext(`
   const normalize = (value) => String(value || "").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toUpperCase();
   const bodyText = () => pageText;
   const digitsOnly = (value) => String(value || "").replace(/\\D/g, "");
   const documentKind = (value) => String(value || "").replace(/\\W/g, "").length === 14 ? "CNPJ" : "CPF";
+  const documentFieldValue = (value) => String(value || "").replace(/\\D/g, "");
+  const consolePartnerIdentity = () => partnerIdentity;
   const firstConsoleLabeledValue = (names) => names.map((name) => labels[name]).find(Boolean) || "";
   const consolePersonHeaderName = () => headerName;
   ${source.slice(start, end)}
@@ -24,17 +26,16 @@ vm.runInContext(`
 sandbox.labels = {};
 sandbox.headerName = "Thailana Gomes Do Nascimento";
 sandbox.pageText = "Detalhes de Pessoa Física";
+sandbox.partnerIdentity = { name: "", cpf: "" };
 assert.deepEqual(
   JSON.parse(JSON.stringify(sandbox.collectIdentity({ cpfCnpj: "624.033.393-00" }))),
-  { clientName: "Thailana Gomes Do Nascimento" }
+  { clientName: "Thailana Gomes Do Nascimento", clientCpf: "62403339300" }
 );
 
-sandbox.labels = {
-  "Nome do sócio": "Maria da Silva",
-  "CPF do sócio": "111.222.333-44"
-};
+sandbox.labels = {};
 sandbox.headerName = "Empresa Exemplo Ltda";
 sandbox.pageText = "Pessoas > Sócio";
+sandbox.partnerIdentity = { name: "Maria da Silva", cpf: "11122233344" };
 assert.deepEqual(
   JSON.parse(JSON.stringify(sandbox.collectIdentity({ cpfCnpj: "11.111.111/0001-11" }))),
   { responsibleName: "Maria da Silva", responsibleCpf: "11122233344" }
@@ -43,9 +44,13 @@ assert.deepEqual(
 sandbox.labels = {};
 sandbox.headerName = "Razão Social Não Deve Virar Responsável";
 sandbox.pageText = "Detalhes da Pessoa Jurídica";
+sandbox.partnerIdentity = { name: "", cpf: "" };
 assert.deepEqual(
   JSON.parse(JSON.stringify(sandbox.collectIdentity({ cpfCnpj: "11.111.111/0001-11" }))),
   { responsibleName: "", responsibleCpf: "" }
 );
+
+assert.match(source, /function consolePartnerIdentity\(\)/);
+assert.match(source, /\["SOCIO", "SOCIOS", "QUADRO SOCIETARIO"\]/);
 
 console.log("OK - identidade PID separa titular PF e responsável de CNPJ");

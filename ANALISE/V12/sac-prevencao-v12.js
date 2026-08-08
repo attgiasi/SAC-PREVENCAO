@@ -213,7 +213,7 @@
   window[RUNTIME_SLOT] = Object.freeze({ build: BUILD_VERSION, dispose: disposeRuntime });
 
   const SHARED_SETTING_NAMES = new Set([
-    "theme", "safeMode", "investigationMode", "helpMode", "fontScale", "signatureName", "signatureSector", "counterpartyLocalRecords",
+    "theme", "safeMode", "invisibleMode", "investigationMode", "helpMode", "fontScale", "signatureName", "signatureSector", "counterpartyLocalRecords",
     "flowTone:banking", "flowTone:card", "flowTone:hold"
   ]);
   const MEMORY_SETTINGS_STORAGE_KEY = "sac_prevencao_V12:settings";
@@ -309,7 +309,7 @@
   storageSet("activeBuild", BUILD_VERSION);
   storageRemove("activeListTab");
   function clearPreviousRuntime() {
-    all("[id^='sac-style'],.sac-panel,.sac-history-panel,.sac-choice-popover,.sac-side-panel,#sac-notices").forEach((node) => node.remove());
+    all("[id^='sac-style'],.sac-panel,.sac-history-panel,.sac-choice-popover,.sac-side-panel,.sac-pid-panel,#sac-notices").forEach((node) => node.remove());
     Object.keys(window)
       .filter((handlerName) => /^__SAC_PREVENCAO(?:_V\d+)?_KEYS$/.test(handlerName))
       .forEach((handlerName) => {
@@ -556,6 +556,8 @@
   const getTheme = () => storageGet("theme") === "light" ? "light" : "dark";
   const getSafeMode = () => storageGet("safeMode") !== "off";
   const setSafeMode = (enabled) => storageSet("safeMode", enabled ? "on" : "off");
+  const getInvisibleMode = () => storageGet("invisibleMode") === "on";
+  const setInvisibleMode = (enabled) => storageSet("invisibleMode", enabled ? "on" : "off");
   const getInvestigationMode = () => storageGet("investigationMode") === "on";
   const setInvestigationMode = (enabled) => storageSet("investigationMode", enabled ? "on" : "off");
   const getHelpMode = () => storageGet("helpMode") === "on";
@@ -651,6 +653,13 @@
       const state = node.querySelector("b");
       if (state) state.textContent = enabled ? "Ligado" : "Desligado";
     });
+    all("[data-action='invisible-mode']").forEach((node) => {
+      const enabled = getInvisibleMode();
+      node.classList.toggle("on", enabled);
+      node.setAttribute("aria-pressed", enabled ? "true" : "false");
+      const state = node.querySelector("b");
+      if (state) state.textContent = enabled ? "Ligado" : "Desligado";
+    });
     all("[data-flow-color-choice]").forEach((node) => {
       node.classList.toggle("active", node.dataset.color === getFlowTone(node.dataset.flowColorChoice));
     });
@@ -717,6 +726,29 @@
       return ok;
     } catch (_err) { return false; }
   }
+  addRuntimeEvent(document, "copy", (event) => {
+    memory.preserveCopyEvent?.(event);
+  }, true);
+  function installProgrammaticCopyPreserver() {
+    const clipboard = navigator.clipboard;
+    if (!clipboard || typeof clipboard.writeText !== "function" || typeof memory.preserveProgrammaticText !== "function") return;
+    const ownDescriptor = Object.getOwnPropertyDescriptor(clipboard, "writeText");
+    const nativeWriteText = clipboard.writeText.bind(clipboard);
+    const wrappedWriteText = (text) => memory.preserveProgrammaticText(text, nativeWriteText);
+    try {
+      Object.defineProperty(clipboard, "writeText", { configurable: true, writable: true, value: wrappedWriteText });
+    } catch (_error) {
+      try { clipboard.writeText = wrappedWriteText; } catch (_ignored) { return; }
+    }
+    if (clipboard.writeText !== wrappedWriteText) return;
+    registerRuntimeCleanup(() => {
+      try {
+        if (ownDescriptor) Object.defineProperty(clipboard, "writeText", ownDescriptor);
+        else if (clipboard.writeText === wrappedWriteText) delete clipboard.writeText;
+      } catch (_error) {}
+    });
+  }
+  installProgrammaticCopyPreserver();
 
   function openChoicePopover({ id, title, options, selected = [], extraInput = null, onSave }) {
     ensureStyles();
@@ -809,13 +841,14 @@
     const hostRect = host.getBoundingClientRect();
     const width = panel.offsetWidth || 420;
     const height = panel.offsetHeight || 420;
+    const launcherReserve = anchor === host && host.querySelector(".sac-investigation-launcher") ? 100 : 0;
     const viewportWidth = Math.max(width + 16, window.innerWidth || document.documentElement.clientWidth || width + 16);
     const viewportHeight = Math.max(120, window.innerHeight || document.documentElement.clientHeight || 720);
     const oppositeOfSide = side
       ? (rect.left < hostRect.left ? hostRect.right + 8 : hostRect.left - width - 8)
       : null;
     const oppositeFits = oppositeOfSide !== null && oppositeOfSide >= 8 && oppositeOfSide + width <= viewportWidth - 8;
-    const leftOfAnchor = rect.left - width - 8;
+    const leftOfAnchor = rect.left - width - launcherReserve - 8;
     const rightOfAnchor = rect.right + 8;
     const fitsLeft = leftOfAnchor >= 8;
     const fitsRight = rightOfAnchor + width <= viewportWidth - 8;
@@ -874,6 +907,7 @@
       if (keyValue.includes("NOME DO RESPONSAVEL") || keyValue.includes("NOME DO SOCIO")) return pid.responsibleName;
       if (keyValue.includes("CPF DO RESPONSAVEL") || keyValue.includes("CPF DO SOCIO")) return pid.responsibleCpf;
       if (keyValue.includes("NOME DO CLIENTE")) return pid.clientName;
+      if (keyValue === "CPF") return pid.clientCpf || documentFieldValue(data?.cpfCnpj);
       if (keyValue.includes("NOME DA MAE")) return pid.motherName;
       if (keyValue.includes("CPF")) return String(data?.cpfCnpj || pid.document || "").replace(/\D/g, "").slice(-2);
       if (keyValue.includes("NASCIMENTO")) return pid.birthDate;
@@ -892,7 +926,7 @@
     }).join("");
     const identityLabels = documentKind(data?.cpfCnpj) === "CNPJ"
       ? ["Nome do responsável da empresa", "CPF do responsável"]
-      : ["Nome do cliente"];
+      : ["Nome do cliente", "CPF"];
     panel.innerHTML = `
       <div class="sac-choice-head">
         <strong>${escapeHtml(profile.title)}</strong>
@@ -960,13 +994,13 @@
       .sac-config{position:fixed;left:auto;top:8px;width:360px;max-width:calc(100vw - 16px);z-index:2147483647;display:none;gap:7px;padding:8px;border:1px solid var(--sac-border);border-radius:8px;background:var(--sac-bg);box-shadow:0 14px 34px rgba(0,0,0,.28)}.sac-config.open{display:grid}.sac-config-title{font-size:11px;font-weight:950;color:var(--sac-muted);text-transform:uppercase}.sac-config-preview{border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-card);padding:7px;color:var(--sac-text);font-size:11px;font-weight:900;overflow-wrap:anywhere}.sac-config input,.sac-config select,.sac-config button{width:100%;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);padding:7px;font-weight:850}.sac-config input:hover,.sac-config select:hover,.sac-config button:hover,.sac-config input:focus,.sac-config select:focus,.sac-config button:focus{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.22);outline:none;filter:brightness(1.08)}.sac-light .sac-config input:hover,.sac-light .sac-config select:hover,.sac-light .sac-config button:hover,.sac-light .sac-config input:focus,.sac-light .sac-config select:focus,.sac-light .sac-config button:focus{background:#eef7ff;color:#172033}.sac-font-block{display:grid;gap:4px}.sac-font-label{color:var(--sac-muted);font-size:10px;font-weight:950;text-transform:uppercase}.sac-config-row{display:grid;grid-template-columns:54px minmax(0,1fr) 54px;gap:0;align-items:stretch;border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-card);overflow:hidden}.sac-config-row button{min-height:36px;border:0!important;border-radius:0!important;background:var(--sac-input);font-size:16px;font-weight:950;padding:6px 4px;box-shadow:none!important}.sac-config-row button+*{border-left:1px solid var(--sac-border)}.sac-config-row button:hover,.sac-config-row button:focus{background:#12314a!important;color:#fff!important;filter:none!important}.sac-light .sac-config-row button:hover,.sac-light .sac-config-row button:focus{background:#e0f2fe!important;color:#172033!important}.sac-font-value{display:grid;place-items:center;background:var(--sac-card);color:var(--sac-text);font-size:12px;font-weight:950;padding:0 8px}.sac-flow-legend{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}.sac-flow-legend span{display:flex;align-items:center;gap:4px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 4px;font-size:9px;font-weight:950;color:var(--sac-muted)}.sac-flow-legend i{width:10px;height:10px;border-radius:999px;display:inline-block}.sac-signature-editor,.sac-color-editor{display:none;gap:6px}.sac-signature-editor.open,.sac-color-editor.open{display:grid}.sac-color-row{display:grid;grid-template-columns:62px minmax(0,1fr);gap:6px;align-items:center}.sac-color-row strong{font-size:10px;color:var(--sac-muted);font-weight:950}.sac-color-swatches{display:flex;gap:5px;flex-wrap:nowrap;align-items:center}.sac-color-swatch{width:20px!important;height:20px!important;min-width:20px;border-radius:999px!important;padding:0!important;border:2px solid var(--sac-border)!important;background:var(--swatch)!important;cursor:pointer}.sac-color-swatch.active{border-color:#fff!important;box-shadow:0 0 0 2px var(--swatch)}.sac-light .sac-color-swatch.active{border-color:#172033!important}.sac-signature-custom[hidden]{display:none!important}.sac-toggle{display:grid!important;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;justify-items:start;gap:7px;text-align:left}.sac-toggle span:not(.sac-switch),.sac-toggle b{justify-self:start;text-align:left}.sac-toggle b{font-size:10px;color:var(--sac-muted)}.sac-switch{position:relative;width:32px;height:18px;border-radius:999px;background:#64748b;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}.sac-switch:after{content:"";position:absolute;left:3px;top:3px;width:12px;height:12px;border-radius:999px;background:#fff;transition:.15s}.sac-toggle.on .sac-switch{background:#16a34a}.sac-toggle.on .sac-switch:after{left:17px}.sac-toggle.on b{color:#86efac}
       .sac-body{padding:5px;display:grid;gap:5px}.sac-section{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-panel);padding:5px}.sac-section-title{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--sac-muted);font-size:calc(9px * var(--sac-font-scale));font-weight:950;text-transform:uppercase;margin-bottom:4px}.sac-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}.sac-single-alert{grid-column:1/-1;min-height:50px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:calc(13px * var(--sac-font-scale));font-weight:950;letter-spacing:.02em}
       .sac-kv{position:relative;min-width:0;min-height:34px;margin-top:7px;border:1px solid var(--sac-border);border-radius:5px;background:var(--sac-card);padding:7px 4px 4px;transition:border-color .15s,background .15s,box-shadow .15s,color .15s;cursor:pointer}.sac-kv:hover,.sac-field:hover{border-color:#38bdf8;background:#10263a;box-shadow:0 0 0 2px rgba(56,189,248,.12)}.sac-kv.sac-copied{border-color:#22c55e!important;box-shadow:0 0 0 2px rgba(34,197,94,.28)!important}.sac-light .sac-kv:hover,.sac-light .sac-field:hover{background:#eef7ff;color:#172033}.sac-kv-label{position:absolute;top:-8px;left:4px;max-width:calc(100% - 8px);padding:1px 3px;border-radius:3px;background:var(--sac-panel);font-size:calc(8px * var(--sac-font-scale));font-weight:900;color:var(--sac-muted);line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sac-kv-value{display:flex;align-items:center;min-height:23px;font-size:calc(11px * var(--sac-font-scale));font-weight:800;color:var(--sac-text);line-height:1.08;overflow-wrap:anywhere}.sac-light .sac-kv:hover .sac-kv-label,.sac-light .sac-kv:hover .sac-kv-value{color:#172033}.sac-missing{border-color:#f59e0b!important;background:#3a230b!important;animation:sacPulseOrange 1s ease-in-out infinite}.sac-light .sac-missing{background:#fff7ed!important}.sac-history-ok{background:#052e1a;border-color:#15803d}.sac-history-warn,.sac-alert-warn{background:#3a230b;border-color:#c2410c}.sac-history-danger,.sac-alert-danger{background:#3a0d0d;border-color:#ef4444;animation:sacPulseRed 1s ease-in-out infinite}.sac-light .sac-history-ok{background:#ecfdf5;border-color:#86efac}.sac-light .sac-history-warn,.sac-light .sac-alert-warn{background:#fff7ed;border-color:#fdba74}.sac-light .sac-history-danger,.sac-light .sac-alert-danger{background:#fef2f2}@keyframes sacPulseRed{0%,100%{box-shadow:0 0 0 rgba(239,68,68,0);filter:saturate(1)}50%{box-shadow:0 0 12px rgba(239,68,68,.65);filter:saturate(1.35)}}@keyframes sacPulseOrange{0%,100%{box-shadow:0 0 0 rgba(245,158,11,0)}50%{box-shadow:0 0 12px rgba(245,158,11,.70)}}
-      .sac-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}.sac-console-flags{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.sac-console-flags .sac-toggle{min-height:34px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);font:inherit;text-align:left;padding:6px 5px;cursor:pointer;grid-template-columns:28px minmax(0,1fr)!important;appearance:none}.sac-console-flags .sac-toggle b{display:none}.sac-console-flags .sac-toggle span:not(.sac-switch){font-size:calc(9.4px * var(--sac-font-scale));font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sac-console-flags .sac-toggle[aria-disabled="true"]{opacity:.52;cursor:not-allowed}.sac-console-flags .sac-toggle:hover{border-color:#38bdf8;background:#10263a;box-shadow:0 0 0 2px rgba(56,189,248,.12)}.sac-light .sac-console-flags .sac-toggle:hover{background:#eef7ff;color:#172033}.sac-field{display:grid;gap:2px;min-width:0;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:4px;transition:border-color .15s,box-shadow .15s,background .15s}.sac-field span{display:block;font-size:calc(8.4px * var(--sac-font-scale));font-weight:900;color:var(--sac-muted);line-height:1.05}.sac-field select,.sac-field input{width:100%;height:28px;border:1px solid var(--sac-border);border-radius:5px;background:var(--sac-input);color:var(--sac-text);font-size:calc(10.6px * var(--sac-font-scale));font-weight:800;padding:3px}.sac-field select:hover,.sac-field select:focus,.sac-field input:hover,.sac-field input:focus{border-color:#38bdf8;background:#10263a;color:#edf3fb;outline:none;box-shadow:0 0 0 2px rgba(56,189,248,.16)}.sac-light .sac-field select:hover,.sac-light .sac-field select:focus,.sac-light .sac-field input:hover,.sac-light .sac-field input:focus{background:#eef7ff;color:#172033}.sac-other-input[hidden]{display:none!important}
+      .sac-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}.sac-console-flags{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.sac-console-flags .sac-toggle{min-height:34px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);font:inherit;text-align:left;padding:6px 5px;cursor:pointer;grid-template-columns:28px minmax(0,1fr)!important;appearance:none}.sac-console-flags .sac-toggle b{display:none}.sac-console-flags .sac-toggle span:not(.sac-switch){font-size:calc(9.4px * var(--sac-font-scale));font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sac-console-flags .sac-toggle[aria-disabled="true"]{opacity:.52;cursor:not-allowed}.sac-console-flags .sac-toggle:hover{border-color:#38bdf8;background:#10263a;box-shadow:0 0 0 2px rgba(56,189,248,.12)}.sac-light .sac-console-flags .sac-toggle:hover{background:#eef7ff;color:#172033}.sac-jira-reference{display:grid;gap:3px;margin-top:4px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px}.sac-jira-reference[hidden]{display:none!important}.sac-jira-reference span{color:var(--sac-muted);font-size:calc(8.7px * var(--sac-font-scale));font-weight:950}.sac-jira-reference input{width:100%;height:29px;border:1px solid var(--sac-border);border-radius:5px;background:var(--sac-input);color:var(--sac-text);padding:4px 6px;font-size:calc(10.4px * var(--sac-font-scale));font-weight:850}.sac-jira-reference input:focus{border-color:#38bdf8;outline:none;box-shadow:0 0 0 2px rgba(56,189,248,.16)}.sac-jira-reference small{color:var(--sac-muted);font-size:calc(8px * var(--sac-font-scale));font-weight:800}.sac-field{display:grid;gap:2px;min-width:0;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:4px;transition:border-color .15s,box-shadow .15s,background .15s}.sac-field span{display:block;font-size:calc(8.4px * var(--sac-font-scale));font-weight:900;color:var(--sac-muted);line-height:1.05}.sac-field select,.sac-field input{width:100%;height:28px;border:1px solid var(--sac-border);border-radius:5px;background:var(--sac-input);color:var(--sac-text);font-size:calc(10.6px * var(--sac-font-scale));font-weight:800;padding:3px}.sac-field select:hover,.sac-field select:focus,.sac-field input:hover,.sac-field input:focus{border-color:#38bdf8;background:#10263a;color:#edf3fb;outline:none;box-shadow:0 0 0 2px rgba(56,189,248,.16)}.sac-light .sac-field select:hover,.sac-light .sac-field select:focus,.sac-light .sac-field input:hover,.sac-light .sac-field input:focus{background:#eef7ff;color:#172033}.sac-other-input[hidden]{display:none!important}
       .sac-main{width:100%;border:0;border-radius:6px;background:var(--sac-primary);color:#fff;font-size:calc(11.5px * var(--sac-font-scale));font-weight:950;padding:9px 7px;line-height:1.12;cursor:pointer;white-space:normal;overflow-wrap:anywhere;text-shadow:0 1px 1px rgba(0,0,0,.55),0 0 1px rgba(0,0,0,.72)}.sac-main:hover,.sac-secondary:hover,.sac-decision:hover,.sac-icon:hover{filter:brightness(1.12);box-shadow:0 0 0 2px rgba(255,255,255,.14)}.sac-secondary{width:100%;border:1px solid var(--sac-border);border-radius:6px;background:transparent;color:var(--sac-text);font-size:calc(11px * var(--sac-font-scale));font-weight:950;padding:8px 7px;line-height:1.12;cursor:pointer;white-space:normal}.sac-decision-grid,.sac-final-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px}.sac-decision{min-height:54px;border:0;border-radius:6px;color:#fff;font-size:calc(11.5px * var(--sac-font-scale));font-weight:950;line-height:1.08;white-space:pre-line;cursor:pointer;padding:7px 5px;overflow-wrap:anywhere;text-shadow:0 1px 1px rgba(0,0,0,.55),0 0 1px rgba(0,0,0,.72)}.sac-decision.danger{background:#dc2626}.sac-decision.success{background:#16a34a}.sac-decision.warning{background:#d97706}.sac-decision.info{background:#2563eb}
       .sac-textarea{width:100%;height:232px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);font:700 calc(10.5px * var(--sac-font-scale))/1.08 Consolas,Menlo,monospace;padding:6px;resize:none;overflow:hidden;white-space:pre-wrap}.sac-motive{height:62px;font:800 calc(11px * var(--sac-font-scale))/1.2 Inter,Segoe UI,Arial,sans-serif}.sac-final-textarea{height:286px;font-size:calc(10.8px * var(--sac-font-scale));line-height:1.12}.sac-final-textarea.sac-final-card{height:214px}
       #sac-notices{position:fixed;left:50%;right:auto;bottom:16px;transform:translateX(-50%);z-index:2147483647;display:grid;gap:6px;justify-items:center;pointer-events:none}.sac-notice{width:min(360px,calc(100vw - 36px));border:1px solid #38506c;border-left:4px solid #2563eb;border-radius:8px;background:#101722;color:#f8fbff;padding:8px 10px;font:800 11.5px/1.22 Inter,Segoe UI,Arial,sans-serif;box-shadow:0 10px 26px rgba(0,0,0,.24);opacity:.96;text-align:left;pointer-events:auto}.sac-notice.success{border-left-color:#16a34a;background:#062e1b;color:#ecfdf5}.sac-notice.warn{border-left-color:#d97706;background:#351f05;color:#fff7ed}.sac-notice.warn-pulse{animation:sacPulseOrange 1.15s ease-in-out infinite}.sac-notice.error{border-left-color:#dc2626;background:#3a0d0d;color:#fef2f2}.sac-notice.info{border-left-color:#2563eb;background:#0b2442;color:#eff6ff}.sac-notice.sac-light{background:#fff;color:#172033;border-color:#cbd5e1}.sac-notice.sac-light.success{background:#ecfdf5;color:#064e3b}.sac-notice.sac-light.warn{background:#fff7ed;color:#7c2d12}.sac-notice.sac-light.error{background:#fef2f2;color:#7f1d1d}.sac-notice.sac-light.info{background:#eff6ff;color:#1e3a8a}
       .sac-choice-popover{position:fixed;right:14px;top:72px;z-index:2147483647;width:min(354px,calc(100vw - 28px));display:grid;gap:6px;padding:0 8px 8px;border:1px solid var(--sac-border);border-top:3px solid var(--sac-primary);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);box-shadow:0 18px 44px rgba(0,0,0,.32);font-family:Inter,Segoe UI,Arial,sans-serif;box-sizing:border-box!important}.sac-choice-popover.sac-minimized{display:none!important}.sac-choice-popover *{box-sizing:border-box!important}.sac-choice-head{margin:0 -8px;padding:7px 8px;background:var(--sac-primary);color:#fff;display:flex;justify-content:space-between;align-items:center;border-radius:6px 6px 0 0}.sac-choice-head strong{font-size:12px}.sac-choice-head button{width:24px;height:24px;padding:0;border-color:#fecaca;background:#dc2626;color:#fff}.sac-choice-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px}.sac-choice-popover label{display:flex;gap:5px;align-items:flex-start;min-width:0;min-height:34px;border:1px solid var(--sac-border);border-radius:5px;background:var(--sac-card);padding:5px;font-size:9.5px;font-weight:850;line-height:1.15;cursor:pointer;word-break:normal;overflow-wrap:normal;hyphens:none;white-space:normal}.sac-choice-popover label>span{display:block;min-width:0;white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none}.sac-choice-popover label:hover{border-color:#38bdf8;background:#10263a;color:#edf3fb}.sac-light.sac-choice-popover label:hover{background:#eef7ff;color:#172033}.sac-choice-popover input[type="checkbox"]{flex:0 0 auto;margin:1px 0 0}.sac-choice-extra{display:grid!important;gap:4px;min-height:0!important;font-size:10.5px!important}.sac-choice-extra input{width:100%;height:30px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-input);color:var(--sac-text);padding:5px;font-weight:850}.sac-choice-popover .sac-choice-actions{display:grid;grid-template-columns:1fr;gap:6px}.sac-choice-popover button{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-primary);color:#fff;padding:8px;font-weight:950;cursor:pointer}.sac-choice-popover button.secondary{background:transparent;color:var(--sac-text)}.sac-pid-panel{width:min(420px,calc(100vw - 16px))!important;min-width:0!important;max-width:420px!important;max-height:calc(100vh - 16px);overflow:auto;padding:0 10px 10px!important}.sac-pid-panel .sac-choice-head{margin:0 -10px}.sac-pid-groups{display:grid;gap:7px}.sac-pid-group{display:grid;gap:4px}.sac-pid-group strong{font-size:10px;color:var(--sac-muted);text-transform:uppercase}.sac-pid-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:4px}.sac-pid-card{border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 7px;min-height:44px;font-size:10.5px;font-weight:850;line-height:1.12;display:grid;grid-template-columns:22px minmax(0,1fr) 25px;align-items:center;align-content:center;gap:5px}.sac-pid-card.sac-pid-filled{border-color:#22c55e;background:rgba(34,197,94,.10)}.sac-pid-card b{display:grid;place-items:center;width:20px;height:20px;border-radius:4px;background:var(--sac-primary);color:#fff;font-size:9px}.sac-pid-card span strong{display:block;color:var(--sac-text);font-size:10px;text-transform:none}.sac-pid-card span small{display:block;margin-top:2px;color:var(--sac-muted);font-size:9.5px;overflow-wrap:break-word}.sac-pid-reload{width:24px!important;height:24px!important;min-width:24px;padding:0!important;display:grid;place-items:center;border-radius:5px!important;background:var(--sac-input)!important;color:var(--sac-text)!important;font-size:15px}.sac-pid-reload.loading{animation:sacPidSpin .75s linear infinite}.sac-pid-card.sac-pid-filled:after{content:"✓";display:grid;place-items:center;width:20px;height:20px;border-radius:999px;background:#16a34a;color:#fff;font-size:10px}@keyframes sacPidSpin{to{transform:rotate(360deg)}}.sac-pid-note{border:1px solid #f59e0b;border-radius:6px;background:#3a230b;color:#fff7ed;padding:6px;font-size:10.5px;font-weight:900;line-height:1.18}.sac-light .sac-pid-note{background:#fff7ed;color:#7c2d12}
       .sac-apply-status{border:1px solid var(--sac-border);border-left:4px solid #2563eb;border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:7px;font-size:calc(10.5px * var(--sac-font-scale));font-weight:900;line-height:1.15}.sac-apply-status.ok{border-left-color:#16a34a}.sac-apply-status.warn{border-left-color:#d97706}.sac-apply-status.error{border-left-color:#dc2626}.sac-issue-list{display:grid;gap:4px;margin-top:6px}.sac-issue-list span{display:block;border:1px solid #f59e0b;border-radius:5px;background:rgba(245,158,11,.12);padding:5px 6px;color:var(--sac-text);font-size:calc(10px * var(--sac-font-scale));font-weight:900;text-align:left}
-      .sac-history-panel{--sac-font-scale:1.05;--sac-history-tone:#64748b;position:fixed;left:10px;top:10px;z-index:2147483647;width:min(900px,calc(100vw - 20px));max-height:min(720px,calc(100vh - 20px));border:1px solid var(--sac-border);border-top:3px solid var(--sac-history-tone);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);font-family:Inter,Segoe UI,Arial,sans-serif;box-shadow:0 18px 44px rgba(0,0,0,.30);overflow:hidden}.sac-history-head{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--sac-history-tone);color:#fff;padding:8px;font-size:calc(12px * var(--sac-font-scale));font-weight:950;cursor:grab;user-select:none;touch-action:none}.sac-history-tools{display:grid;grid-template-columns:minmax(180px,1fr) repeat(3,minmax(112px,150px));gap:6px;padding:7px;border-bottom:1px solid var(--sac-border);background:var(--sac-panel)}.sac-history-tools input,.sac-history-tools select{min-width:0;height:34px;border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-input);color:var(--sac-text);padding:7px 9px;font-size:calc(10px * var(--sac-font-scale));font-weight:900;outline:none}.sac-history-tools input:hover,.sac-history-tools select:hover,.sac-history-tools input:focus,.sac-history-tools select:focus{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.18)}.sac-light .sac-history-tools input:hover,.sac-light .sac-history-tools select:hover,.sac-light .sac-history-tools input:focus,.sac-light .sac-history-tools select:focus{background:#eef7ff;color:#172033}.sac-history-body{display:grid;grid-template-columns:260px 1fr;gap:6px;padding:6px}.sac-history-list{display:grid;gap:4px;align-content:start;max-height:560px;overflow:auto;padding-right:3px}.sac-history-list button{text-align:left;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:7px;font-size:calc(10px * var(--sac-font-scale));font-weight:900;line-height:1.1;cursor:pointer}.sac-history-list button:hover,.sac-history-list button.active{border-color:#38bdf8;background:#10263a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.12);transform:translateY(-1px)}.sac-light .sac-history-list button:hover,.sac-light .sac-history-list button.active{background:#eef7ff;color:#172033}.sac-history-list small{display:block;color:var(--sac-muted);font-size:calc(9px * var(--sac-font-scale));margin-top:2px}.sac-history-empty{color:var(--sac-muted);font-weight:850;padding:8px}.sac-history-identifiers{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:6px}.sac-history-detail textarea{height:472px;overflow:auto;resize:none}.sac-list-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-bottom:6px}.sac-list-tabs button{min-width:0;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:8px 3px;font-size:9.5px;font-weight:950;line-height:1.05;cursor:pointer;overflow-wrap:anywhere}.sac-list-tabs button:hover,.sac-list-tabs button.active{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-light .sac-list-tabs button:hover,.sac-light .sac-list-tabs button.active{background:#eef7ff;color:#172033}.sac-allowlist-list{display:grid;gap:7px;max-height:min(560px,calc(100vh - 210px));overflow:auto;padding-right:3px}.sac-list-issuer-group{display:grid;gap:5px}.sac-list-issuer-head{display:flex;align-items:center;justify-content:space-between;gap:8px;border-left:4px solid var(--sac-primary);border-radius:5px;background:var(--sac-panel);padding:6px 7px}.sac-list-issuer-head strong{min-width:0;overflow-wrap:break-word;font-size:11px}.sac-list-issuer-head button{flex:0 0 auto;border:1px solid #86efac;border-radius:5px;background:#166534;color:#fff;padding:5px 7px;font-size:9px;font-weight:950;cursor:pointer}.sac-allowlist-item{border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-card);padding:6px;display:grid;grid-template-columns:1fr 72px;gap:6px;align-items:stretch}.sac-allowlist-item:hover{border-color:#38bdf8;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-allowlist-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px}.sac-allowlist-actions{display:grid;grid-template-rows:1fr 1fr;gap:4px}.sac-allowlist-actions button{border:0;border-radius:6px;color:#fff;font-size:10px;font-weight:950;cursor:pointer}.sac-allowlist-actions [data-list-apply]{background:#16a34a}.sac-allowlist-actions [data-list-remove]{background:#dc2626}@media(max-width:760px){.sac-history-tools{grid-template-columns:1fr 1fr}.sac-history-body{grid-template-columns:1fr}.sac-history-list{max-height:180px}}
+      .sac-history-panel{--sac-font-scale:1.05;--sac-history-tone:#64748b;position:fixed;left:10px;top:10px;z-index:2147483647;box-sizing:border-box!important;width:min(900px,calc(100vw - 20px));max-height:min(720px,calc(100vh - 20px));border:1px solid var(--sac-border);border-top:3px solid var(--sac-history-tone);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);font-family:Inter,Segoe UI,Arial,sans-serif;box-shadow:0 18px 44px rgba(0,0,0,.30);overflow:hidden}.sac-history-panel *{box-sizing:border-box!important}.sac-history-head{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--sac-history-tone);color:#fff;padding:8px;font-size:calc(12px * var(--sac-font-scale));font-weight:950;cursor:grab;user-select:none;touch-action:none}.sac-history-tools{display:grid;grid-template-columns:minmax(180px,1fr) repeat(3,minmax(112px,150px));gap:6px;padding:7px;border-bottom:1px solid var(--sac-border);background:var(--sac-panel)}.sac-history-tools input,.sac-history-tools select{min-width:0;height:34px;border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-input);color:var(--sac-text);padding:7px 9px;font-size:calc(10px * var(--sac-font-scale));font-weight:900;outline:none}.sac-history-tools input:hover,.sac-history-tools select:hover,.sac-history-tools input:focus,.sac-history-tools select:focus{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.18)}.sac-light .sac-history-tools input:hover,.sac-light .sac-history-tools select:hover,.sac-light .sac-history-tools input:focus,.sac-light .sac-history-tools select:focus{background:#eef7ff;color:#172033}.sac-history-body{display:grid;grid-template-columns:260px 1fr;gap:6px;padding:6px}.sac-history-list{display:grid;gap:4px;align-content:start;max-height:560px;overflow:auto;padding-right:3px}.sac-history-list button{text-align:left;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:7px;font-size:calc(10px * var(--sac-font-scale));font-weight:900;line-height:1.1;cursor:pointer}.sac-history-list button:hover,.sac-history-list button.active{border-color:#38bdf8;background:#10263a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.12);transform:translateY(-1px)}.sac-light .sac-history-list button:hover,.sac-light .sac-history-list button.active{background:#eef7ff;color:#172033}.sac-history-list small{display:block;color:var(--sac-muted);font-size:calc(9px * var(--sac-font-scale));margin-top:2px}.sac-history-empty{color:var(--sac-muted);font-weight:850;padding:8px}.sac-history-identifiers{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:6px}.sac-history-detail textarea{height:472px;overflow:auto;resize:none}.sac-list-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-bottom:6px}.sac-list-tabs button{min-width:0;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:8px 3px;font-size:9.5px;font-weight:950;line-height:1.05;cursor:pointer;overflow-wrap:anywhere}.sac-list-tabs button:hover,.sac-list-tabs button.active{border-color:#38bdf8;background:#12314a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-light .sac-list-tabs button:hover,.sac-light .sac-list-tabs button.active{background:#eef7ff;color:#172033}.sac-allowlist-list{display:grid;gap:7px;max-height:min(560px,calc(100vh - 210px));overflow:auto;padding-right:3px}.sac-list-issuer-group{display:grid;gap:5px}.sac-list-issuer-head{display:flex;align-items:center;justify-content:space-between;gap:8px;border-left:4px solid var(--sac-primary);border-radius:5px;background:var(--sac-panel);padding:6px 7px}.sac-list-issuer-head strong{min-width:0;overflow-wrap:break-word;font-size:11px}.sac-list-issuer-head button{flex:0 0 auto;border:1px solid #86efac;border-radius:5px;background:#166534;color:#fff;padding:5px 7px;font-size:9px;font-weight:950;cursor:pointer}.sac-allowlist-item{border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-card);padding:6px;display:grid;grid-template-columns:1fr 72px;gap:6px;align-items:stretch}.sac-allowlist-item:hover{border-color:#38bdf8;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-allowlist-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px}.sac-allowlist-actions{display:grid;grid-template-rows:1fr 1fr;gap:4px}.sac-allowlist-actions button{border:0;border-radius:6px;color:#fff;font-size:10px;font-weight:950;cursor:pointer}.sac-allowlist-actions [data-list-apply]{background:#16a34a}.sac-allowlist-actions [data-list-remove]{background:#dc2626}@media(max-width:760px){.sac-history-tools{grid-template-columns:1fr 1fr}.sac-history-body{grid-template-columns:1fr}.sac-history-list{max-height:180px}}
       .sac-help-btn{position:absolute;top:3px;right:3px;width:18px;height:18px;border:1px solid #fde68a;border-radius:999px;background:#d4af37;color:#1f1600;font-size:11px;font-weight:950;line-height:1;display:grid;place-items:center;padding:0;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.16)}.sac-help-btn:hover{filter:brightness(1.12);box-shadow:0 0 0 2px rgba(250,204,21,.32)}
       .sac-pid-reload-control{position:relative;transition:transform .14s ease,filter .14s ease,box-shadow .14s ease}.sac-pid-reload-control:hover:not(:disabled){filter:brightness(1.18);transform:scale(1.08);box-shadow:0 0 0 2px rgba(56,189,248,.22)}.sac-pid-reload-control:focus-visible{outline:2px solid #67e8f9;outline-offset:2px}.sac-pid-reload-control.error{border-color:#fca5a5!important;background:#b91c1c!important;color:#fff!important;animation:none}.sac-pid-reload-control:before{content:attr(data-tooltip);position:absolute;right:calc(100% + 7px);top:50%;z-index:2;min-width:max-content;max-width:180px;transform:translateY(-50%) scale(.98);border:1px solid var(--sac-border);border-radius:5px;background:var(--sac-bg);color:var(--sac-text);padding:4px 6px;box-shadow:0 8px 18px rgba(0,0,0,.28);font-size:9px;font-weight:900;line-height:1;opacity:0;pointer-events:none;transition:opacity .12s ease,transform .12s ease}.sac-pid-reload-control:hover:before,.sac-pid-reload-control:focus-visible:before{opacity:1;transform:translateY(-50%) scale(1)}.sac-pid-reload-control.loading:before{display:none}.sac-pid-reload-icon{display:grid;place-items:center;width:100%;height:100%;font-size:14px;line-height:1}
       .sac-side-panel{--sac-font-scale:1.05;position:fixed;z-index:2147483647;width:320px;max-height:calc(100vh - 16px);overflow:hidden;border:1px solid var(--sac-border);border-top:3px solid var(--sac-primary);border-radius:8px;background:var(--sac-bg);color:var(--sac-text);box-shadow:0 18px 44px rgba(0,0,0,.32);font-family:Inter,Segoe UI,Arial,sans-serif;text-align:left}.sac-side-panel,.sac-side-panel *{box-sizing:border-box!important}.sac-side-panel.sac-minimized{display:none!important}.sac-side-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 8px;background:var(--sac-primary);color:#fff;font-size:calc(12px * var(--sac-font-scale));font-weight:950;text-align:left;text-shadow:0 1px 1px rgba(0,0,0,.58),0 0 1px rgba(0,0,0,.72)}.sac-side-body{display:grid;gap:5px;padding:7px;overflow:hidden;text-align:left}.sac-investigation-drawer .sac-side-body,.sac-help-drawer .sac-side-body,.sac-context-drawer .sac-side-body{max-height:calc(100vh - 64px);overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin}.sac-side-group{display:grid;gap:4px;min-width:0;text-align:left}.sac-side-group-title{border-left:3px solid var(--sac-primary);padding-left:6px;color:var(--sac-text);font-size:calc(10px * var(--sac-font-scale));font-weight:950;text-transform:uppercase;line-height:1.1;text-align:left}.sac-side-card{display:block;width:100%;min-width:0;max-width:100%;min-height:32px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);padding:5px 6px;text-align:left;overflow:hidden}.sac-side-card span{display:block;max-width:100%;font-size:calc(10px * var(--sac-font-scale));line-height:1.18;color:var(--sac-muted);font-weight:800;white-space:normal;word-break:normal;overflow-wrap:break-word;text-align:left}.sac-side-card[data-cnpj-copy]{cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}.sac-side-card[data-cnpj-copy]:hover{border-color:#38bdf8;background:#10263a;box-shadow:0 0 0 2px rgba(56,189,248,.12)}.sac-light .sac-side-card[data-cnpj-copy]:hover{background:#eef7ff;color:#172033}.sac-side-card[data-cnpj-copy].sac-copied{border-color:#22c55e!important;box-shadow:0 0 0 2px rgba(34,197,94,.28)!important}
@@ -976,7 +1010,7 @@
       .sac-panel.sac-minimized .sac-investigation-launcher{display:none}.sac-chevron{display:grid;place-items:center;width:18px;height:18px;font:950 24px/1 "Segoe UI Symbol","Segoe UI",Arial,sans-serif;transform:translateY(-1px);text-shadow:0 1px 1px rgba(0,0,0,.48)}.sac-drawer-toggle{width:30px;height:28px;border:1px solid rgba(255,255,255,.52);border-radius:7px;background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center;padding:0;cursor:pointer;transition:background .15s,transform .15s,box-shadow .15s}.sac-drawer-toggle:hover,.sac-drawer-toggle:focus-visible{background:rgba(255,255,255,.28);transform:translateX(1px);box-shadow:0 0 0 2px rgba(255,255,255,.20);outline:none}.sac-investigation-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.sac-investigation-controls.count-1{grid-template-columns:minmax(0,1fr)}.sac-investigation-controls.count-2{grid-template-columns:repeat(2,minmax(0,1fr))}.sac-investigation-controls button{min-width:0;min-height:32px;display:flex;align-items:center;justify-content:center;gap:4px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:4px 3px;text-align:center;font-size:8.8px;font-weight:950;line-height:1.08;cursor:pointer}.sac-investigation-controls button:hover,.sac-investigation-controls button:focus,.sac-investigation-controls button.active,.sac-investigation-controls button.selected{border-color:#38bdf8;background:#10263a;color:#edf3fb;box-shadow:0 0 0 2px rgba(56,189,248,.14);outline:none}.sac-light .sac-investigation-controls button:hover,.sac-light .sac-investigation-controls button:focus,.sac-light .sac-investigation-controls button.active,.sac-light .sac-investigation-controls button.selected{background:#eef7ff;color:#172033}.sac-investigation-controls button span{display:grid;place-items:center;width:16px;height:16px;border-radius:5px;background:var(--sac-primary);color:#fff;font-size:8.5px}.sac-investigation-controls .sac-investigation-cnpj{font-size:8.8px;background:transparent}.sac-investigation-result{display:grid;gap:5px;margin-top:5px}
       .sac-side-panel,.sac-config.open,.sac-pid-panel{animation:sacPanelEnter .18s cubic-bezier(.2,.8,.2,1) both;transform-origin:top right}.sac-transaction-view{display:grid;gap:6px}.sac-transaction-metric{border-color:color-mix(in srgb,var(--sac-primary) 34%,var(--sac-border))!important;background:color-mix(in srgb,var(--sac-primary) 7%,var(--sac-card))!important}.sac-transaction-metric strong{font-size:10px!important}.sac-merchant-card{display:grid;gap:4px;padding:6px!important}.sac-merchant-card>strong{display:block;font-size:10.5px;color:var(--sac-text);overflow-wrap:break-word}.sac-merchant-meta{display:flex!important;flex-wrap:wrap;gap:3px;margin-top:1px}.sac-merchant-meta i{display:inline-flex;align-items:center;min-height:19px;border:1px solid var(--sac-border);border-radius:4px;background:var(--sac-input);color:var(--sac-muted);padding:2px 4px;font-size:8.5px;font-style:normal;font-weight:900;line-height:1.05}.sac-side-head,.sac-choice-head{box-shadow:inset 0 -1px 0 rgba(255,255,255,.18)}@keyframes sacPanelEnter{from{opacity:0;transform:translateX(8px) scale(.985)}to{opacity:1;transform:translateX(0) scale(1)}}@media (prefers-reduced-motion:reduce){.sac-side-panel,.sac-config.open,.sac-pid-panel{animation:none!important}.sac-switch:after{transition:none!important}}
       .sac-investigation-drawer .sac-side-body{gap:7px}.sac-investigation-drawer .sac-side-card span{color:var(--sac-text);font-size:calc(9.5px * var(--sac-font-scale));line-height:1.18}.sac-investigation-drawer .sac-side-group-title{font-size:calc(9.3px * var(--sac-font-scale))}.sac-investigation-grid .sac-side-card>strong{position:absolute;top:-7px;left:4px;z-index:1;max-width:calc(100% - 8px);padding:1px 3px;border-radius:3px;background:var(--sac-bg);color:var(--sac-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:calc(8.2px * var(--sac-font-scale))!important}.sac-counterparty-line{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px;align-items:stretch}.sac-counterparty-line .sac-side-card{min-height:38px}.sac-counterparty-line strong{display:block;color:var(--sac-text);font-size:calc(8.8px * var(--sac-font-scale));line-height:1.08}.sac-cnpj-selector{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.sac-cnpj-selector button{min-width:0;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:5px 6px;text-align:left;cursor:pointer}.sac-cnpj-selector button.selected,.sac-cnpj-selector button:hover{border-color:#38bdf8;background:#10263a;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-light .sac-cnpj-selector button.selected,.sac-light .sac-cnpj-selector button:hover{background:#eef7ff;color:#172033}.sac-cnpj-selector strong,.sac-cnpj-selector span{display:block;overflow-wrap:anywhere}.sac-cnpj-selector strong{color:var(--sac-muted);font-size:calc(7.6px * var(--sac-font-scale));font-weight:800;line-height:1.05}.sac-cnpj-selector button.selected strong,.sac-cnpj-selector button:hover strong{color:inherit}.sac-cnpj-selector span{margin-top:2px;font-size:calc(9.5px * var(--sac-font-scale));font-weight:900}.sac-cnpj-actions button{min-width:0;min-height:34px;display:flex;align-items:center;justify-content:center;gap:4px;border-width:1px;border-style:solid;border-radius:6px;color:#fff;font-size:calc(9.2px * var(--sac-font-scale));line-height:1.05;text-align:center;font-weight:950;cursor:pointer;text-shadow:0 1px 1px rgba(0,0,0,.48)}.sac-cnpj-actions i{display:grid;place-items:center;width:16px;height:16px;border-radius:999px;background:rgba(255,255,255,.18);font-style:normal}.sac-classify-favorable{background:#166534!important;border-color:#4ade80!important}.sac-classify-suspicious{background:#991b1b!important;border-color:#f87171!important}.sac-classify-remove{background:#334155!important;border-color:#94a3b8!important}.sac-cnpj-actions button:hover,.sac-cnpj-actions button:focus-visible{filter:brightness(1.14);box-shadow:0 0 0 2px rgba(255,255,255,.16);outline:none}
-      .sac-investigation-launcher{position:absolute;left:-92px;top:48px;z-index:1;width:92px;height:32px;display:grid;grid-template-columns:16px minmax(0,1fr) 11px;align-items:center;gap:5px;border:1px solid var(--sac-border);border-right:0;border-left:3px solid var(--sac-primary);border-radius:9px 0 0 9px;background:var(--sac-panel);color:var(--sac-text);padding:0 6px;box-shadow:-8px 8px 24px rgba(0,0,0,.30),inset 0 1px rgba(255,255,255,.08);font-size:9.5px;font-weight:950;line-height:1;letter-spacing:0;cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease}.sac-investigation-launcher.sac-help-launcher{top:84px}.sac-investigation-launcher.sac-help-launcher.sac-solo-launcher{top:48px}.sac-investigation-launcher:hover,.sac-investigation-launcher:focus-visible{filter:none;transform:translateX(-2px);border-color:#38bdf8;border-left-color:var(--sac-primary);background:var(--sac-input);box-shadow:-10px 9px 28px rgba(0,0,0,.36),0 0 0 2px rgba(56,189,248,.16);outline:none}.sac-launcher-chevron{display:grid;place-items:center;color:var(--sac-muted);font:950 18px/1 "Segoe UI Symbol","Segoe UI",Arial,sans-serif;font-style:normal}.sac-investigation-launcher:hover .sac-launcher-chevron{color:var(--sac-text)}.sac-investigation-drawer,.sac-help-drawer{width:332px;border:1px solid var(--sac-border);border-left:3px solid var(--sac-primary);border-top-width:1px;border-radius:10px;background:var(--sac-bg);box-shadow:0 22px 54px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.05)}.sac-investigation-head{position:relative;display:grid;grid-template-columns:30px minmax(0,1fr) 30px;align-items:center;gap:8px;min-height:48px;padding:7px 8px;background:var(--sac-panel);border-bottom:1px solid var(--sac-border);border-radius:7px 7px 0 0;color:var(--sac-text)}.sac-investigation-head:after{content:"";position:absolute;left:38px;right:46px;bottom:-1px;height:1px;background:var(--sac-primary);opacity:.75}.sac-investigation-mark{position:relative;display:grid;width:28px;height:28px;place-items:center;border:1px solid color-mix(in srgb,var(--sac-primary) 70%,var(--sac-border));border-radius:7px;background:color-mix(in srgb,var(--sac-primary) 12%,var(--sac-input))}.sac-investigation-mark:before,.sac-investigation-mark:after{content:"";position:absolute;background:var(--sac-primary);opacity:.8}.sac-investigation-mark:before{width:12px;height:1px}.sac-investigation-mark:after{width:1px;height:12px}.sac-investigation-mark i{display:block;width:7px;height:7px;border:2px solid var(--sac-primary);border-radius:999px}.sac-investigation-heading{display:grid;gap:2px;min-width:0;text-align:left}.sac-investigation-heading strong{font-size:11.5px;line-height:1;color:var(--sac-text)}.sac-investigation-heading small{font-size:8.5px;line-height:1;color:var(--sac-muted);font-weight:900;text-transform:uppercase}.sac-investigation-collapse{display:grid;width:30px;height:30px;place-items:center;border:1px solid var(--sac-border);border-radius:7px;background:var(--sac-input);color:var(--sac-text);padding:0;cursor:pointer;transition:border-color .15s ease,background .15s ease,transform .15s ease}.sac-investigation-chevron{display:grid;place-items:center;width:20px;height:20px;border-radius:999px;background:color-mix(in srgb,var(--sac-primary) 18%,var(--sac-input));font:950 25px/1 "Segoe UI Symbol","Segoe UI",Arial,sans-serif;transform:translateX(1px)}.sac-investigation-collapse:hover,.sac-investigation-collapse:focus-visible{border-color:#38bdf8;background:#10263a;color:#edf3fb;transform:translateX(1px);box-shadow:0 0 0 2px rgba(56,189,248,.14);outline:none}.sac-light .sac-investigation-collapse:hover,.sac-light .sac-investigation-collapse:focus-visible{background:#eef7ff;color:#172033}.sac-book-guidance{padding:5px;border:1px solid color-mix(in srgb,var(--sac-primary) 28%,var(--sac-border));border-radius:7px;background:color-mix(in srgb,var(--sac-primary) 5%,var(--sac-panel))}.sac-book-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.sac-book-grid .sac-side-card{min-height:54px;display:flex;align-items:center}.sac-book-grid .sac-side-card span{line-height:1.2}
+      .sac-investigation-launcher{position:absolute;left:-92px;top:48px;z-index:1;width:92px;height:32px;display:grid;grid-template-columns:16px minmax(0,1fr) 11px;align-items:center;gap:5px;border:1px solid var(--sac-border);border-right:0;border-left:3px solid var(--sac-primary);border-radius:9px 0 0 9px;background:var(--sac-panel);color:var(--sac-text);padding:0 6px;box-shadow:-8px 8px 24px rgba(0,0,0,.30),inset 0 1px rgba(255,255,255,.08);font-size:9.5px;font-weight:950;line-height:1;letter-spacing:0;cursor:pointer;transition:opacity .14s ease,transform .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease}.sac-investigation-launcher.sac-help-launcher{top:84px}.sac-investigation-launcher.sac-help-launcher.sac-solo-launcher{top:48px}.sac-investigation-launcher.sac-launcher-open{opacity:0;pointer-events:none;transform:translateX(-5px)}.sac-investigation-launcher:hover,.sac-investigation-launcher:focus-visible{filter:none;transform:translateX(-2px);border-color:#38bdf8;border-left-color:var(--sac-primary);background:var(--sac-input);box-shadow:-10px 9px 28px rgba(0,0,0,.36),0 0 0 2px rgba(56,189,248,.16);outline:none}.sac-launcher-chevron{display:grid;place-items:center;color:var(--sac-muted);font:950 18px/1 "Segoe UI Symbol","Segoe UI",Arial,sans-serif;font-style:normal}.sac-investigation-launcher:hover .sac-launcher-chevron{color:var(--sac-text)}.sac-investigation-drawer,.sac-help-drawer{width:332px;border:1px solid var(--sac-border);border-left:3px solid var(--sac-primary);border-right:2px solid var(--sac-primary);border-top-width:1px;border-radius:10px 4px 4px 10px;background:var(--sac-bg);box-shadow:0 22px 54px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.05)}.sac-investigation-head{position:relative;display:grid;grid-template-columns:30px minmax(0,1fr);align-items:center;gap:8px;min-height:48px;padding:7px 8px;background:var(--sac-panel);border-bottom:1px solid var(--sac-border);border-radius:7px 2px 0 0;color:var(--sac-text)}.sac-investigation-head:after{content:"";position:absolute;left:38px;right:10px;bottom:-1px;height:1px;background:var(--sac-primary);opacity:.75}.sac-investigation-mark{position:relative;display:grid;width:28px;height:28px;place-items:center;border:1px solid color-mix(in srgb,var(--sac-primary) 70%,var(--sac-border));border-radius:7px;background:color-mix(in srgb,var(--sac-primary) 12%,var(--sac-input))}.sac-investigation-mark:before,.sac-investigation-mark:after{content:"";position:absolute;background:var(--sac-primary);opacity:.8}.sac-investigation-mark:before{width:12px;height:1px}.sac-investigation-mark:after{width:1px;height:12px}.sac-investigation-mark i{display:block;width:7px;height:7px;border:2px solid var(--sac-primary);border-radius:999px}.sac-investigation-heading{display:grid;gap:2px;min-width:0;text-align:left}.sac-investigation-heading strong{font-size:11.5px;line-height:1;color:var(--sac-text)}.sac-investigation-heading small{font-size:8.5px;line-height:1;color:var(--sac-muted);font-weight:900;text-transform:uppercase}.sac-investigation-collapse{position:absolute;left:-39px;top:8px;z-index:3;display:grid;width:34px;height:34px;place-items:center;border:1px solid var(--sac-border);border-right:3px solid var(--sac-primary);border-radius:9px 4px 4px 9px;background:var(--sac-panel);color:var(--sac-text);padding:0;cursor:pointer;box-shadow:-8px 8px 22px rgba(0,0,0,.28);transition:border-color .15s ease,background .15s ease,transform .15s ease}.sac-investigation-chevron{display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:color-mix(in srgb,var(--sac-primary) 18%,var(--sac-input));font:950 25px/1 "Segoe UI Symbol","Segoe UI",Arial,sans-serif;transform:translateX(1px)}.sac-investigation-collapse:hover,.sac-investigation-collapse:focus-visible{border-color:#38bdf8;border-right-color:var(--sac-primary);background:#10263a;color:#edf3fb;transform:translateX(1px);box-shadow:-8px 8px 24px rgba(0,0,0,.34),0 0 0 2px rgba(56,189,248,.14);outline:none}.sac-light .sac-investigation-collapse:hover,.sac-light .sac-investigation-collapse:focus-visible{background:#eef7ff;color:#172033}.sac-book-guidance{padding:5px;border:1px solid color-mix(in srgb,var(--sac-primary) 28%,var(--sac-border));border-radius:7px;background:color-mix(in srgb,var(--sac-primary) 5%,var(--sac-panel))}.sac-book-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.sac-book-grid .sac-side-card{min-height:54px;display:flex;align-items:center}.sac-book-grid .sac-side-card span{line-height:1.2}
       .sac-list-group-actions{display:flex;align-items:center;gap:4px}.sac-list-group-actions button{font-size:8.5px!important;padding:5px 6px!important}.sac-list-group-actions [data-list-remove-issuer]{background:#991b1b!important;border-color:#f87171!important}.sac-list-group-actions button:disabled{opacity:.58;cursor:wait}
       .sac-investigation-controls button{font-size:calc(8.8px * var(--sac-font-scale))}.sac-investigation-controls button span{font-size:calc(8.5px * var(--sac-font-scale))}.sac-investigation-controls .sac-investigation-cnpj{font-size:calc(8.8px * var(--sac-font-scale))}.sac-investigation-heading strong{font-size:calc(11.5px * var(--sac-font-scale))}.sac-investigation-heading small{font-size:calc(8.5px * var(--sac-font-scale))}.sac-transaction-metric strong,.sac-merchant-card>strong{font-size:calc(10px * var(--sac-font-scale))!important}.sac-merchant-meta i{font-size:calc(8.5px * var(--sac-font-scale))}
       @media (max-width:460px){.sac-grid,.sac-field-grid{grid-template-columns:1fr}.sac-history-body{grid-template-columns:1fr}.sac-book-grid{grid-template-columns:1fr}}
@@ -1043,15 +1077,21 @@
   function closeSidePanels(ownerId = "") {
     const selector = ownerId ? `.sac-side-panel[data-owner="${cssEscape(ownerId)}"]` : ".sac-side-panel";
     all(selector).forEach((panel) => panel.remove());
+    const owners = ownerId ? [byId(ownerId)].filter(Boolean) : all(".sac-panel");
+    owners.forEach((owner) => all(".sac-investigation-launcher", owner).forEach((button) => {
+      button.classList.remove("sac-launcher-open");
+      button.setAttribute("aria-expanded", "false");
+    }));
     if (!ownerId || ownerId === "sac-panel-console") placePidPanel();
   }
   function placeSidePanel(ownerPanel, sidePanel) {
     const rect = ownerPanel.getBoundingClientRect();
     const width = sidePanel.offsetWidth || 292;
-    const launcherReserve = sidePanel.matches(".sac-investigation-drawer,.sac-help-drawer,.sac-context-drawer") ? 100 : 0;
-    const preferredLeft = rect.left - width - launcherReserve - 8;
-    const rightFallback = Math.min(window.innerWidth - width - 8, rect.right + 8);
-    sidePanel.style.left = `${preferredLeft >= 8 ? preferredLeft : Math.max(8, rightFallback)}px`;
+    const preferredLeft = rect.left - width - 4;
+    const opensLeft = preferredLeft >= 8;
+    const rightFallback = Math.min(window.innerWidth - width - 8, rect.right + 4);
+    sidePanel.dataset.sidePosition = opensLeft ? "left" : "right";
+    sidePanel.style.left = `${opensLeft ? preferredLeft : Math.max(8, rightFallback)}px`;
     sidePanel.style.top = `${Math.max(8, rect.top)}px`;
     if (ownerPanel.id === "sac-panel-console") placePidPanel();
   }
@@ -1172,6 +1212,7 @@
             </div>
           </div>
           <button class="sac-toggle ${getSafeMode() ? "on" : ""}" data-action="safe-mode" aria-pressed="${getSafeMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Modo seguro</span><b>${getSafeMode() ? "Ligado" : "Desligado"}</b></button>
+          <button class="sac-toggle ${getInvisibleMode() ? "on" : ""}" data-action="invisible-mode" aria-pressed="${getInvisibleMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Modo invisível</span><b>${getInvisibleMode() ? "Ligado" : "Desligado"}</b></button>
           <button class="sac-toggle ${getInvestigationMode() ? "on" : ""}" data-action="investigation-mode" aria-pressed="${getInvestigationMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Modo investigação</span><b>${getInvestigationMode() ? "Ligado" : "Desligado"}</b></button>
           <button class="sac-toggle ${getHelpMode() ? "on" : ""}" data-action="help-mode" aria-pressed="${getHelpMode() ? "true" : "false"}"><span class="sac-switch"></span><span>Modo ajuda</span><b>${getHelpMode() ? "Ligado" : "Desligado"}</b></button>
           ${signatureConfig}
@@ -1286,6 +1327,15 @@
       event.currentTarget.setAttribute("aria-pressed", next ? "true" : "false");
       const state = event.currentTarget.querySelector("b");
       if (state) state.textContent = next ? "Ligado" : "Desligado";
+    });
+    panel.querySelector("[data-action='invisible-mode']")?.addEventListener("click", (event) => {
+      const next = !getInvisibleMode();
+      setInvisibleMode(next);
+      event.currentTarget.classList.toggle("on", next);
+      event.currentTarget.setAttribute("aria-pressed", next ? "true" : "false");
+      const state = event.currentTarget.querySelector("b");
+      if (state) state.textContent = next ? "Ligado" : "Desligado";
+      reload();
     });
     panel.querySelector("[data-action='investigation-mode']")?.addEventListener("click", (event) => {
       const next = !getInvestigationMode();
@@ -2051,6 +2101,7 @@
       rule,
       history: flow === "card" ? "N/A" : formatHistoryValue(historyRaw),
       historyFound: flow !== "card" && (Boolean(historyRaw) || orangeData.historyFound),
+      transactionDateRaw: clean(transactionDate),
       transactionDate: trimTimeToMinute(transactionDate)
     };
     return data;
@@ -2088,6 +2139,7 @@
       rule: "N/A",
       history: "0000000000",
       historyFound: false,
+      transactionDateRaw: "N/A",
       transactionDate: "N/A"
     };
   }
@@ -2132,6 +2184,9 @@
       rule: flow === "card" ? cardFirst("rule") : caseFirst("rule"),
       history: flow === "card" ? "N/A" : formatHistoryValue(valid(after.history, before.history, "0000000000")),
       historyFound: flow !== "card" && Boolean(before.historyFound || after.historyFound),
+      transactionDateRaw: flow === "card"
+        ? valid(before.transactionDateRaw, before.transactionDate, after.transactionDateRaw, after.transactionDate)
+        : valid(after.transactionDateRaw, after.transactionDate, before.transactionDateRaw, before.transactionDate),
       transactionDate: flow === "card" ? cardFirst("transactionDate") : caseFirst("transactionDate")
     };
   }
@@ -2260,29 +2315,64 @@
     return clean(labels.map(findValueAfterLabel).find((value) => !isMissing(value)), "");
   }
 
+  function firstScopedConsoleValue(root, labels = []) {
+    if (!root) return "";
+    const wanted = new Set(labels.map(normalize));
+    for (const node of all(CONSOLE_SELECTORS.valueLabels, root)) {
+      if (!wanted.has(normalize(consoleText(node)))) continue;
+      const direct = consoleText(node.nextElementSibling);
+      if (direct && !wanted.has(normalize(direct))) return direct;
+      const row = node.closest(".c-grid--item,[class*='item'],div,li,tr");
+      const rowText = consoleText(row);
+      const withoutLabel = rowText.replace(consoleText(node), "").trim();
+      if (withoutLabel && !wanted.has(normalize(withoutLabel))) return withoutLabel;
+    }
+    return "";
+  }
+
+  function consolePartnerIdentity() {
+    const marker = all("button,[role='tab'],h1,h2,h3,h4,h5,h6,p,span,strong")
+      .find((node) => ["SOCIO", "SOCIOS", "QUADRO SOCIETARIO"].includes(normalize(consoleText(node))));
+    if (!marker) return { name: "", cpf: "" };
+    let scope = marker.parentElement;
+    for (let depth = 0; scope && depth < 7; depth += 1, scope = scope.parentElement) {
+      const scopeText = consoleText(scope);
+      const cpf = scopeText.match(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/)?.[0]
+        || scopeText.match(/(?:^|\D)(\d{11})(?:\D|$)/)?.[1]
+        || "";
+      const name = firstScopedConsoleValue(scope, [
+        "Nome completo", "Nome do sócio", "Nome do socio", "Nome do responsável", "Nome do responsavel", "Responsável", "Responsavel"
+      ]);
+      if (cpf || name) return { name: clean(name, ""), cpf: digitsOnly(cpf).slice(0, 11) };
+    }
+    return { name: "", cpf: "" };
+  }
+
   function consolePersonHeaderName() {
     return clean(textOf(document.querySelector(".person-header .person-name p,.person-header [data-testid*='name'],[data-testid='person-name']")), "");
   }
 
   function collectConsolePidIdentity(data = {}) {
     const kind = documentKind(data?.cpfCnpj);
+    const partner = consolePartnerIdentity();
     if (kind === "CNPJ") {
-      const partnerContext = /\bSOCIO\b/.test(normalize(bodyText()));
-      const responsibleName = firstConsoleLabeledValue([
+      const responsibleName = partner.name || firstConsoleLabeledValue([
         "Nome do responsável", "Nome do responsavel", "Nome do sócio", "Nome do socio", "Responsável", "Responsavel"
-      ]) || (partnerContext ? consolePersonHeaderName() : "");
-      const responsibleDocument = firstConsoleLabeledValue([
+      ]);
+      const responsibleDocument = partner.cpf || firstConsoleLabeledValue([
         "CPF do responsável", "CPF do responsavel", "CPF do sócio", "CPF do socio", "Documento do sócio", "Documento do socio"
-      ]) || (partnerContext ? firstConsoleLabeledValue(["CPF/CNPJ", "CPF"]) : "");
-      const responsibleCpf = digitsOnly(responsibleDocument);
+      ]);
+      const responsibleCpf = digitsOnly(responsibleDocument).slice(0, 11);
       return {
         responsibleName,
         responsibleCpf: responsibleCpf.length === 11 ? responsibleCpf : ""
       };
     }
+    const clientCpf = partner.cpf || (documentKind(data?.cpfCnpj) === "CPF" ? documentFieldValue(data.cpfCnpj) : "");
     return {
-      clientName: firstConsoleLabeledValue(["Nome do Cliente", "Nome do cliente", "Nome completo"])
-        || consolePersonHeaderName()
+      clientName: partner.name || firstConsoleLabeledValue(["Nome do Cliente", "Nome do cliente", "Nome completo"])
+        || consolePersonHeaderName(),
+      clientCpf: digitsOnly(clientCpf).slice(0, 11)
     };
   }
 
@@ -2297,6 +2387,7 @@
       return { key: "responsibleCpf", value: clean(identity.responsibleCpf || saved.responsibleCpf, "") };
     }
     if (wanted.includes("NOME DO CLIENTE")) return { key: "clientName", value: clean(identity.clientName || saved.clientName, "") };
+    if (wanted === "CPF DO CLIENTE" || wanted === "CPF") return { key: "clientCpf", value: clean(identity.clientCpf || saved.clientCpf, "") };
     if (wanted.includes("NOME DA MAE")) return { key: "motherName", value: firstConsoleLabeledValue(["Nome da mãe", "Nome da mae", "Mãe", "Mae"]) || clean(saved.motherName, "") };
     if (wanted.includes("NASCIMENTO")) return { key: "birthDate", value: firstConsoleLabeledValue(["Data de nascimento", "Nascimento"]) || clean(saved.birthDate, "") };
     if (wanted.includes("ENDERECO")) return { key: "address", value: firstConsoleLabeledValue(["Endereço de correspondência", "Endereço cadastrado", "Endereço"]) || clean(saved.address, "") };
@@ -2316,7 +2407,7 @@
 
   function collectConsolePidData(data = {}) {
     const labels = [
-      "Nome do cliente", "Nome do responsável da empresa", "CPF do responsável",
+      "Nome do cliente", "CPF do cliente", "Nome do responsável da empresa", "CPF do responsável",
       ...PID_DEFAULT_REQUIRED, ...PID_DEFAULT_COMPLEMENTARY, ...PID_AMIGOZ_REQUIRED, ...PID_AMIGOZ_COMPLEMENTARY
     ];
     return labels.reduce((result, label) => {
@@ -2560,11 +2651,11 @@
     if (!data.orangeFound) {
       showNotice("Ainda não encontrei a linha laranja do Falcon. Selecione a transação para eu coletar tudo certinho.", "error");
     }
-    const save = async () => {
+    const save = async (options = {}) => {
       if (missing.length) {
         if (getSafeMode()) {
           showNotice(`Ainda faltam dados: ${missing.join(", ")}. Veja os grids em laranja e tente novamente.`, "error");
-          return;
+          return false;
         }
         showNotice(`Atenção: faltam dados (${missing.join(", ")}), mas o modo seguro está desligado.`, "warn");
       }
@@ -2577,14 +2668,19 @@
       const copied = await copyText(`${EXPORT_FALCON}::${JSON.stringify(packageData)}`);
       if (!copied) {
         showNotice("Não consegui transferir os dados do Falcon. A janela foi mantida aberta; clique em Finalizar etapa novamente.", "error", 15000);
-        return;
+        return false;
       }
       releaseInvestigationSession(data);
-      showNotice("Falcon finalizado. Abra o Console para continuar.", "success");
+      showNotice(options.invisible ? "Dados do Falcon coletados. Pode seguir para o Console." : "Falcon finalizado. Abra o Console para continuar.", options.invisible ? "complete" : "success");
       closeAuxiliaryPanels("sac-panel-falcon");
       closeSidePanels("sac-panel-falcon");
       byId("sac-panel-falcon")?.remove();
+      return true;
     };
+    if (getInvisibleMode()) {
+      await save({ invisible: true });
+      return;
+    }
     const body = section("Dados do Falcon", falconGrid(data), FLOW[data.visualFlow]?.label || "BANKING");
     const panel = renderPanel({
       id: "sac-panel-falcon",
@@ -2661,6 +2757,8 @@
       cardStatus: card.cardStatus || "N/A",
       cardMatched: card.matched !== false,
       cardDataOptional: globalCardWithoutData,
+      jiraActive: false,
+      jiraReference: "",
       investigationSnapshot: falcon?.investigationSnapshot || {},
       fields: defaultConsoleFields(flow, isGlobal)
     };
@@ -2799,6 +2897,8 @@
       closeSidePanels(ownerPanel.id);
       launcher?.setAttribute("aria-expanded", "false");
       helpLauncher?.setAttribute("aria-expanded", "false");
+      launcher?.classList.remove("sac-launcher-open");
+      helpLauncher?.classList.remove("sac-launcher-open");
       releaseInvestigationSession(data);
       if (ownerPanel.id === "sac-panel-console") placePidPanel();
     };
@@ -2810,6 +2910,8 @@
         ownerPanel.style.zIndex = "";
       }
       closeSidePanels(ownerPanel.id);
+      launcher?.classList.remove("sac-launcher-open");
+      helpLauncher?.classList.remove("sac-launcher-open");
       if (ownerPanel.id === "sac-panel-console") closePidPanel();
     };
     const createDrawer = ({ className, supportKey, title, content }) => {
@@ -2853,6 +2955,8 @@
       });
       launcher?.setAttribute("aria-expanded", "true");
       helpLauncher?.setAttribute("aria-expanded", "false");
+      launcher?.classList.add("sac-launcher-open");
+      helpLauncher?.classList.add("sac-launcher-open");
       const runAction = async (button) => {
         if (!button || button.disabled) return;
         button.disabled = true;
@@ -2885,6 +2989,8 @@
       const drawer = createDrawer({ className: "sac-help-drawer", supportKey: "MODO AJUDA", title: "AJUDA", content });
       helpLauncher?.setAttribute("aria-expanded", "true");
       launcher?.setAttribute("aria-expanded", "false");
+      helpLauncher?.classList.add("sac-launcher-open");
+      launcher?.classList.add("sac-launcher-open");
       return drawer;
     };
     launcher?.addEventListener("click", toggleDrawer);
@@ -3020,6 +3126,17 @@
     return `<div class="sac-side-group"><div class="sac-side-group-title">Horário suspeito</div><div class="sac-investigation-grid"><div class="sac-side-card sac-support-summary warning"><strong>Entre 00h e 06h</strong><span>${count} transaç${count === 1 ? "ão" : "ões"}</span></div><div class="sac-side-card sac-support-summary warning"><strong>Valor no horário</strong><span>${escapeHtml(investigationCurrency(metrics.unusualHoursAmount))}</span></div></div></div>`;
   }
 
+  function investigationMoneyFlowHtml(metrics = {}) {
+    const creditCount = Number(metrics.creditCount || 0);
+    const debitCount = Number(metrics.debitCount || 0);
+    if (!creditCount && !debitCount) return "";
+    const cards = [
+      creditCount ? `<div class="sac-side-card sac-support-summary success"><strong>Entradas efetivas</strong><span>${creditCount} · ${escapeHtml(investigationCurrency(metrics.creditAmount))}</span></div>` : "",
+      debitCount ? `<div class="sac-side-card sac-support-summary warning"><strong>Saídas efetivas</strong><span>${debitCount} · ${escapeHtml(investigationCurrency(metrics.debitAmount))}</span></div>` : ""
+    ].filter(Boolean).join("");
+    return `<div class="sac-side-group"><div class="sac-side-group-title">Movimentação efetiva</div><div class="sac-investigation-grid">${cards}</div></div>`;
+  }
+
   function investigationPatternsHtml(metrics = {}) {
     const recurring = Number(metrics.repeatedCounterpartyCount || 0);
     const passThroughPairs = Number(metrics.passThroughPairs || 0);
@@ -3071,7 +3188,10 @@
     }
     const summary = transactionEngine.summarizeFalconTransactions(rows, {
       issuer: data?.issuer,
-      holderDocument: data?.holderDocument || data?.cpfCnpj
+      holderDocument: data?.holderDocument || data?.cpfCnpj,
+      alertRowIndex: data?.rowIndex,
+      alertDateTime: data?.transactionDateRaw || data?.transactionDate,
+      rule: data?.rule
     });
     const cardFlow = transactionEngine.isCardTransaction({
       flow: data?.flow,
@@ -3082,6 +3202,8 @@
       issuer: data?.issuer,
       transactionType: data?.sourceTransactionType || data?.transactionType,
       rule: data?.rule,
+      alertRowIndex: data?.rowIndex,
+      alertDateTime: data?.transactionDateRaw || data?.transactionDate,
       rows
     });
     const visibleSignals = uniqueTransactionSignals(analysis.signals);
@@ -3117,6 +3239,7 @@
             <div class="sac-side-card sac-transaction-metric"><strong>Valor somado</strong><span>${escapeHtml(investigationCurrency(summary.totalAmount))}</span></div>
             <div class="sac-side-card sac-support-summary ${summary.chipPinCount ? "success" : "neutral"}"><strong>Chip e senha</strong><span>${summary.chipPinCount} tentativa${summary.chipPinCount === 1 ? "" : "s"}</span></div>
             <div class="sac-side-card sac-support-summary ${summary.repeatedAttentionMerchantCount ? "danger" : summary.attentionModeCount ? "warning" : "neutral"}"><strong>Canais de atenção</strong><span>${summary.attentionModeCount} tentativa${summary.attentionModeCount === 1 ? "" : "s"}</span></div>
+            ${summary.approvedChipAfterAlert ? `<div class="sac-side-card sac-grid-full sac-support-summary success"><strong>Transação segura posterior</strong><span>${summary.approvedChipAfterAlertCount} compra aprovada com chip e senha após o alerta · ${escapeHtml(investigationPeriod(summary.approvedChipAfterAlertLatestAt, summary.approvedChipAfterAlertLatestAt, 1))}</span></div>` : ""}
             <div class="sac-side-card sac-grid-full sac-transaction-metric"><strong>Período analisado</strong><span>${escapeHtml(investigationPeriod(summary.periodStart, summary.periodEnd, summary.validDateCount))}</span></div>
           </div>
           ${signalCards}
@@ -3137,6 +3260,7 @@
         ${summary.p2pIssuerCount ? `<div class="sac-side-card sac-support-summary success"><strong>P2P Emissor</strong><span>${summary.p2pIssuerCount}</span></div>` : ""}
         ${summary.p2pPersonalCount ? `<div class="sac-side-card sac-support-summary success"><strong>P2P Pessoal</strong><span>${summary.p2pPersonalCount}</span></div>` : ""}
       </div></div>
+      ${investigationMoneyFlowHtml(summary)}
       ${investigationPatternsHtml(summary)}
       ${investigationVelocityHtml(summary)}
       ${investigationUnusualHoursHtml(summary)}
@@ -3189,6 +3313,7 @@
         ${Number(metrics.p2pPersonalCount || 0) ? `<div class="sac-side-card sac-support-summary success"><strong>P2P Pessoal</strong><span>${Number(metrics.p2pPersonalCount || 0)}</span></div>` : ""}
       </div></div>`}
       ${result.mappingPending || cardFlow ? "" : investigationPatternsHtml(metrics)}
+      ${result.mappingPending || cardFlow ? "" : investigationMoneyFlowHtml(metrics)}
       ${result.mappingPending ? "" : investigationVelocityHtml(metrics)}
       ${result.mappingPending ? "" : investigationUnusualHoursHtml(metrics)}
       ${dddInfo.found ? `<div class="sac-side-group"><div class="sac-side-group-title">DDD</div><div class="sac-investigation-grid"><div class="sac-side-card"><strong>DDD</strong><span>${escapeHtml(dddInfo.ddd)}</span></div><div class="sac-side-card"><strong>UF / Região</strong><span>${escapeHtml(`${dddInfo.uf} · ${dddInfo.region}`)}</span></div></div></div>` : ""}
@@ -3457,6 +3582,7 @@
     }
     const save = async () => {
       data.jiraActive = Boolean(byId("sac-jira-flag")?.checked);
+      data.jiraReference = data.jiraActive ? normalizeJiraReference(byId("sac-jira-reference")?.value) : "";
       data.fields = await readConsoleFields(data);
       if (data.fields.__missingManual?.length) {
         showNotice(`Falta preencher manualmente: ${data.fields.__missingManual.join(", ")}.`, "error");
@@ -3505,29 +3631,43 @@
       });
       return;
     }
-    const body = section("Dados do Falcon", falconGrid(data.falcon), "recebidos")
-      + section("Dados do Console", consoleGrid(data), "coletados")
-      + section("Chamada", consoleFlagControls(data), "opcional")
-      + section("Dropdowns de análise", `<div class="sac-field-grid">${fields}</div>`, "seleções padrão");
+    const body = getInvisibleMode()
+      ? section("Chamada", consoleFlagControls(data), "opcional")
+        + section("Dropdowns de análise", `<div class="sac-field-grid">${fields}</div>`, "seleções padrão")
+      : section("Dados do Falcon", falconGrid(data.falcon), "recebidos")
+        + section("Dados do Console", consoleGrid(data), "coletados")
+        + section("Chamada", consoleFlagControls(data), "opcional")
+        + section("Dropdowns de análise", `<div class="sac-field-grid">${fields}</div>`, "seleções padrão");
     const panel = renderPanel({
       id: "sac-panel-console",
       stage: "CONSOLE",
       flow: data.visualFlow,
-      subtitle: "Conferência e análise",
+      subtitle: getInvisibleMode() ? "Seleções para análise" : "Conferência e análise",
       body,
       footer: `<button class="sac-main" id="sac-save-console">Finalizar etapa</button>`,
       onEnter: save
     });
     byId("sac-save-console")?.addEventListener("click", save);
-    attachInvestigationLauncher(panel, "CONSOLE", data);
+    if (!getInvisibleMode()) attachInvestigationLauncher(panel, "CONSOLE", data);
     byId("sac-jira-flag")?.addEventListener("change", (event) => {
       data.jiraActive = Boolean(event.currentTarget.checked);
       const label = event.currentTarget.closest(".sac-jira-toggle");
       label?.classList.toggle("on", data.jiraActive);
       const state = label?.querySelector("b");
       if (state) state.textContent = data.jiraActive ? "Ligado" : "Desligado";
+      const jiraField = byId("sac-jira-reference-field");
+      if (jiraField) jiraField.hidden = !data.jiraActive;
+      if (data.jiraActive) byId("sac-jira-reference")?.focus();
       syncCallToggles();
     });
+    const normalizeJiraInput = (event) => {
+      const parsed = normalizeJiraReference(event.currentTarget.value);
+      data.jiraReference = parsed;
+      event.currentTarget.closest(".sac-jira-reference")?.classList.toggle("sac-missing", Boolean(event.currentTarget.value.trim()) && !parsed);
+      if (parsed && event.currentTarget.value !== parsed) event.currentTarget.value = parsed;
+    };
+    byId("sac-jira-reference")?.addEventListener("input", normalizeJiraInput);
+    byId("sac-jira-reference")?.addEventListener("change", normalizeJiraInput);
     byId("sac-bad-media")?.addEventListener("change", (event) => {
       if (normalize(event.target.value) !== "SIM") return;
       openChoicePopover({
@@ -3619,7 +3759,18 @@
         <label class="sac-toggle sac-jira-toggle ${jira ? "on" : ""}" aria-pressed="${jira ? "true" : "false"}"><input type="checkbox" id="sac-jira-flag" ${jira ? "checked" : ""} hidden><span class="sac-switch"></span><span>JIRA</span><b>${jira ? "Ligado" : "Desligado"}</b></label>
         <button type="button" id="sac-call-mode-toggle" class="sac-toggle ${callEnabled ? "on" : ""}" data-active="${callEnabled ? "true" : "false"}" aria-pressed="${callEnabled ? "true" : "false"}"><span class="sac-switch"></span><span>Com chamada</span><b>${callEnabled ? "Ligado" : "Desligado"}</b></button>
         <button type="button" id="sac-call-result-toggle" class="sac-toggle ${success ? "on" : ""}" data-active="${success ? "true" : "false"}" aria-disabled="${callEnabled && !jira ? "false" : "true"}" aria-pressed="${success ? "true" : "false"}" ${callEnabled && !jira ? "" : "disabled"}><span class="sac-switch"></span><span>Com sucesso</span><b>${callEnabled ? (jira ? "JIRA" : success ? "Ligado" : "Desligado") : "Sem chamada"}</b></button>
-      </div>`;
+      </div>
+      <label class="sac-jira-reference" id="sac-jira-reference-field" ${jira ? "" : "hidden"}><span>Chamado JIRA</span><input id="sac-jira-reference" value="${escapeHtml(data.jiraReference || "")}" placeholder="Cole o link com SERVICO ou INCIDENTE" autocomplete="off"><small>O link será reduzido automaticamente, por exemplo: SERVICO-12345.</small></label>`;
+  }
+
+  function normalizeJiraReference(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    let decoded = raw;
+    try { decoded = decodeURIComponent(raw); } catch (_err) {}
+    const normalized = normalize(decoded);
+    const match = normalized.match(/(?:^|[^A-Z0-9])(SERVICO|INCIDENTE)[\s_:/?#=&.\-]{0,24}(\d{1,12})(?:$|[^0-9])/);
+    return match ? `${match[1]}-${match[2]}` : "";
   }
   function cardFields(data) {
     return field("sac-merchant-history", "Histórico no estabelecimento", CARD_REVIEW, data.fields.merchantHistory, { allowEmpty: true })
@@ -3673,7 +3824,8 @@
     const extra = data.flow === "card" && !data.isGlobal
       ? [["ID cartão", data.cardId], ["Final do cartão", data.cardLast4], ["Tipo do cartão", data.cardType], ["Status cartão", data.cardStatus]]
       : data.flow === "card" ? [] : [["Status conta", data.accountStatus]];
-    return [...base, ...extra].filter(([, value]) => isMissing(value)).map(([label]) => label);
+    const jira = data.jiraActive ? [["Chamado JIRA", data.jiraReference]] : [];
+    return [...base, ...extra, ...jira].filter(([, value]) => isMissing(value)).map(([label]) => label);
   }
   function requiredAnalysisFields(data) {
     if (data.flow !== "card") return [];
@@ -3742,7 +3894,8 @@
   function consoleDropdownGrid(data) {
     const callGrid = () => {
       const result = normalize(data.fields?.callMode) === "COM CHAMADA" ? kv("Resultado da chamada", data.fields.callResult, dropdownAlert(data.fields.callResult, ["com sucesso"])) : "";
-      return kv("Chamada", data.fields?.callMode || "sem chamada") + result;
+      const jira = data.jiraActive ? kv("JIRA", data.jiraReference, alertIf(isMissing(data.jiraReference))) : "";
+      return kv("Chamada", data.fields?.callMode || "sem chamada") + result + jira;
     };
     if (data.flow === "card") {
       return `<div class="sac-grid">${callGrid()}${kv("Histórico no estabelecimento", data.fields.merchantHistory, cardReviewAlert(data.fields.merchantHistory))}${kv("Padrão de compra", data.fields.purchasePattern, cardReviewAlert(data.fields.purchasePattern))}</div>`;
@@ -3856,7 +4009,7 @@
     }
     const criticalLabels = tabulatorPageProfile() === "falcon-prevencao"
       ? ["Tipo de documento", "CPF/CNPJ", "CPF", "CNPJ", "Valor da transação", "Fila", "Estabelecimento", "Decisão", "Motivo status", "Observações"]
-      : ["Fila", "Decisão", "Motivo status"];
+      : ["Tabulador Falcon", "Data de entrada", "Hora de entrada", "Tipo de documento", "CPF/CNPJ", "CPF", "CNPJ", "Valor da transação", "Tipo de chamada", "Status chamada", "Número do caso", "Fila", "Estabelecimento", "Regra", "Decisão", "Motivo status", "Observações"];
     const criticalPending = applied.pending.filter((label) => criticalLabels.includes(label));
     if (criticalPending.length) {
       const location = tabulatorIssueMessage(criticalPending);
@@ -3963,6 +4116,7 @@
     const f = data.falcon || {};
     const motive = String(data.decisionReason || "").trim();
     const motiveLines = motive ? [`Motivo: ${motive}`] : [];
+    const jiraLines = data.jiraActive && data.jiraReference ? [`JIRA: ${data.jiraReference}`] : [];
     const detailSuffix = (value, details) => {
       const list = Array.isArray(details) ? details.filter(Boolean) : [];
       return list.length ? `${clean(value, "")} - ${list.join("; ")}` : clean(value, "");
@@ -3975,6 +4129,7 @@
       return [
         `Valor da transação: R$ ${clean(f.value, "")}`,
         `Regra: ${clean(f.rule, "")}`,
+        ...jiraLines,
         `Estabelecimento: ${clean(f.merchant, "")}`,
         `Status do cartão: ${clean(data.cardStatus, "")}`,
         `Data de cadastro: ${clean(data.registrationDate, "")}`,
@@ -3990,6 +4145,7 @@
     return [
       `Valor da transação: R$ ${clean(f.value, "")}`,
       `Regra: ${clean(f.rule, "")}`,
+      ...jiraLines,
       `Histórico de Infrações: ${formatHistoryValue(f.history)}`,
       `Mídia desabonadora: ${detailSuffix(data.fields?.badMedia, data.fields?.badMediaDetails)}`,
       `Status conta: ${clean(data.accountStatus, "")}`,
@@ -4479,30 +4635,85 @@
 
     return { checked, missing, cancelled: !canWriteTabulator(isActive) };
   }
-  function primeTabulatorFields(data, decision, tabulationText) {
-    if (!tabulatorWriteEnabled) return;
+  function tabulatorTextFieldPlan(data, tabulationText = "") {
     const f = data.falcon || {};
     const ecValue = data.flow === "card" ? f.merchant : f.transactionType;
     const prevention = tabulatorPageProfile() === "falcon-prevencao";
-    fillAnyImmediate([{ id: "txt_ValorTransacao" }, { name: prevention ? "_partial_Falcon_Prevencao.ValorTransacao" : "_partial_Falcon.ValorTransacao" }, { pattern: /valor.*transa/i }], clean(f.value, "").replace("R$", "").trim());
+    const transactionValue = clean(f.value, "").replace("R$", "").trim();
     if (prevention) {
-      fillAnyImmediate([
-        { id: "zpartial_Falcon_Prevencao_Estabelecimento" },
-        { name: "_partial_Falcon_Prevencao.Estabelecimento" },
-        { pattern: /partial_Falcon_Prevencao.*Estabelecimento/i }
-      ], ecValue);
-      fillAnyImmediate(preventionObservationTargets(), tabulationText);
-      return;
+      return [
+        {
+          label: "Valor da transação",
+          value: transactionValue,
+          targets: [{ id: "txt_ValorTransacao" }, { name: "_partial_Falcon_Prevencao.ValorTransacao" }, { pattern: /valor.*transa/i }]
+        },
+        {
+          label: "Estabelecimento",
+          value: ecValue,
+          targets: [
+            { id: "zpartial_Falcon_Prevencao_Estabelecimento" },
+            { name: "_partial_Falcon_Prevencao.Estabelecimento" },
+            { pattern: /partial_Falcon_Prevencao.*Estabelecimento/i }
+          ]
+        },
+        { label: "Observações", value: tabulationText, targets: preventionObservationTargets() }
+      ];
     }
-    fillAnyImmediate([{ name: "_partial_Falcon.NumeroCaso" }, { id: "txt_NumeroCaso" }, { pattern: /numero.*caso|caso.*numero/i }], f.caseNumber);
-    fillAnyImmediate([{ name: "_partial_Falcon.EcTransacao" }, { pattern: /ecTransacao|estabelecimento|tipoTransacao/i }], ecValue);
-    fillAnyImmediate([{ name: "_partial_Falcon.RegraListada" }, { pattern: /regra.*list/i }], f.rule);
-    fillAnyImmediate([{ id: "txt_obs" }, { name: "_partial_Falcon.Observacao" }, { pattern: /observa|descricao|comentario/i, selector: "textarea,input" }], tabulationText);
+    const fields = [
+      {
+        label: "Valor da transação",
+        value: transactionValue,
+        targets: [{ id: "txt_ValorTransacao" }, { name: "_partial_Falcon.ValorTransacao" }, { pattern: /valor.*transa/i }]
+      },
+      {
+        label: "Número do caso",
+        value: f.caseNumber,
+        targets: [{ name: "_partial_Falcon.NumeroCaso" }, { id: "txt_NumeroCaso" }, { pattern: /numero.*caso|caso.*numero/i }]
+      },
+      {
+        label: "Estabelecimento",
+        value: ecValue,
+        targets: [{ name: "_partial_Falcon.EcTransacao" }, { pattern: /ecTransacao|estabelecimento|tipoTransacao/i }]
+      },
+      {
+        label: "Regra",
+        value: f.rule,
+        targets: [{ name: "_partial_Falcon.RegraListada" }, { pattern: /regra.*list/i }]
+      },
+      { label: "Observações", value: tabulationText, targets: defaultObservationTargets() }
+    ];
     if (f.transactionDate?.includes("/")) {
       const [date, time] = f.transactionDate.split(/\s+/);
-      if (date) fillAnyImmediate([{ id: "txt_data_entrada" }, { name: "_partial_Falcon.DataEntrada" }, { pattern: /data.*entrada/i }], date.split("/").reverse().join("-"));
-      if (time) fillAnyImmediate([{ id: "txt_hora_entrada" }, { name: "_partial_Falcon.HoraEntrada" }, { pattern: /hora.*entrada/i }], trimTimeToMinute(time));
+      if (date) fields.push({
+        label: "Data de entrada",
+        value: date.split("/").reverse().join("-"),
+        targets: [{ id: "txt_data_entrada" }, { name: "_partial_Falcon.DataEntrada" }, { pattern: /data.*entrada/i }]
+      });
+      if (time) fields.push({
+        label: "Hora de entrada",
+        value: trimTimeToMinute(time),
+        targets: [{ id: "txt_hora_entrada" }, { name: "_partial_Falcon.HoraEntrada" }, { pattern: /hora.*entrada/i }]
+      });
     }
+    return fields;
+  }
+  function primeTabulatorFields(data, decision, tabulationText) {
+    if (!tabulatorWriteEnabled) return;
+    tabulatorTextFieldPlan(data, tabulationText).forEach(({ targets, value }) => fillAnyImmediate(targets, value));
+  }
+  async function confirmTabulatorTextFields(data, tabulationText, isActive = () => true) {
+    const checked = [];
+    const missing = [];
+    for (const field of tabulatorTextFieldPlan(data, tabulationText)) {
+      if (isMissing(field.value)) continue;
+      checked.push(field.label);
+      if (!anyTargetMatches(field.targets, field.value)) {
+        await forceFillAny(field.targets, field.value, 7, 16, isActive);
+      }
+      if (!canWriteTabulator(isActive)) return { checked, missing, cancelled: true };
+      if (!anyTargetMatches(field.targets, field.value)) missing.push(field.label);
+    }
+    return { checked, missing, cancelled: false };
   }
   function fillObservationText(text) {
     if (!tabulatorWriteEnabled) return false;
@@ -4634,6 +4845,13 @@
     (dropdownAudit.checked || []).forEach(removePending);
     (dropdownAudit.missing || []).forEach(addPending);
 
+    primeTabulatorFields(data, decision, tabulationText);
+    fillObservationText(tabulationText);
+    const textAudit = await confirmTabulatorTextFields(data, tabulationText, isActive);
+    if (textAudit.cancelled || !isActive()) return { ok: false, pending: [], cancelled: true };
+    (textAudit.checked || []).forEach(removePending);
+    (textAudit.missing || []).forEach(addPending);
+
     const documentPending = await verifyDocumentAfterPageValidation(data, isActive);
     if (!documentPending.length) {
       removePending("CPF/CNPJ");
@@ -4693,16 +4911,25 @@
     return Math.max(0, ...falconNames.map((name) => issuerNameScore(name, target, 42, 24)));
   }
   let issuerDirectoryCache = null;
+  let issuerDirectoryPromise = null;
   async function loadIssuerDirectory() {
     if (issuerDirectoryCache) return issuerDirectoryCache;
+    if (issuerDirectoryPromise) return issuerDirectoryPromise;
+    issuerDirectoryPromise = (async () => {
+      try {
+        const url = new URL("issuer-directory.json", scriptUrl.href);
+        const response = await fetch(url.href, { cache: "no-store" });
+        issuerDirectoryCache = response.ok ? await response.json() : [];
+      } catch (_err) {
+        issuerDirectoryCache = [];
+      }
+      return issuerDirectoryCache;
+    })();
     try {
-      const url = new URL("issuer-directory.json", scriptUrl.href);
-      const response = await fetch(url.href, { cache: "no-store" });
-      issuerDirectoryCache = response.ok ? await response.json() : [];
-    } catch (_err) {
-      issuerDirectoryCache = [];
+      return await issuerDirectoryPromise;
+    } finally {
+      issuerDirectoryPromise = null;
     }
-    return issuerDirectoryCache;
   }
   async function issuerIdForName(issuer) {
     const direct = digitsOnly(issuer);
@@ -4812,20 +5039,10 @@
       .sort((a, b) => Number(b.updatedAt || b.savedAt || 0) - Number(a.updatedAt || a.savedAt || 0))
       .slice(0, 300);
   }
-  async function hydrateListClipboardFast(hasLocalItems, mode = "fast") {
-    if (!memory.hydrateFromClipboard) return;
-    // Reconcilia o envelope mais recente antes de exibir a fila completa.
-    const timeout = mode === "full" ? 3200 : hasLocalItems ? 1200 : 1600;
-    await memory.hydrateFromClipboard({ timeoutMs: timeout }).catch(() => null);
-  }
   async function readListQueue(options = {}) {
     if (options.waitForPending !== false) await waitForListMutations();
     memory.state?.get?.() || memory.mergeCurrentMirrors?.();
-    let merged = validPendingListItems(memory.lists.all());
-    if (options.hydrateClipboard !== false) {
-      await hydrateListClipboardFast(Boolean(merged.length), options.hydrateClipboard === "full" ? "full" : "fast");
-      merged = validPendingListItems([...merged, ...memory.lists.all()]);
-    }
+    const merged = validPendingListItems(memory.lists.all());
     memory.lists.reconcile(validPendingListItems(merged));
     return validPendingListItems(memory.lists.all());
   }
@@ -5167,25 +5384,14 @@
   }
   async function markListDone(id, listType) {
     return enqueueListMutation(async () => {
-      const original = await readListQueue({ waitForPending: false, hydrateClipboard: false });
+      const original = await readListQueue({ waitForPending: false });
       const target = original.find((item) => item.id === id);
       if (!target) return true;
       memory.lists.markDone?.(target, listType);
       const list = memory.lists.all().filter(hasPendingListApplication);
       await writeListQueue(list);
-      const stillPending = (await readListQueue({ waitForPending: false, hydrateClipboard: false })).some((item) => item.id === id && item.lists?.[listType] && !item.applied?.[listType]);
+      const stillPending = (await readListQueue({ waitForPending: false })).some((item) => item.id === id && item.lists?.[listType] && !item.applied?.[listType]);
       return !stillPending;
-    });
-  }
-  async function markListBatchDone(ids, listType) {
-    const idSet = new Set(ids);
-    return enqueueListMutation(async () => {
-      const original = await readListQueue({ waitForPending: false, hydrateClipboard: false });
-      original.filter((item) => idSet.has(item.id)).forEach((item) => memory.lists.markDone?.(item, listType));
-      const remaining = memory.lists.all().filter(hasPendingListApplication);
-      await writeListQueue(remaining);
-      const pending = await readListQueue({ waitForPending: false, hydrateClipboard: false });
-      return !pending.some((item) => idSet.has(item.id) && item.lists?.[listType] && !item.applied?.[listType]);
     });
   }
   async function removeListItem(id, listType) {
@@ -5194,11 +5400,11 @@
 
   async function removeListIssuerGroup(issuerKey, listType) {
     return enqueueListMutation(async () => {
-      const queue = await readListQueue({ waitForPending: false, hydrateClipboard: false });
+      const queue = await readListQueue({ waitForPending: false });
       const targets = queue.filter((item) => normalize(item.issuer) === issuerKey && item.lists?.[listType] && !item.applied?.[listType]);
       targets.forEach((item) => memory.lists.markDone?.(item, listType));
       await writeListQueue(memory.lists.all().filter(hasPendingListApplication));
-      const remaining = await readListQueue({ waitForPending: false, hydrateClipboard: false });
+      const remaining = await readListQueue({ waitForPending: false });
       return { ok: !remaining.some((item) => targets.some((target) => target.id === item.id) && item.lists?.[listType] && !item.applied?.[listType]), count: targets.length };
     });
   }
@@ -5256,7 +5462,7 @@
       const save = async () => {
         if (committed) return;
         committed = true;
-        const queue = await readListQueue({ hydrateClipboard: false });
+        const queue = await readListQueue();
         const target = queue.find((entry) => entry.id === itemElement.dataset.listId);
         if (!target) return renderLists(listType);
         memory.lists.markDone?.(target, listType);
@@ -5282,9 +5488,8 @@
     activeTab = activeTab || listTabFromFalconPage() || activeListTabSession;
     activeTab = LIST_TYPES.includes(activeTab) ? activeTab : "allowlist";
     activeListTabSession = activeTab;
-    // LISTAS prioriza consistência: a leitura completa impede que o caso
-    // recém-finalizado fique temporariamente oculto por um espelho antigo.
-    const queue = await readListQueue({ hydrateClipboard: "full" });
+    // A memória já reconciliou os espelhos e o envelope no início da execução.
+    const queue = await readListQueue();
     const items = await Promise.all(queue.map(async (item) => ({ ...item, issuerId: item.issuerId || await issuerIdForName(item.issuer) })));
     const visible = items
       .filter((item) => item.lists?.[activeTab] && !item.applied?.[activeTab])
@@ -5349,31 +5554,35 @@
       const issuerBatch = event.target.closest("[data-list-apply-issuer]");
       if (issuerBatch) {
         issuerBatch.disabled = true;
-        const queueNow = await readListQueue({ hydrateClipboard: false });
+        const queueNow = await readListQueue();
         const targets = queueNow.filter((item) => normalize(item.issuer) === issuerBatch.dataset.listApplyIssuer && item.lists?.[activeTab] && !item.applied?.[activeTab]);
-        const completed = [];
+        let completed = 0;
         for (const target of targets) {
           const result = await applyListItem(target, activeTab);
           if (!result.ok) {
             issuerBatch.disabled = false;
             showNotice(`O lote parou no caso ${target.caseNumber}: ${result.missing.join(", ")}.`, "error", 15000);
-            return;
+            return renderLists(activeTab);
           }
-          completed.push(target.id);
+          if (!await markListDone(target.id, activeTab)) {
+            issuerBatch.disabled = false;
+            showNotice(`O caso ${target.caseNumber} foi aplicado, mas a memória não confirmou sua baixa.`, "error", 15000);
+            return renderLists(activeTab);
+          }
+          completed += 1;
         }
-        if (!completed.length || !await markListBatchDone(completed, activeTab)) {
+        if (!completed) {
           issuerBatch.disabled = false;
-          showNotice("Os campos foram aplicados, mas a memória não confirmou todo o lote.", "error", 15000);
           return renderLists(activeTab);
         }
-        showNotice(`${completed.length} caso${completed.length === 1 ? "" : "s"} do emissor foram inseridos.`, "success");
+        showNotice(`${completed} caso${completed === 1 ? "" : "s"} do emissor foram inseridos.`, "success");
         return renderLists(activeTab);
       }
       const itemEl = event.target.closest("[data-list-id]");
       if (!itemEl) return;
       const id = itemEl.dataset.listId;
       const listType = itemEl.dataset.listType;
-      const item = (await readListQueue({ hydrateClipboard: false })).find((entry) => entry.id === id);
+      const item = (await readListQueue()).find((entry) => entry.id === id);
       if (!item) return;
       if (event.target.closest("[data-list-remove]")) {
         if (!await removeListItem(id, listType)) {
@@ -5519,7 +5728,9 @@
       const button = event.target.closest("[data-history-id]");
       if (!button) return;
       const item = readHistory().find((entry) => entry.id === button.dataset.historyId);
-      if (item) showHistoryDetail(item);
+      if (!item) return;
+      all("[data-history-id]", listEl).forEach((entry) => entry.classList.toggle("active", entry === button));
+      showHistoryDetail(item);
     });
   }
 

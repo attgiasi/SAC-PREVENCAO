@@ -14,6 +14,7 @@ assert.equal(release.build, "12.0");
 assert.match(release.commit, /^[a-f0-9]{40}$/);
 assert.match(bookmarkletLoaderRef, /^[a-f0-9]{40}$/, "o favorito deve fixar um loader imutável e válido");
 assert.match(source, /async function latestCommit\(\)/, "o loader imutável deve resolver a revisão atual do código-fonte");
+assert.match(source, /"\.sac-pid-panel"/, "o carregador deve remover um PID órfão antes da nova execução");
 
 async function executeLoader(fetchImpl) {
   const loaded = [];

@@ -2,7 +2,7 @@
 
 ## Estado da versão
 
-A V12 é uma versão de teste isolada. Use somente o favorito dedicado em `bookmarklet-v12.txt` enquanto ela estiver em homologação. O favorito universal permanece inalterado.
+A V12 é a versão ativa. O favorito universal e o favorito dedicado em `bookmarklet-v12.txt` carregam esta mesma versão.
 
 ## Arquivos
 
@@ -35,6 +35,15 @@ Os dados do caso atravessam as páginas por três meios coordenados:
 3. envelope HTML transportado pela área de transferência.
 
 O caso temporário expira em 12 horas. Configurações, Histórico e pendências de LISTAS possuem armazenamento próprio.
+Toda cópia feita enquanto a automação estiver ativa preserva o envelope da V12 sem alterar o texto visível copiado. Assim, copiar outra informação entre duas etapas não descarta o caso, o Histórico nem as pendências de LISTAS.
+
+## Modo invisível
+
+O modo invisível é uma configuração compartilhada entre as etapas:
+
+- no Falcon, coleta e transfere automaticamente um caso válido, mostrando apenas uma confirmação discreta;
+- no Console, mostra somente as chaves de chamada/JIRA e os dropdowns de análise;
+- no Tabulador, mantém a janela completa de análise e decisão.
 
 ## Fluxos
 
@@ -83,6 +92,8 @@ Os dois dropdowns de análise mantêm estas opções:
 
 As chaves `JIRA`, `Com chamada` e `Com sucesso` ficam no Console.
 
+Ao ligar `JIRA`, o campo de chamado aparece tanto no modo normal quanto no modo invisível. Links completos são reduzidos para `SERVICO-12345` ou `INCIDENTE-12345`, e essa referência entra na tabulação pronta.
+
 - JIRA desligado e sem chamada: `SEM CONTATO - PLANILHA` + `SEM CHAMADA`.
 - JIRA desligado e com chamada: `ATIVA - PLANILHA` + resultado escolhido.
 - JIRA ligado e sem chamada: `SEM CONTATO - FILA` + `SEM CHAMADA`.
@@ -94,8 +105,8 @@ JIRA com chamada não abre PID. Uma chamada comum abre o PID.
 
 O PID usa os dados da página atual do Console e uma coluna por informação.
 
-- Pessoa física: busca `Nome do Cliente` na página inicial.
-- Pessoa jurídica: em `Pessoas > Sócio`, busca o nome completo do responsável e o CPF dele.
+- Pessoa física: prioriza nome e CPF do bloco `Sócio` quando ele estiver aberto e usa os dados da página inicial como alternativa.
+- Pessoa jurídica: em `Pessoas > Sócio`, busca o nome completo do responsável e o CPF dele dentro do próprio bloco.
 - AMIGOZ mantém seu roteiro específico.
 - Um dado ausente recebe um botão de recarga que procura somente aquele item.
 - Ao minimizar ou finalizar o Console, o PID acompanha a janela principal.
@@ -236,11 +247,12 @@ O modo é opcional e não decide o caso.
 - Valor baixo/teste seguido rapidamente por valor alto gera atenção.
 - Valor alto seguido por valor baixo não é classificado sozinho como teste suspeito.
 - Triangulação só aparece quando houver entrada e saída efetivas de valores semelhantes em até 10 minutos.
+- Em CARTÃO, uma transação aprovada com chip e senha somente é considerada um sinal favorável quando ocorrer depois da transação alertada.
 - Particularidades do emissor ficam no painel Ajuda, sem duplicar os alertas transacionais.
 
 ## Configurações
 
-Tema, modo seguro, investigação, ajuda, fonte, assinatura e cores são compartilhados entre Falcon, Console e Tabulador.
+Tema, modo seguro, modo invisível, investigação, ajuda, fonte, assinatura e cores são compartilhados entre Falcon, Console e Tabulador.
 
 Os botões `A-` e `A+`, além dos atalhos `-` e `+`, alteram a fonte das janelas principais, PID, Histórico, Configurações e investigação sem fechar o painel aberto.
 
@@ -277,12 +289,12 @@ node --check sac-prevencao-v12.js
 node --test tests/*.test.cjs
 ```
 
-O teste geral em `../tests/universal-production.test.cjs` confirma que o favorito universal permanece inalterado durante a homologação.
+O teste geral em `../tests/universal-production.test.cjs` confirma que o favorito universal direciona para a V12.
 
-## Instalação para teste
+## Instalação
 
 1. Publique todos os arquivos da V12 na mesma revisão do repositório.
 2. Atualize `release-v12.json` para a revisão publicada. O loader consulta primeiro a revisão mais recente da branch e usa o manifesto como segunda fonte.
 3. Crie o favorito no Chrome uma única vez com o conteúdo de `bookmarklet-v12.txt`. Ele aponta para um loader imutável e não precisa ser recriado a cada ajuste do código-fonte.
 4. Altere `bookmarklet-v12.txt` ou a revisão segura do loader somente quando a arquitetura do próprio carregador mudar.
-5. Não substitua o favorito universal até a aprovação explícita da V12.
+5. O favorito universal já direciona para este loader; não é necessário recriá-lo quando apenas o código-fonte for atualizado.

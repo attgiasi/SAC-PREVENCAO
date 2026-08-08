@@ -5,6 +5,7 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "sac-prevencao-v12.js"), "utf8");
 const media = fs.readFileSync(path.join(root, "sac-media-v12.js"), "utf8");
+const preview = fs.readFileSync(path.join(root, "preview.html"), "utf8");
 
 assert.match(source, /const BUILD_VERSION = "12\.0"/);
 assert.match(source, />Modo investigação</);
@@ -18,7 +19,7 @@ assert.match(source, /\.sac-investigation-launcher\.sac-help-launcher\{top:84px\
 assert.match(source, /\.sac-investigation-launcher\.sac-help-launcher\.sac-solo-launcher\{top:48px\}/);
 assert.doesNotMatch(source, /requestAnimationFrame\(\(\) => toggleDrawer/);
 assert.doesNotMatch(source, /getInvestigationMode\(\) \? transactionEngine\.collectFalconTransactions/);
-assert.match(source, /attachInvestigationLauncher\(panel, "FALCON", data, \(\) => transactionEngine\.collectFalconTransactions/);
+assert.match(source, /attachInvestigationLauncher\(panel, "FALCON", data, falconRowsSource\)/);
 assert.match(source, /\["FALCON", "CONSOLE", "TABULADOR"\]\.includes\(stage\)/);
 assert.match(source, /attachInvestigationLauncher\(panel, "CONSOLE", data\)/);
 assert.match(source, /attachInvestigationLauncher\(panel, "TABULADOR", data\)/);
@@ -43,8 +44,16 @@ assert.match(source, /sac-launcher-icon/);
 assert.match(source, /aria-expanded/);
 assert.match(source, /const preferredLeft = rect\.left - width - 4/);
 assert.match(source, /sidePanel\.dataset\.sidePosition = opensLeft \? "left" : "right"/);
-assert.match(source, /\.sac-investigation-collapse\{position:absolute;left:-39px/);
+assert.match(source, /\.sac-investigation-collapse\{position:static;left:auto;top:auto/);
+assert.match(source, /sac-investigation-collapse-label">Recolher/);
 assert.match(source, /sac-launcher-open/);
+assert.match(source, /function attachInvisibleToolHub/);
+assert.match(source, /data-invisible-tool="investigation"/);
+assert.match(source, /data-invisible-tool="config"/);
+assert.match(source, /data-invisible-tool="history"/);
+assert.match(source, /attachInvisibleToolHub\(toolsPanel, "FALCON", data, falconRowsSource, \{ standalone: true \}\)/);
+assert.match(source, /if \(getInvisibleMode\(\)\) attachInvisibleToolHub\(panel, "CONSOLE", data\)/);
+assert.match(source, /owner\?\.__sacInvestigationApi\?\.close/);
 assert.doesNotMatch(source, /Transacionando com/);
 assert.match(source, /P2P Emissor/);
 assert.match(source, /P2P Pessoal/);
@@ -86,5 +95,13 @@ assert.match(media, /function collectCustomerIdentity/);
 assert.match(media, /function collectPidData/);
 assert.match(media, /queryResult_addressData/);
 assert.doesNotMatch(media, /queryResult_phoneData/);
+
+assert.match(preview, /function invisibleHub\(stage\)/);
+assert.match(preview, /invisible-active invisible-anchor/);
+assert.match(preview, /data-invisible-tools-toggle/);
+assert.match(preview, /data-invisible-tool="investigation"/);
+assert.match(preview, /data-invisible-tool="config"/);
+assert.match(preview, /data-invisible-tool="history"/);
+assert.match(preview, /investigation-collapse-label">Recolher/);
 
 console.log("OK - investigação e ajuda independentes na V12 validadas");

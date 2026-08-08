@@ -45,6 +45,8 @@ O modo invisível é uma configuração compartilhada entre as etapas:
 - no Console, mostra somente as chaves de chamada/JIRA e os dropdowns de análise;
 - no Tabulador, mantém a janela completa de análise e decisão.
 
+No Falcon e no Console, um botão discreto de ferramentas permanece disponível durante o modo invisível. Ele abre, quando necessário, `Analisar`, `Configurações` ou `Histórico`, sem desligar o modo invisível. O painel de análise possui o botão `Recolher` na própria barra superior e também pode ser recolhido com `Esc`.
+
 ## Fluxos
 
 ### CARTÃO

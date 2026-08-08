@@ -86,8 +86,9 @@ assert.match(runtime, /const width = configPanel\.offsetWidth \|\| 360;[\s\S]+?c
 assert.match(runtime, /const tombstones = memory\.lists\.tombstones\?\.\(\) \|\| \[\]/);
 assert.match(runtime, /function closeAuxiliaryPanels[\s\S]+?\.sac-choice-popover/);
 assert.doesNotMatch(runtime, /getInvestigationMode\(\)\s*\? transactionEngine\.collectFalconTransactions/);
-assert.match(runtime, /attachInvestigationLauncher\(panel, "FALCON", data, \(\) => transactionEngine\.collectFalconTransactions/);
-assert.match(runtime, /if \(getInvisibleMode\(\)\) \{\s*await save\(\{ invisible: true \}\);\s*return;/);
+assert.match(runtime, /attachInvestigationLauncher\(panel, "FALCON", data, falconRowsSource\)/);
+assert.match(runtime, /if \(getInvisibleMode\(\)\) \{\s*const saved = await save\(\{ invisible: true \}\);/);
+assert.match(runtime, /attachInvisibleToolHub\(toolsPanel, "FALCON", data, falconRowsSource, \{ standalone: true \}\)/);
 assert.match(runtime, /const body = getInvisibleMode\(\)/);
 assert.match(runtime, /const CARD_REVIEW = \["não", "sim", "reconhece a compra", "autofinanciamento", "ausência de dados"\]/);
 assert.match(runtime, /data-history-flow/);

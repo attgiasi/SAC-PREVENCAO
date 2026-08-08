@@ -1013,6 +1013,8 @@
       .sac-investigation-launcher{position:absolute;left:-92px;top:48px;z-index:1;width:92px;height:32px;display:grid;grid-template-columns:16px minmax(0,1fr) 11px;align-items:center;gap:5px;border:1px solid var(--sac-border);border-right:0;border-left:3px solid var(--sac-primary);border-radius:9px 0 0 9px;background:var(--sac-panel);color:var(--sac-text);padding:0 6px;box-shadow:-8px 8px 24px rgba(0,0,0,.30),inset 0 1px rgba(255,255,255,.08);font-size:9.5px;font-weight:950;line-height:1;letter-spacing:0;cursor:pointer;transition:opacity .14s ease,transform .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease}.sac-investigation-launcher.sac-help-launcher{top:84px}.sac-investigation-launcher.sac-help-launcher.sac-solo-launcher{top:48px}.sac-investigation-launcher.sac-launcher-open{opacity:0;pointer-events:none;transform:translateX(-5px)}.sac-investigation-launcher:hover,.sac-investigation-launcher:focus-visible{filter:none;transform:translateX(-2px);border-color:#38bdf8;border-left-color:var(--sac-primary);background:var(--sac-input);box-shadow:-10px 9px 28px rgba(0,0,0,.36),0 0 0 2px rgba(56,189,248,.16);outline:none}.sac-launcher-chevron{display:grid;place-items:center;color:var(--sac-muted);font:950 18px/1 "Segoe UI Symbol","Segoe UI",Arial,sans-serif;font-style:normal}.sac-investigation-launcher:hover .sac-launcher-chevron{color:var(--sac-text)}.sac-investigation-drawer,.sac-help-drawer{width:332px;border:1px solid var(--sac-border);border-left:3px solid var(--sac-primary);border-right:2px solid var(--sac-primary);border-top-width:1px;border-radius:10px 4px 4px 10px;background:var(--sac-bg);box-shadow:0 22px 54px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.05)}.sac-investigation-head{position:relative;display:grid;grid-template-columns:30px minmax(0,1fr);align-items:center;gap:8px;min-height:48px;padding:7px 8px;background:var(--sac-panel);border-bottom:1px solid var(--sac-border);border-radius:7px 2px 0 0;color:var(--sac-text)}.sac-investigation-head:after{content:"";position:absolute;left:38px;right:10px;bottom:-1px;height:1px;background:var(--sac-primary);opacity:.75}.sac-investigation-mark{position:relative;display:grid;width:28px;height:28px;place-items:center;border:1px solid color-mix(in srgb,var(--sac-primary) 70%,var(--sac-border));border-radius:7px;background:color-mix(in srgb,var(--sac-primary) 12%,var(--sac-input))}.sac-investigation-mark:before,.sac-investigation-mark:after{content:"";position:absolute;background:var(--sac-primary);opacity:.8}.sac-investigation-mark:before{width:12px;height:1px}.sac-investigation-mark:after{width:1px;height:12px}.sac-investigation-mark i{display:block;width:7px;height:7px;border:2px solid var(--sac-primary);border-radius:999px}.sac-investigation-heading{display:grid;gap:2px;min-width:0;text-align:left}.sac-investigation-heading strong{font-size:11.5px;line-height:1;color:var(--sac-text)}.sac-investigation-heading small{font-size:8.5px;line-height:1;color:var(--sac-muted);font-weight:900;text-transform:uppercase}.sac-investigation-collapse{position:absolute;left:-39px;top:8px;z-index:3;display:grid;width:34px;height:34px;place-items:center;border:1px solid var(--sac-border);border-right:3px solid var(--sac-primary);border-radius:9px 4px 4px 9px;background:var(--sac-panel);color:var(--sac-text);padding:0;cursor:pointer;box-shadow:-8px 8px 22px rgba(0,0,0,.28);transition:border-color .15s ease,background .15s ease,transform .15s ease}.sac-investigation-chevron{display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:color-mix(in srgb,var(--sac-primary) 18%,var(--sac-input));font:950 25px/1 "Segoe UI Symbol","Segoe UI",Arial,sans-serif;transform:translateX(1px)}.sac-investigation-collapse:hover,.sac-investigation-collapse:focus-visible{border-color:#38bdf8;border-right-color:var(--sac-primary);background:#10263a;color:#edf3fb;transform:translateX(1px);box-shadow:-8px 8px 24px rgba(0,0,0,.34),0 0 0 2px rgba(56,189,248,.14);outline:none}.sac-light .sac-investigation-collapse:hover,.sac-light .sac-investigation-collapse:focus-visible{background:#eef7ff;color:#172033}.sac-book-guidance{padding:5px;border:1px solid color-mix(in srgb,var(--sac-primary) 28%,var(--sac-border));border-radius:7px;background:color-mix(in srgb,var(--sac-primary) 5%,var(--sac-panel))}.sac-book-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.sac-book-grid .sac-side-card{min-height:54px;display:flex;align-items:center}.sac-book-grid .sac-side-card span{line-height:1.2}
       .sac-list-group-actions{display:flex;align-items:center;gap:4px}.sac-list-group-actions button{font-size:8.5px!important;padding:5px 6px!important}.sac-list-group-actions [data-list-remove-issuer]{background:#991b1b!important;border-color:#f87171!important}.sac-list-group-actions button:disabled{opacity:.58;cursor:wait}
       .sac-investigation-controls button{font-size:calc(8.8px * var(--sac-font-scale))}.sac-investigation-controls button span{font-size:calc(8.5px * var(--sac-font-scale))}.sac-investigation-controls .sac-investigation-cnpj{font-size:calc(8.8px * var(--sac-font-scale))}.sac-investigation-heading strong{font-size:calc(11.5px * var(--sac-font-scale))}.sac-investigation-heading small{font-size:calc(8.5px * var(--sac-font-scale))}.sac-transaction-metric strong,.sac-merchant-card>strong{font-size:calc(10px * var(--sac-font-scale))!important}.sac-merchant-meta i{font-size:calc(8.5px * var(--sac-font-scale))}
+      .sac-investigation-head{grid-template-columns:30px minmax(0,1fr) auto}.sac-investigation-head:after{right:92px}.sac-investigation-collapse{position:static;left:auto;top:auto;width:auto;min-width:82px;height:30px;display:grid;grid-template-columns:18px auto;gap:4px;border:1px solid var(--sac-border);border-right:1px solid var(--sac-primary);border-radius:7px;box-shadow:none;padding:0 7px;font-size:9px;font-weight:950}.sac-investigation-collapse:hover,.sac-investigation-collapse:focus-visible{transform:none;box-shadow:0 0 0 2px rgba(56,189,248,.14)}.sac-investigation-collapse .sac-investigation-chevron{width:18px;height:18px;font-size:18px;transform:none}.sac-investigation-collapse-label{white-space:nowrap}
+      .sac-invisible-active>.sac-head>.sac-actions [data-action="config"],.sac-invisible-active>.sac-head>.sac-actions [data-action="history"]{display:none}.sac-panel.sac-minimized .sac-invisible-hub{display:none}.sac-invisible-hub{position:absolute;left:-42px;top:48px;z-index:6;width:38px;font-family:Inter,Segoe UI,Arial,sans-serif}.sac-invisible-hub-toggle{width:38px;height:38px;display:grid;place-items:center;border:1px solid var(--sac-border);border-right:3px solid var(--sac-primary);border-radius:9px 4px 4px 9px;background:var(--sac-panel);color:var(--sac-text);padding:0;cursor:pointer;box-shadow:-8px 8px 22px rgba(0,0,0,.28);font-size:20px;font-weight:950;line-height:1}.sac-invisible-hub-toggle:hover,.sac-invisible-hub-toggle:focus-visible,.sac-invisible-hub.open .sac-invisible-hub-toggle{border-color:#38bdf8;border-right-color:var(--sac-primary);background:#10263a;color:#edf3fb;box-shadow:-8px 8px 24px rgba(0,0,0,.34),0 0 0 2px rgba(56,189,248,.14);outline:none}.sac-light .sac-invisible-hub-toggle:hover,.sac-light .sac-invisible-hub-toggle:focus-visible,.sac-light .sac-invisible-hub.open .sac-invisible-hub-toggle{background:#eef7ff;color:#172033}.sac-invisible-hub-menu{position:absolute;top:43px;right:0;width:132px;display:grid;gap:4px;padding:5px;border:1px solid var(--sac-border);border-radius:8px;background:var(--sac-bg);box-shadow:0 14px 32px rgba(0,0,0,.34)}.sac-invisible-hub-menu[hidden]{display:none}.sac-invisible-hub-menu button{min-height:32px;display:grid;grid-template-columns:22px minmax(0,1fr);align-items:center;gap:5px;border:1px solid var(--sac-border);border-radius:6px;background:var(--sac-card);color:var(--sac-text);padding:5px 6px;text-align:left;font-size:9.5px;font-weight:950;cursor:pointer}.sac-invisible-hub-menu button span{display:grid;width:20px;height:20px;place-items:center;border-radius:5px;background:var(--sac-primary);color:#fff}.sac-invisible-hub-menu button:hover,.sac-invisible-hub-menu button:focus-visible{border-color:#38bdf8;background:#10263a;color:#edf3fb;outline:none}.sac-light .sac-invisible-hub-menu button:hover,.sac-light .sac-invisible-hub-menu button:focus-visible{background:#eef7ff;color:#172033}.sac-invisible-anchor{border:0!important;border-top:0!important;background:transparent!important;box-shadow:none!important}.sac-invisible-anchor>.sac-head{width:42px;height:42px;padding:0;background:transparent;cursor:default;overflow:visible}.sac-invisible-anchor>.sac-head>div:first-child,.sac-invisible-anchor>.sac-head>.sac-actions,.sac-invisible-anchor>.sac-body{display:none!important}.sac-invisible-anchor .sac-invisible-hub{position:relative;left:auto;top:auto;width:42px}.sac-invisible-anchor .sac-invisible-hub-toggle{width:42px;height:42px;border-right-width:1px;border-left:3px solid var(--sac-primary);border-radius:9px}.sac-invisible-anchor .sac-invisible-hub-menu{right:0}
       @media (max-width:460px){.sac-grid,.sac-field-grid{grid-template-columns:1fr}.sac-history-body{grid-template-columns:1fr}.sac-book-grid{grid-template-columns:1fr}}
     `;
     document.head.appendChild(style);
@@ -1082,6 +1084,7 @@
       button.classList.remove("sac-launcher-open");
       button.setAttribute("aria-expanded", "false");
     }));
+    owners.forEach((owner) => owner.querySelector("[data-invisible-tool='investigation']")?.setAttribute("aria-expanded", "false"));
     if (!ownerId || ownerId === "sac-panel-console") placePidPanel();
   }
   function placeSidePanel(ownerPanel, sidePanel) {
@@ -1426,7 +1429,9 @@
   function closeTopSacWindow() {
     const side = all(".sac-side-panel").at(-1);
     if (side) {
-      side.remove();
+      const owner = byId(side.dataset.owner);
+      if (owner?.__sacInvestigationApi?.close) owner.__sacInvestigationApi.close();
+      else side.remove();
       return true;
     }
     const popover = all(".sac-choice-popover").at(-1);
@@ -2677,9 +2682,22 @@
       byId("sac-panel-falcon")?.remove();
       return true;
     };
+    const falconRowsSource = () => transactionEngine.collectFalconTransactions({
+      root: document,
+      transactionType: data.sourceTransactionType || data.transactionType
+    });
     if (getInvisibleMode()) {
-      await save({ invisible: true });
-      return;
+      const saved = await save({ invisible: true });
+      if (saved) {
+        const toolsPanel = renderPanel({
+          id: "sac-panel-falcon",
+          stage: "FALCON",
+          flow: data.visualFlow,
+          subtitle: "Coleta concluída · modo invisível"
+        });
+        attachInvisibleToolHub(toolsPanel, "FALCON", data, falconRowsSource, { standalone: true });
+        return;
+      }
     }
     const body = section("Dados do Falcon", falconGrid(data), FLOW[data.visualFlow]?.label || "BANKING");
     const panel = renderPanel({
@@ -2692,10 +2710,8 @@
       onEnter: save
     });
     byId("sac-save-falcon")?.addEventListener("click", save);
-    attachInvestigationLauncher(panel, "FALCON", data, () => transactionEngine.collectFalconTransactions({
-      root: document,
-      transactionType: data.sourceTransactionType || data.transactionType
-    }));
+    if (getInvisibleMode()) attachInvisibleToolHub(panel, "FALCON", data, falconRowsSource);
+    else attachInvestigationLauncher(panel, "FALCON", data, falconRowsSource);
     enableManualGridEditing(panel, data);
   }
 
@@ -2867,12 +2883,15 @@
     ].filter(Boolean).join("");
   }
 
-  function attachInvestigationLauncher(ownerPanel, stage, data, rowsSource = []) {
-    if (!ownerPanel || (!getInvestigationMode() && !getHelpMode()) || !["FALCON", "CONSOLE", "TABULADOR"].includes(stage)) return;
+  function attachInvestigationLauncher(ownerPanel, stage, data, rowsSource = [], options = {}) {
+    const forceInvestigation = options.forceInvestigation === true;
+    const suppressLaunchers = options.suppressLaunchers === true;
+    const investigationEnabled = getInvestigationMode() || forceInvestigation;
+    if (!ownerPanel || (!investigationEnabled && !getHelpMode()) || !["FALCON", "CONSOLE", "TABULADOR"].includes(stage)) return null;
     ownerPanel.querySelectorAll(".sac-investigation-launcher").forEach((item) => item.remove());
     let launcher = null;
     let helpLauncher = null;
-    if (getInvestigationMode()) {
+    if (investigationEnabled && !suppressLaunchers) {
       launcher = document.createElement("button");
       launcher.className = "sac-investigation-launcher";
       launcher.type = "button";
@@ -2882,7 +2901,7 @@
       launcher.innerHTML = `<span class="sac-launcher-icon" aria-hidden="true">⌁</span><span>Analisar</span><i class="sac-launcher-chevron" aria-hidden="true">‹</i>`;
       ownerPanel.appendChild(launcher);
     }
-    if (getHelpMode()) {
+    if (getHelpMode() && !suppressLaunchers) {
       helpLauncher = document.createElement("button");
       helpLauncher.className = `sac-investigation-launcher sac-help-launcher${launcher ? "" : " sac-solo-launcher"}`;
       helpLauncher.type = "button";
@@ -2899,6 +2918,7 @@
       helpLauncher?.setAttribute("aria-expanded", "false");
       launcher?.classList.remove("sac-launcher-open");
       helpLauncher?.classList.remove("sac-launcher-open");
+      ownerPanel.querySelector("[data-invisible-tool='investigation']")?.setAttribute("aria-expanded", "false");
       releaseInvestigationSession(data);
       if (ownerPanel.id === "sac-panel-console") placePidPanel();
     };
@@ -2927,7 +2947,7 @@
         <div class="sac-investigation-head">
           <span class="sac-investigation-mark" aria-hidden="true"><i></i></span>
           <span class="sac-investigation-heading"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(stage)} · ${escapeHtml(flowLabel)}</small></span>
-          <button class="sac-investigation-collapse" data-collapse-investigation aria-label="Recolher painel" title="Recolher painel"><span class="sac-investigation-chevron" aria-hidden="true">›</span></button>
+          <button class="sac-investigation-collapse" data-collapse-investigation aria-label="Recolher painel" title="Recolher painel"><span class="sac-investigation-chevron" aria-hidden="true">›</span><span class="sac-investigation-collapse-label">Recolher</span></button>
         </div>
         <div class="sac-side-body">${content}</div>`;
       document.body.appendChild(drawer);
@@ -2957,6 +2977,7 @@
       helpLauncher?.setAttribute("aria-expanded", "false");
       launcher?.classList.add("sac-launcher-open");
       helpLauncher?.classList.add("sac-launcher-open");
+      ownerPanel.querySelector("[data-invisible-tool='investigation']")?.setAttribute("aria-expanded", "true");
       const runAction = async (button) => {
         if (!button || button.disabled) return;
         button.disabled = true;
@@ -2995,6 +3016,69 @@
     };
     launcher?.addEventListener("click", toggleDrawer);
     helpLauncher?.addEventListener("click", toggleHelp);
+    const api = Object.freeze({ toggleInvestigation: toggleDrawer, toggleHelp, close: closeCurrentDrawer });
+    ownerPanel.__sacInvestigationApi = api;
+    return api;
+  }
+
+  function attachInvisibleToolHub(ownerPanel, stage, data, rowsSource = [], options = {}) {
+    if (!ownerPanel || !["FALCON", "CONSOLE"].includes(stage)) return null;
+    ownerPanel.classList.add("sac-invisible-active");
+    ownerPanel.querySelector(".sac-invisible-hub")?.remove();
+    if (options.standalone) {
+      ownerPanel.classList.add("sac-invisible-anchor");
+      ["inline-size", "width", "min-inline-size", "min-width", "max-inline-size", "max-width"]
+        .forEach((property) => ownerPanel.style.setProperty(property, "42px", "important"));
+    }
+
+    const hub = document.createElement("div");
+    hub.className = "sac-invisible-hub";
+    hub.innerHTML = `
+      <button type="button" class="sac-invisible-hub-toggle" data-invisible-tools-toggle aria-expanded="false" aria-label="Abrir ferramentas" title="Abrir ferramentas">⋯</button>
+      <div class="sac-invisible-hub-menu" data-invisible-tools-menu hidden>
+        <button type="button" data-invisible-tool="investigation" aria-expanded="false"><span aria-hidden="true">⌁</span>Analisar</button>
+        <button type="button" data-invisible-tool="config"><span aria-hidden="true">⚙</span>Configurações</button>
+        <button type="button" data-invisible-tool="history"><span aria-hidden="true">◷</span>Histórico</button>
+      </div>`;
+    ownerPanel.querySelector(".sac-head")?.appendChild(hub);
+
+    const support = attachInvestigationLauncher(ownerPanel, stage, data, rowsSource, {
+      forceInvestigation: true,
+      suppressLaunchers: true
+    });
+    const toggle = hub.querySelector("[data-invisible-tools-toggle]");
+    const menu = hub.querySelector("[data-invisible-tools-menu]");
+    const closeMenu = () => {
+      menu.hidden = true;
+      hub.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+    };
+    toggle.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const opening = menu.hidden;
+      menu.hidden = !opening;
+      hub.classList.toggle("open", opening);
+      toggle.setAttribute("aria-expanded", opening ? "true" : "false");
+    });
+    menu.addEventListener("click", (event) => {
+      const action = event.target.closest("[data-invisible-tool]");
+      if (!action) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu();
+      if (action.dataset.invisibleTool === "investigation") support?.toggleInvestigation();
+      if (action.dataset.invisibleTool === "config") {
+        support?.close();
+        ownerPanel.__sacKeys?.openConfig?.();
+      }
+      if (action.dataset.invisibleTool === "history") {
+        support?.close();
+        renderHistory();
+      }
+    });
+    ownerPanel.__sacInvisibleHub = Object.freeze({ closeMenu });
+    return hub;
   }
 
   function mediaHolderDocument(data) {
@@ -3648,7 +3732,8 @@
       onEnter: save
     });
     byId("sac-save-console")?.addEventListener("click", save);
-    if (!getInvisibleMode()) attachInvestigationLauncher(panel, "CONSOLE", data);
+    if (getInvisibleMode()) attachInvisibleToolHub(panel, "CONSOLE", data);
+    else attachInvestigationLauncher(panel, "CONSOLE", data);
     byId("sac-jira-flag")?.addEventListener("change", (event) => {
       data.jiraActive = Boolean(event.currentTarget.checked);
       const label = event.currentTarget.closest(".sac-jira-toggle");

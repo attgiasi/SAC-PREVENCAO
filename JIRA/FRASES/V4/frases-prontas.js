@@ -7,6 +7,7 @@
   const SYNC_CHANNEL = `${STORE}:sync`;
   const SYNC_SCOPE = "jira-frases-sync-v4";
   const SYNC_FRAME_ID = `${PANEL_ID}-sync-frame`;
+  const SYNC_HUB_GLOBAL = "__jiraFrasesV4Hub";
   const SYNC_TIMEOUT = 1400;
   const CLIENT_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   const CDN_URL = "https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@main/JIRA/FRASES/V4/frases-prontas.min.js";
@@ -31,9 +32,14 @@
   let firstRun = false;
   let syncChannel = null;
   let syncFrame = null;
+  let syncHub = null;
   let syncReady = false;
+  let hubReady = false;
   let syncReadyResolve = null;
+  let hubReadyResolve = null;
   let syncReadyPromise = null;
+  let hubReadyPromise = null;
+  let hubConnectTimer = null;
   const syncRequests = new Map();
   let lastSharedRefresh = 0;
   let state = {
@@ -55,6 +61,7 @@
     addStyle();
     const base = await loadBaseData();
     setupSyncFrame();
+    setupSyncHub();
     const localData = normalizeData(read("data", null) || base);
     const localConfig = read("config", null);
     const shared = await loadSharedState();
@@ -1349,13 +1356,15 @@
   }
 
   function writeLocal(key, value) {
-    localStorage.setItem(keyOf(key), JSON.stringify(value));
+    try {
+      localStorage.setItem(keyOf(key), JSON.stringify(value));
+    } catch {}
   }
 
   function setupSyncFrame() {
     syncReady = false;
     syncReadyPromise = new Promise(resolve => { syncReadyResolve = resolve; });
-    window.addEventListener("message", onSyncFrameMessage);
+    window.addEventListener("message", onSyncMessage);
     document.getElementById(SYNC_FRAME_ID)?.remove();
     syncFrame = document.createElement("iframe");
     syncFrame.id = SYNC_FRAME_ID;
@@ -1366,11 +1375,41 @@
     document.body.appendChild(syncFrame);
   }
 
+  function setupSyncHub() {
+    hubReady = false;
+    hubReadyPromise = new Promise(resolve => { hubReadyResolve = resolve; });
+    try {
+      syncHub = window[SYNC_HUB_GLOBAL] && !window[SYNC_HUB_GLOBAL].closed ? window[SYNC_HUB_GLOBAL] : null;
+    } catch {
+      syncHub = null;
+    }
+    if (!syncHub) {
+      hubReadyResolve?.();
+      return;
+    }
+    const started = Date.now();
+    hubConnectTimer = window.setInterval(() => {
+      if (!syncHub || hubReady || Date.now() - started > 3500) {
+        clearHubConnectTimer();
+        hubReadyResolve?.();
+        return;
+      }
+      try {
+        syncHub.postMessage({ scope: SYNC_SCOPE, source: CLIENT_ID, action: "connect" }, syncTargetOrigin());
+      } catch {
+        clearHubConnectTimer();
+        syncHub = null;
+        hubReadyResolve?.();
+      }
+    }, 160);
+  }
+
   async function loadSharedState() {
     try {
-      await Promise.race([syncReadyPromise, wait(SYNC_TIMEOUT)]);
-      if (!syncReady) return null;
-      return await syncRequest("snapshot", {}, SYNC_TIMEOUT);
+      await waitForSyncReady(SYNC_TIMEOUT);
+      if (hubReady) return await syncEndpointRequest("hub", "snapshot", {}, SYNC_TIMEOUT);
+      if (syncReady) return await syncEndpointRequest("frame", "snapshot", {}, SYNC_TIMEOUT);
+      return null;
     } catch {
       return null;
     }
@@ -1386,7 +1425,14 @@
   }
 
   function syncRequest(action, payload = {}, timeout = SYNC_TIMEOUT) {
-    if (!syncReady || !syncFrame?.contentWindow) return Promise.reject(new Error("Sincronização indisponível."));
+    if (hubReady) return syncEndpointRequest("hub", action, payload, timeout);
+    if (syncReady) return syncEndpointRequest("frame", action, payload, timeout);
+    return Promise.reject(new Error("Sincronização indisponível."));
+  }
+
+  function syncEndpointRequest(endpoint, action, payload = {}, timeout = SYNC_TIMEOUT) {
+    const target = syncTarget(endpoint);
+    if (!target) return Promise.reject(new Error("Sincronização indisponível."));
     const requestId = uid("sync");
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -1394,21 +1440,43 @@
         reject(new Error("Tempo excedido na sincronização."));
       }, timeout);
       syncRequests.set(requestId, { resolve, reject, timer });
-      syncFrame.contentWindow.postMessage({ scope: SYNC_SCOPE, source: CLIENT_ID, requestId, action, ...payload }, syncTargetOrigin());
+      target.postMessage({ scope: SYNC_SCOPE, source: CLIENT_ID, requestId, action, ...payload }, syncTargetOrigin());
     });
   }
 
-  function syncSet(key, value) {
-    syncRequest("set", { key, value }).catch(() => {});
+  function syncTarget(endpoint) {
+    if (endpoint === "hub") {
+      try {
+        return syncHub && !syncHub.closed ? syncHub : null;
+      } catch {
+        return null;
+      }
+    }
+    return syncFrame?.contentWindow || null;
   }
 
-  function onSyncFrameMessage(event) {
-    if (syncFrame?.contentWindow && event.source !== syncFrame.contentWindow) return;
+  function syncSet(key, value) {
+    syncEndpointRequest("frame", "set", { key, value }).catch(() => {});
+    syncEndpointRequest("hub", "set", { key, value }).catch(() => {});
+  }
+
+  function onSyncMessage(event) {
+    const fromFrame = !!(syncFrame?.contentWindow && event.source === syncFrame.contentWindow);
+    const fromHub = !!(syncHub && event.source === syncHub);
+    if (!fromFrame && !fromHub) return;
     const message = event.data || {};
     if (message.scope !== SYNC_SCOPE || message.source === CLIENT_ID) return;
     if (message.action === "ready") {
-      syncReady = true;
-      syncReadyResolve?.();
+      if (fromHub) {
+        hubReady = true;
+        clearHubConnectTimer();
+        hubReadyResolve?.();
+        if (message.data) applyRemoteUpdate("data", message.data);
+        if (message.config) applyRemoteUpdate("config", message.config);
+      } else {
+        syncReady = true;
+        syncReadyResolve?.();
+      }
       return;
     }
     if (message.replyTo && syncRequests.has(message.replyTo)) {
@@ -1436,11 +1504,12 @@
 
   function teardownSync() {
     window.removeEventListener("storage", onStorageSync);
-    window.removeEventListener("message", onSyncFrameMessage);
+    window.removeEventListener("message", onSyncMessage);
     try {
       syncChannel?.close();
     } catch {}
     syncChannel = null;
+    clearHubConnectTimer();
     document.getElementById(SYNC_FRAME_ID)?.remove();
     syncRequests.forEach(request => {
       clearTimeout(request.timer);
@@ -1448,7 +1517,9 @@
     });
     syncRequests.clear();
     syncFrame = null;
+    syncHub = null;
     syncReady = false;
+    hubReady = false;
   }
 
   function publishSync(key, value) {
@@ -1478,7 +1549,7 @@
   }
 
   function refreshSharedState() {
-    if (!syncReady || isEditingActive()) return;
+    if ((!hubReady && !syncReady) || isEditingActive()) return;
     const now = Date.now();
     if (now - lastSharedRefresh < 900) return;
     lastSharedRefresh = now;
@@ -1486,6 +1557,19 @@
       if (snapshot?.data) applyRemoteUpdate("data", snapshot.data);
       if (snapshot?.config) applyRemoteUpdate("config", snapshot.config);
     }).catch(() => {});
+  }
+
+  function clearHubConnectTimer() {
+    if (!hubConnectTimer) return;
+    clearInterval(hubConnectTimer);
+    hubConnectTimer = null;
+  }
+
+  async function waitForSyncReady(timeout) {
+    const started = Date.now();
+    while (!hubReady && !syncReady && Date.now() - started < timeout) {
+      await wait(50);
+    }
   }
 
   function applyRemoteUpdate(key, value) {

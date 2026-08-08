@@ -11,7 +11,7 @@ Repositório de hospedagem: `attgiasi/SAC-PREVENCAO`.
 - `frases-data.json`: base universal e editável das frases.
 - `frases-prontas.js`: código fonte do painel.
 - `frases-prontas.min.js`: versão gerada com o JSON embutido.
-- `sync.html`: ponte de sincronização compartilhada entre páginas.
+- `sync.html`: ponte de sincronização e hub compartilhado entre páginas.
 - `frases-prontas-github.bookmarklet.txt`: bookmarklet pronto para copiar.
 - `gerar-bookmarklet.cjs`: gera a versão final e o bookmarklet.
 
@@ -38,7 +38,7 @@ Repositório de hospedagem: `attgiasi/SAC-PREVENCAO`.
 - Botões de editar e excluir frases e tópicos.
 - Exclusão com confirmação.
 - Exportação e importação em JSON universal.
-- Sincronização automática entre abas/janelas e páginas diferentes por meio da ponte `sync.html`.
+- Sincronização automática entre abas/janelas e páginas diferentes por meio da ponte `sync.html` e do hub compartilhado.
 - Tema claro/escuro.
 - Aumentar e diminuir fonte.
 - Atalhos: `M` minimiza ou maximiza, `P` restaura, `ESC` fecha e `A` copia a assinatura e fecha.
@@ -63,7 +63,9 @@ Quando o favorito está aberto em mais de uma aba, janela ou página, qualquer a
 - assinatura, tema, tamanho da fonte e sugestão automática;
 - contador de uso das frases copiadas.
 
-A sincronização usa uma ponte hospedada junto ao bookmarklet (`sync.html`). Cada página que abre o favorito conversa com essa ponte e mantém a mesma base de frases, assinatura, favoritos e contadores de uso. Se uma página tiver política de segurança que bloqueie iframes externos, o painel continua funcionando com cache local e volta a sincronizar quando aberto em páginas que permitam a ponte.
+A sincronização usa uma ponte hospedada junto ao bookmarklet (`sync.html`). O favorito também abre ou reutiliza uma pequena janela hub (`sync.html#hub`) para manter um ponto comum entre páginas diferentes. Mantenha essa janela aberta durante o uso: cada página conectada a ela recebe a mesma base de frases, assinatura, favoritos e contadores de uso.
+
+Se uma página bloquear iframes externos, o painel continua funcionando pelo hub. Se o navegador bloquear a abertura do hub, o painel usa cache local e a sincronização volta quando o favorito conseguir abrir a janela compartilhada.
 
 ## Sugestão Automática
 

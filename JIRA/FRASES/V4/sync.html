@@ -13,14 +13,26 @@
   const SCOPE = "jira-frases-sync-v4";
   const CHANNEL = `${STORE}:shared`;
   const CLIENT_ID = `bridge-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const clients = new Map();
+  const memory = {};
+  const isHub = location.hash.includes("hub");
   let channel = null;
+
+  if (isHub) {
+    document.body.innerHTML = [
+      '<main style="font-family:Arial,sans-serif;padding:16px;line-height:1.35;color:#172033">',
+      '<strong>Frases Prontas</strong>',
+      '<p style="margin:8px 0 0">Sincronização ativa. Mantenha esta janela aberta para refletir alterações entre páginas diferentes.</p>',
+      '</main>'
+    ].join("");
+  }
 
   try {
     channel = new BroadcastChannel(CHANNEL);
     channel.addEventListener("message", event => {
       const message = event.data || {};
       if (!message.key || message.source === CLIENT_ID) return;
-      sendToParent({ action: "update", key: message.key, value: message.value, source: message.source });
+      sendUpdate({ key: message.key, value: message.value, source: message.source });
     });
   } catch {
     channel = null;
@@ -31,24 +43,29 @@
     if (!event.key || !event.key.startsWith(`${STORE}:`)) return;
     const key = event.key.slice(STORE.length + 1);
     if (key !== "data" && key !== "config") return;
-    sendToParent({ action: "update", key, value: read(key, null), source: "storage" });
+    sendUpdate({ key, value: read(key, null), source: "storage" });
   });
 
-  sendToParent({ action: "ready" });
+  if (!isHub) sendToParent({ action: "ready" });
 
   function onMessage(event) {
     const message = event.data || {};
     if (message.scope !== SCOPE) return;
+    rememberClient(message.source, event.source);
     try {
+      if (message.action === "connect") {
+        sendTo(event.source, { action: "ready", data: read("data", null), config: read("config", null) });
+        return;
+      }
       if (message.action === "snapshot") {
-        reply(message, { data: read("data", null), config: read("config", null) });
+        reply(event.source, message, { data: read("data", null), config: read("config", null) });
         return;
       }
       if (message.action === "set") {
         const value = message.key === "config" ? mergeConfig(read("config", null), message.value) : message.value;
         write(message.key, value);
         broadcast(message.key, value, message.source);
-        reply(message, { key: message.key, value });
+        reply(event.source, message, { key: message.key, value });
         return;
       }
       if (message.action === "incrementUsage") {
@@ -57,27 +74,34 @@
         config.usage[message.phraseId] = Math.max(0, Math.floor(Number(config.usage[message.phraseId]) || 0)) + 1;
         write("config", config);
         broadcast("config", config, message.source);
-        reply(message, { key: "config", config });
+        reply(event.source, message, { key: "config", config });
         return;
       }
-      reply(message, {}, false, "Ação inválida.");
+      reply(event.source, message, {}, false, "Ação inválida.");
     } catch (error) {
-      reply(message, {}, false, error.message || "Erro inesperado.");
+      reply(event.source, message, {}, false, error.message || "Erro inesperado.");
     }
   }
 
   function read(key, fallback) {
     try {
       const raw = localStorage.getItem(`${STORE}:${key}`);
-      return raw ? JSON.parse(raw) : fallback;
+      if (raw) {
+        memory[key] = JSON.parse(raw);
+        return memory[key];
+      }
     } catch {
-      return fallback;
+      return memory[key] || fallback;
     }
+    return memory[key] || fallback;
   }
 
   function write(key, value) {
     if (key !== "data" && key !== "config") throw new Error("Chave inválida.");
-    localStorage.setItem(`${STORE}:${key}`, JSON.stringify(value));
+    memory[key] = value;
+    try {
+      localStorage.setItem(`${STORE}:${key}`, JSON.stringify(value));
+    } catch {}
   }
 
   function mergeConfig(current, incoming) {
@@ -107,18 +131,40 @@
   }
 
   function broadcast(key, value, source) {
-    sendToParent({ action: "update", key, value, source: source || CLIENT_ID });
+    sendUpdate({ key, value, source: source || CLIENT_ID });
     try {
       channel?.postMessage({ key, value, source: source || CLIENT_ID });
     } catch {}
   }
 
-  function reply(message, payload = {}, ok = true, error = "") {
-    sendToParent({ replyTo: message.requestId, ok, error, ...payload });
+  function reply(target, message, payload = {}, ok = true, error = "") {
+    sendTo(target, { replyTo: message.requestId, ok, error, ...payload });
+  }
+
+  function rememberClient(id, target) {
+    if (!id || !target) return;
+    clients.set(id, target);
+  }
+
+  function sendUpdate({ key, value, source }) {
+    const payload = { action: "update", key, value, source: source || CLIENT_ID };
+    if (!clients.size) {
+      sendToParent(payload);
+      return;
+    }
+    clients.forEach((target, id) => {
+      if (id !== source) sendTo(target, payload);
+    });
   }
 
   function sendToParent(payload) {
-    window.parent?.postMessage({ scope: SCOPE, source: CLIENT_ID, ...payload }, "*");
+    if (window.parent && window.parent !== window) sendTo(window.parent, payload);
+  }
+
+  function sendTo(target, payload) {
+    try {
+      target?.postMessage({ scope: SCOPE, source: CLIENT_ID, ...payload }, "*");
+    } catch {}
   }
 })();
 </script>

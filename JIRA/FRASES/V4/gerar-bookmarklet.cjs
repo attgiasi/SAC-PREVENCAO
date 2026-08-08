@@ -18,7 +18,7 @@ if (!source.includes(marker)) {
 }
 
 const built = source.replace(marker, `let BASE_DATA = ${JSON.stringify(data)};`);
-const bookmarklet = "javascript:(function(){var s=document.createElement('script');s.src='" + cdnUrl + "?v='+Date.now();s.charset='UTF-8';document.body.appendChild(s);}());\n";
+const bookmarklet = "javascript:(function(){var u='" + cdnUrl + "',h=u.replace(/frases-prontas(?:\\.min)?\\.js(?:\\?.*)?$/,'sync.html#hub');try{window.__jiraFrasesV4Hub=window.open(h,'jira_frases_v4_sync_hub','popup,width=360,height=240,left=24,top=24');}catch(e){}var s=document.createElement('script');s.src=u+'?v='+Date.now();s.charset='UTF-8';document.body.appendChild(s);}());\n";
 
 fs.writeFileSync(minPath, built, "utf8");
 fs.writeFileSync(bookmarkletPath, bookmarklet, "utf8");
@@ -27,6 +27,7 @@ fs.writeFileSync(configPath, [
   "Pasta correta: JIRA/FRASES/V4",
   "Dados editaveis: JIRA/FRASES/V4/frases-data.json",
   "Ponte de sincronizacao: JIRA/FRASES/V4/sync.html",
+  "Hub compartilhado: JIRA/FRASES/V4/sync.html#hub",
   "Arquivo CDN:",
   cdnUrl,
   ""

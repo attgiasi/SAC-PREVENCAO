@@ -7,7 +7,7 @@ const source = fs.readFileSync(path.join(root, "sac-prevencao-v12.js"), "utf8");
 const media = fs.readFileSync(path.join(root, "sac-media-v12.js"), "utf8");
 const preview = fs.readFileSync(path.join(root, "preview.html"), "utf8");
 
-assert.match(source, /const BUILD_VERSION = "12\.1"/);
+assert.match(source, /const BUILD_VERSION = "12\.2"/);
 assert.match(source, />Modo investigação</);
 assert.match(source, />Modo ajuda</);
 assert.match(source, /data-action="help-mode"/);

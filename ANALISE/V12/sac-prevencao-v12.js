@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V12_20260801";
   const BUILD = "ANALISE/V12";
   const BUILD_FAMILY = "12";
-  const BUILD_VERSION = "12.1";
+  const BUILD_VERSION = "12.2";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -5079,12 +5079,16 @@
     return blockedAccount || spdStatus;
   }
   function isContaSimplesIssuer(data) {
-    const issuerId = String(data?.issuerId || "").trim();
-    const issuer = normalize(data?.issuer);
-    return String(issuerId) === "155" || issuer.includes("CONTA SIMPLES") || issuer.includes("CONTASIMPLES");
+    const issuerId = digitsOnly(data?.issuerId);
+    const issuer = normalize(data?.issuer).replace(/[^A-Z0-9]/g, "");
+    return issuerId === "155" || issuer.includes("CONTASIMPLES");
   }
   function isJiraCase(data) {
-    return Boolean(data?.jiraActive);
+    const enabled = (value) => value === true || ["1", "TRUE", "ON", "SIM", "LIGADO"].includes(normalize(value));
+    const jiraReference = normalize(data?.jiraReference || data?.fields?.jiraReference);
+    return enabled(data?.jiraActive)
+      || enabled(data?.fields?.jiraActive)
+      || /(?:SERVICO|INCIDENTE)[\s_-]*\d+/.test(jiraReference);
   }
   function listTypesFor(data) {
     if (normalize(data.flow) !== "BANKING" || normalize(data.visualFlow) === "HOLD") {
@@ -5263,6 +5267,9 @@
       return validPendingListItems(memory.lists.reconcile(withoutCurrentCase));
     }
     const lists = listTypesFor(data);
+    if (!lists.allowlist && isContaSimplesIssuer(data) && !isJiraCase(data)) {
+      showNotice("Conta Simples entra em LISTAS somente com o JIRA ativado no Console.", "warn", 12000);
+    }
     if (!lists.allowlist && hasBlockingOrSpdStatus(data) && !isJiraCase(data)) {
       showNotice("Conta bloqueada ou com SPD: o caso não foi adicionado à permissiva.", "warn", 10000);
     }

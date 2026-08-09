@@ -15,6 +15,7 @@ const end = source.indexOf("  function listExpiryDays(", start);
 assert.ok(start >= 0 && end > start, "regras de elegibilidade de LISTAS não encontradas");
 
 const sandbox = {
+  digitsOnly: (value) => String(value || "").replace(/\D/g, ""),
   normalize: (value) => String(value || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -36,7 +37,20 @@ assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, f
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, falcon: { rule: "REGRA COMUM" }, fields: { personStatus: "normal", spdHistory: "spd 8" } }))), { allowlist: false, contencao: false, cashout: false });
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "Conta Simples", issuerId: "155", jiraActive: false }))), { allowlist: false, contencao: true, cashout: false });
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "Conta Simples", issuerId: "155", jiraActive: true }))), { allowlist: true, contencao: true, cashout: false });
+assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "CONTA_SIMPLES (155)", issuerId: "155 - CONTA SIMPLES", jiraActive: "ligado" }))), { allowlist: true, contencao: true, cashout: false });
+assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "Conta-Simples", issuerId: "", jiraReference: "SERVICO-12345" }))), { allowlist: true, contencao: true, cashout: false });
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, accountStatus: "bloqueado", jiraActive: true }))), { allowlist: true, contencao: true, cashout: false });
+
+for (let index = 0; index < 10; index += 1) {
+  const contaSimples = {
+    ...eligible,
+    falcon: { rule: "REGRA COMUM", caseNumber: String(49375000 + index) },
+    issuer: index % 2 ? "CONTA_SIMPLES (155)" : "Conta Simples",
+    issuerId: index % 2 ? "155 - CONTA SIMPLES" : "155",
+    jiraActive: true
+  };
+  assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor(contaSimples))), { allowlist: true, contencao: false, cashout: false });
+}
 
 const cashout = {
   ...eligible,

@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V12_20260801";
   const BUILD = "ANALISE/V12";
   const BUILD_FAMILY = "12";
-  const BUILD_VERSION = "12.0";
+  const BUILD_VERSION = "12.1";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -2455,17 +2455,33 @@
     };
     return data;
   }
-  function looksLikeAccountStatus(value) {
-    const status = normalize(value);
-    return /^(NORMAL|ATIV[AO]|BLOQUEAD[AO]|CANCELAD[AO]|BLOQUEIO PREVENTIVO FALCON|BLOQUEIO PREVENTIVO FALCON 254|SPD \d+)$/.test(status);
+  function accountStatusFromContainer(root) {
+    if (!root) return "";
+    const candidates = all(".c-chip__label,div[data-state='closed'][type='button']", root);
+    if (candidates.length !== 1) return "";
+    const value = consoleText(candidates[0]);
+    return value && !["STATUS CONTA", "STATUS DA CONTA"].includes(normalize(value)) ? value : "";
   }
   function findAccountStatus() {
     const labeled = ["Status conta", "Status da conta"].map(findValueAfterLabel).find(Boolean);
     if (labeled) return clean(labeled);
-    const chip = all(CONSOLE_SELECTORS.accountStatusChip).map(consoleText).find(looksLikeAccountStatus);
-    if (chip) return clean(chip);
-    const stateButton = all("div[data-state='closed'][type='button'],button[data-state='closed']").map(consoleText).find(looksLikeAccountStatus);
-    return clean(stateButton);
+
+    const statusLabel = all(CONSOLE_SELECTORS.valueLabels)
+      .find((node) => ["STATUS CONTA", "STATUS DA CONTA"].includes(normalize(consoleText(node))));
+    const scoped = accountStatusFromContainer(statusLabel?.closest(CONSOLE_SELECTORS.infoContainers))
+      || accountStatusFromContainer(statusLabel?.parentElement?.parentElement);
+    if (scoped) return clean(scoped);
+
+    const accountRoot = document.querySelector(CONSOLE_SELECTORS.accountData)
+      ?.closest(".c-grid--container,[data-testid*='account'],[class*='account'],section");
+    const accountScoped = accountStatusFromContainer(accountRoot);
+    if (accountScoped) return clean(accountScoped);
+
+    const chips = all(CONSOLE_SELECTORS.accountStatusChip).map(consoleText).filter(Boolean);
+    if (chips.length === 1) return clean(chips[0]);
+
+    const stateButtons = all("div[data-state='closed'][type='button']").map(consoleText).filter(Boolean);
+    return stateButtons.length === 1 ? clean(stateButtons[0]) : "N/A";
   }
   function tableColumn(row, columnIndex) {
     return all("[data-testid]", row).find((node) => {
@@ -3823,15 +3839,29 @@
     enableManualGridEditing(panel, data);
     if (!falcon) showNotice("Sem pacote salvo do Falcon. Alguns campos podem ficar N/A.", "warn");
   }
+  function consoleDocumentGrid(data) {
+    return !isMissing(data?.falcon?.holderDocument) ? "" : kv("CPF/CNPJ", data?.cpfCnpj);
+  }
+  function bemolDddGrid(data) {
+    if (!normalize(data?.issuer).includes("BEMOL")) return "";
+    const ddd = dddEngine.lookup(data?.phone || data?.pidData?.phone || "");
+    const assessment = dddEngine.bemolAssessment(ddd);
+    const status = assessment.status === "MATCH" ? "COMPATÍVEL" : assessment.status === "ALERT" ? "NÃO COMPATÍVEL" : "DDD NÃO IDENTIFICADO";
+    const details = ddd.found ? `${status} · DDD ${ddd.ddd} · ${ddd.uf} · ${ddd.region}` : status;
+    const tone = assessment.severity === "success" ? "sac-history-ok" : assessment.severity === "danger" ? "sac-alert-danger" : "sac-alert-warn";
+    return kv("DDD x região", details, tone);
+  }
   function consoleGrid(data, options = {}) {
     const includeAccountStatus = options.includeAccountStatus !== false;
+    const documentGrid = consoleDocumentGrid(data);
+    const dddGrid = bemolDddGrid(data);
     if (data.flow === "card") {
       if (data.cardMatched === false) {
         return `<div class="sac-grid">${kv("Cartões", "ACESSE CARTÕES", "sac-missing sac-single-alert")}</div>`;
       }
-      return `<div class="sac-grid">${kv("CPF/CNPJ", data.cpfCnpj)}${kv("Emissor", data.issuer)}${kv("ID cartão", data.cardId)}${kv("Final cartão", data.cardLast4)}${kv("Tipo cartão", data.cardType)}${kv("Status cartão", data.cardStatus)}${kv("Cadastro", data.registrationDate, alertIf(isRecentRegistration(data.registrationDate)))}</div>`;
+      return `<div class="sac-grid">${documentGrid}${kv("Emissor", data.issuer)}${kv("ID cartão", data.cardId)}${kv("Final cartão", data.cardLast4)}${kv("Tipo cartão", data.cardType)}${kv("Status cartão", data.cardStatus)}${kv("Cadastro", data.registrationDate, alertIf(isRecentRegistration(data.registrationDate)))}${dddGrid}</div>`;
     }
-    return `<div class="sac-grid">${kv("CPF/CNPJ", data.cpfCnpj)}${kv("Emissor", data.issuer)}${kv("Conta", data.account)}${includeAccountStatus ? kv("Status conta", data.accountStatus, accountStatusAlert(data.accountStatus)) : ""}${kv("Cadastro", data.registrationDate, alertIf(isRecentRegistration(data.registrationDate)))}</div>`;
+    return `<div class="sac-grid">${documentGrid}${kv("Emissor", data.issuer)}${kv("Conta", data.account)}${includeAccountStatus ? kv("Status conta", data.accountStatus, accountStatusAlert(data.accountStatus)) : ""}${kv("Cadastro", data.registrationDate, alertIf(isRecentRegistration(data.registrationDate)))}${dddGrid}</div>`;
   }
   function consoleFlagControls(data) {
     const mode = normalize(data.fields.callMode) === "COM CHAMADA" ? "com chamada" : "sem chamada";

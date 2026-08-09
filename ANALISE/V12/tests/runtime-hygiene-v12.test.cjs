@@ -66,7 +66,9 @@ for (const setting of ["theme", "safeMode", "invisibleMode", "investigationMode"
 }
 assert.match(runtime, /memory\.settings\?\.set/);
 assert.match(runtime, /sharedMemory: packageMemorySnapshot\(\)/);
-assert.match(runtime, /return data;\s*}\s*function looksLikeAccountStatus/);
+assert.match(runtime, /return data;\s*}\s*function accountStatusFromContainer/);
+assert.match(runtime, /function findAccountStatus\(\)/);
+assert.doesNotMatch(runtime, /function looksLikeAccountStatus/);
 assert.match(runtime, /memory\.transport\.clearAll/);
 assert.match(runtime, /__SAC_TABULATOR_NAVIGATION_GUARD__/);
 assert.match(runtime, /__SAC_TABULATOR_FORM_GUARD_V12__/);

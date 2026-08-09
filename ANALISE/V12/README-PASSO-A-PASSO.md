@@ -69,6 +69,12 @@ Toda regra que contenha `HOLD` transforma o BANKING em HOLD. Somente linhas cuja
 
 O Console exibe primeiro os dados recebidos do Falcon e depois os dados coletados na própria página, mantendo a mesma organização por grids.
 
+O CPF/CNPJ aparece uma única vez: o valor recebido do Falcon tem prioridade visual; o valor do Console só ocupa esse grid quando o Falcon não o forneceu.
+
+`Status conta` é lido literalmente da página do Console, sem restringir o resultado a uma lista fixa. A classificação visual de risco não altera o texto coletado.
+
+Para o emissor BEMOL, o Console e o Tabulador exibem `DDD x região`. DDD da região Norte recebe sinalização compatível; DDD fora da região recebe alerta vermelho; ausência de DDD recebe alerta laranja.
+
 ### Dropdowns BANKING/HOLD Brasil
 
 - Status Pessoa (SPD): `normal`, `ativo`, `bloqueado`, `bloqueio preventivo falcon 254`, `cancelada`, `spd 1`, `spd 2`, `spd 8`, `spd 15`, `spd 17`, `spd 21`, `spd 25`, `spd 33`, `outro`.

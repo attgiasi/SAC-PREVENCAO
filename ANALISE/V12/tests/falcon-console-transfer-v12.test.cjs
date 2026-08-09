@@ -66,7 +66,7 @@ const now = Date.now();
 const staleFalcon = {
   type: "SAC_FALCON",
   buildFamily: "12",
-  buildVersion: "12.0",
+  buildVersion: "12.1",
   savedAt: now - 2_000,
   caseNumber: "CASO-ANTIGO",
   rule: "REGRA_ANTIGA"
@@ -75,7 +75,7 @@ const currentFalcon = {
   type: "SAC_FALCON",
   packageSchema: 1,
   buildFamily: "12",
-  buildVersion: "12.0",
+  buildVersion: "12.1",
   savedAt: now,
   caseNumber: "49373570",
   rule: "TETO_PIX_PF_CCSB",
@@ -118,7 +118,7 @@ const destination = memoryContext({
   const functionStart = runtimeSource.indexOf("  function isCurrentPackage(");
   const functionEnd = runtimeSource.indexOf("\n  function falconCaseTabSelected", functionStart);
   assert.ok(functionStart >= 0 && functionEnd > functionStart, "validador de pacote não encontrado");
-  const packageContext = { Date, BUILD_FAMILY: "12", BUILD_VERSION: "12.0", PACKAGE_SCHEMA: 1, PACKAGE_TTL_MS: 12 * 60 * 60 * 1000 };
+  const packageContext = { Date, BUILD_FAMILY: "12", BUILD_VERSION: "12.1", PACKAGE_SCHEMA: 1, PACKAGE_TTL_MS: 12 * 60 * 60 * 1000 };
   vm.createContext(packageContext);
   vm.runInContext(`${runtimeSource.slice(functionStart, functionEnd)}\nthis.isCurrentPackage = isCurrentPackage;`, packageContext);
   assert.equal(packageContext.isCurrentPackage(currentFalcon, "SAC_FALCON"), true, "a build atual deve ser aceita");

@@ -7,13 +7,16 @@ const source = fs.readFileSync(path.join(__dirname, "..", "loader-v12.js"), "utf
 const safeFallback = source.match(/const SAFE_FALLBACK_REF = "([a-f0-9]{40})"/)?.[1] || "";
 const release = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "release-v12.json"), "utf8"));
 const bookmarklet = fs.readFileSync(path.join(__dirname, "..", "bookmarklet-v12.txt"), "utf8");
-const bookmarkletLoaderRef = bookmarklet.match(/@([a-f0-9]{40})\/ANALISE\/V12\/loader-v12\.js\?v=12\.5\.0/)?.[1] || "";
+const bookmarkletLoaderRef = bookmarklet.match(/@([a-f0-9]{40})\/ANALISE\/V12\/loader-v12\.js\?v=12\.5\.1/)?.[1] || "";
 
 assert.match(safeFallback, /^[a-f0-9]{40}$/);
 assert.equal(release.build, "12.5");
 assert.match(release.commit, /^[a-f0-9]{40}$/);
 assert.equal(safeFallback, release.commit, "a revisão segura deve conter a versão atual do Console");
 assert.match(bookmarkletLoaderRef, /^[a-f0-9]{40}$/, "o favorito deve fixar um loader imutável e válido");
+assert.equal(bookmarkletLoaderRef, "f6eb0f3a80ba8f882fda2d419f15d748b05fb6ff", "o favorito dedicado deve usar o loader que rejeita e remove runtimes antigos");
+assert.equal(release.loaderVersion, "12.5.1");
+assert.equal(release.loaderCommit, bookmarkletLoaderRef, "manifesto, motor e favorito devem usar o mesmo loader");
 assert.match(source, /async function latestCommit\(\)/, "o loader imutável deve resolver a revisão atual do código-fonte");
 assert.match(source, /"\.sac-pid-panel"/, "o carregador deve remover um PID órfão antes da nova execução");
 
@@ -21,7 +24,11 @@ async function executeLoader(fetchImpl, runtimeBuild = "12.5") {
   const loaded = [];
   let disposedRuntimes = 0;
   let removedRuntimeScripts = 0;
-  const window = { __SAC_PREVENCAO_V12_RUNTIME__: { dispose() { disposedRuntimes += 1; } } };
+  const window = {
+    __SAC_PREVENCAO_V11_RUNTIME__: { dispose() { disposedRuntimes += 1; } },
+    __SAC_PREVENCAO_V12_RUNTIME__: { dispose() { disposedRuntimes += 1; } },
+    __SAC_PREVENCAO_ACTIVE_BUILD__: "12.4"
+  };
   const document = {
     querySelectorAll: () => [],
     getElementById: () => null,
@@ -65,7 +72,7 @@ function response(payload, ok = true, status = 200) {
   const viaApi = await executeLoader(async () => response({ sha: apiCommit }));
   assert.equal(viaApi.loaded.length, 8);
   assert.equal(viaApi.removedRuntimeScripts, 8, "scripts temporários devem sair do DOM após o carregamento");
-  assert.equal(viaApi.disposedRuntimes, 1);
+  assert.equal(viaApi.disposedRuntimes, 2, "o loader deve encerrar runtimes de qualquer versão anterior");
   assert.ok(viaApi.loaded.every((url) => url.includes(`@${apiCommit}/ANALISE/V12/`)));
   assert.equal(viaApi.state.ref, apiCommit);
 

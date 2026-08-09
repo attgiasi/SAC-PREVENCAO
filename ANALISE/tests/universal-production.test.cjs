@@ -7,8 +7,10 @@ const analysisRoot = path.join(__dirname, "..");
 const source = fs.readFileSync(path.join(analysisRoot, "motor-sac-universal.js"), "utf8");
 
 assert.match(source, /SacPrevencaoUniversalV12/);
-assert.match(source, /const VERSION = "12\.0\.0"/);
-assert.match(source, /const LOADER = "V12\/loader-v12\.js"/);
+assert.match(source, /const VERSION = "12\.5\.1"/);
+const loaderRef = source.match(/const LOADER_REF = "([a-f0-9]{40})"/)?.[1] || "";
+assert.equal(loaderRef, "f6eb0f3a80ba8f882fda2d419f15d748b05fb6ff");
+assert.match(source, /const LOADER = `https:\/\/cdn\.jsdelivr\.net\/gh\/attgiasi\/SAC-PREVENCAO@\$\{LOADER_REF\}\/ANALISE\/V12\/loader-v12\.js`/);
 
 const appended = [];
 const context = {
@@ -28,6 +30,6 @@ vm.runInContext(source, context, { filename: "motor-sac-universal.js" });
 
 assert.equal(appended.length, 1);
 assert.equal(appended[0].dataset.sacUniversal, "v12");
-assert.match(appended[0].src, /ANALISE\/V12\/loader-v12\.js\?v=12\.0\.0&cache=/);
+assert.match(appended[0].src, new RegExp(`@${loaderRef}/ANALISE/V12/loader-v12\\.js\\?v=12\\.5\\.1&cache=`));
 
 console.log("OK - favorito universal direciona para a V12");

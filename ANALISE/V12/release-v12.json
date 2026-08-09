@@ -1,5 +1,7 @@
 {
   "build": "12.5",
   "commit": "a211692114222606d6c3a3e33444d29805f1bffd",
-  "releasedAt": "2026-08-09T17:16:05-03:00"
+  "loaderVersion": "12.5.1",
+  "loaderCommit": "f6eb0f3a80ba8f882fda2d419f15d748b05fb6ff",
+  "releasedAt": "2026-08-09T17:28:33-03:00"
 }

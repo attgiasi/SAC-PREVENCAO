@@ -1,13 +1,9 @@
 (async function SacPrevencaoUniversalV12() {
   "use strict";
 
-  const VERSION = "12.5.0";
-  const LOADER = "V12/loader-v12.js";
-
-  const current = (() => {
-    try { return new URL(document.currentScript?.src || location.href); }
-    catch (_error) { return new URL(location.href); }
-  })();
+  const VERSION = "12.5.1";
+  const LOADER_REF = "f6eb0f3a80ba8f882fda2d419f15d748b05fb6ff";
+  const LOADER = `https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@${LOADER_REF}/ANALISE/V12/loader-v12.js`;
 
   try {
     document.querySelectorAll("script[data-sac-universal]").forEach((script) => script.remove());
@@ -16,7 +12,7 @@
       .forEach((name) => window[name]?.dispose?.());
   } catch (_error) {}
 
-  const url = new URL(LOADER, current);
+  const url = new URL(LOADER);
   url.searchParams.set("v", VERSION);
   url.searchParams.set("cache", String(Date.now()));
   const script = document.createElement("script");

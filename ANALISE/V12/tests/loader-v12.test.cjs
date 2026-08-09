@@ -12,11 +12,12 @@ const bookmarkletLoaderRef = bookmarklet.match(/@([a-f0-9]{40})\/ANALISE\/V12\/l
 assert.match(safeFallback, /^[a-f0-9]{40}$/);
 assert.equal(release.build, "12.5");
 assert.match(release.commit, /^[a-f0-9]{40}$/);
+assert.equal(safeFallback, release.commit, "a revisão segura deve conter a versão atual do Console");
 assert.match(bookmarkletLoaderRef, /^[a-f0-9]{40}$/, "o favorito deve fixar um loader imutável e válido");
 assert.match(source, /async function latestCommit\(\)/, "o loader imutável deve resolver a revisão atual do código-fonte");
 assert.match(source, /"\.sac-pid-panel"/, "o carregador deve remover um PID órfão antes da nova execução");
 
-async function executeLoader(fetchImpl) {
+async function executeLoader(fetchImpl, runtimeBuild = "12.5") {
   const loaded = [];
   let disposedRuntimes = 0;
   let removedRuntimeScripts = 0;
@@ -28,7 +29,12 @@ async function executeLoader(fetchImpl) {
     documentElement: {
       appendChild(script) {
         loaded.push(script.src);
-        queueMicrotask(() => script.onload?.());
+        queueMicrotask(() => {
+          if (script.src.includes("sac-prevencao-v12.js")) {
+            window.__SAC_PREVENCAO_ACTIVE_BUILD__ = typeof runtimeBuild === "function" ? runtimeBuild(script.src) : runtimeBuild;
+          }
+          script.onload?.();
+        });
       }
     }
   };
@@ -44,7 +50,7 @@ async function executeLoader(fetchImpl) {
 
   vm.createContext(context);
   vm.runInContext(source, context);
-  for (let attempt = 0; attempt < 40 && loaded.length < 8; attempt += 1) {
+  for (let attempt = 0; attempt < 80 && !window.__SAC_PREVENCAO_V12_LOADER__; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 5));
   }
   return { loaded, state: window.__SAC_PREVENCAO_V12_LOADER__, disposedRuntimes, removedRuntimeScripts };
@@ -77,9 +83,19 @@ function response(payload, ok = true, status = 200) {
   assert.ok(viaFallback.loaded.every((url) => url.includes(`@${safeFallback}/ANALISE/V12/`)));
   assert.equal(viaFallback.state.ref, safeFallback);
 
+  const staleCommit = "c".repeat(40);
+  const recoveredFromStale = await executeLoader(
+    async () => response({ sha: staleCommit }),
+    (url) => url.includes(`@${staleCommit}/`) ? "12.4" : "12.5"
+  );
+  assert.equal(recoveredFromStale.loaded.length, 16, "uma carga antiga deve ser descartada e refeita integralmente");
+  assert.ok(recoveredFromStale.loaded.slice(8).every((url) => url.includes(`@${safeFallback}/ANALISE/V12/`)));
+  assert.equal(recoveredFromStale.state.ref, safeFallback, "o Console deve terminar na revisão segura atual");
+  assert.equal(recoveredFromStale.state.build, "12.5");
+
   assert.match(viaApi.loaded[0], /sac-memory-v12\.js/);
   assert.match(viaApi.loaded.at(-1), /sac-prevencao-v12\.js/);
-  assert.ok(viaApi.loaded.every((url) => url.includes("v=12.5.0-")));
+  assert.ok(viaApi.loaded.every((url) => url.includes("v=12.5.1-")));
   console.log("OK - carregador V12 validado por API, manifesto e revisão segura");
 })().catch((error) => {
   console.error(error);

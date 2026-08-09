@@ -4,8 +4,9 @@
   const REPOSITORY = "attgiasi/SAC-PREVENCAO";
   const BRANCH = "main";
   const BUILD_PATH = "ANALISE/V12";
-  const LOADER_VERSION = "12.5.0";
-  const SAFE_FALLBACK_REF = "db3261e32f0c50fa83505b2a374e82d6344421dc";
+  const LOADER_VERSION = "12.5.1";
+  const EXPECTED_RUNTIME_BUILD = "12.5";
+  const SAFE_FALLBACK_REF = "a211692114222606d6c3a3e33444d29805f1bffd";
   const RELEASE_MANIFEST = `https://raw.githubusercontent.com/${REPOSITORY}/${BRANCH}/${BUILD_PATH}/release-v12.json`;
   const FILES = Object.freeze([
     "sac-memory-v12.js",
@@ -127,6 +128,16 @@
     throw lastError || new Error(`Falha ao carregar ${file}.`);
   }
 
+  async function loadRuntime(ref) {
+    const runtimeFiles = FILES.slice(0, -1);
+    await Promise.all(runtimeFiles.map((file) => loadScript(file, ref)));
+    await loadScript(FILES.at(-1), ref);
+  }
+
+  function runtimeIsCurrent() {
+    return String(window.__SAC_PREVENCAO_ACTIVE_BUILD__ || "") === EXPECTED_RUNTIME_BUILD;
+  }
+
   function showLoaderError(error) {
     console.error("SAC Prevenção V12", error);
     const notice = document.createElement("div");
@@ -146,11 +157,15 @@
 
   try {
     removePreviousRuntime();
-    const ref = await latestCommit();
-    window.__SAC_PREVENCAO_V12_LOADER__ = Object.freeze({ version: LOADER_VERSION, ref });
-    const runtimeFiles = FILES.slice(0, -1);
-    await Promise.all(runtimeFiles.map((file) => loadScript(file, ref)));
-    await loadScript(FILES.at(-1), ref);
+    let ref = await latestCommit();
+    await loadRuntime(ref);
+    if (!runtimeIsCurrent() && ref !== SAFE_FALLBACK_REF) {
+      removePreviousRuntime();
+      ref = SAFE_FALLBACK_REF;
+      await loadRuntime(ref);
+    }
+    if (!runtimeIsCurrent()) throw new Error(`Build carregada não corresponde à V${EXPECTED_RUNTIME_BUILD}.`);
+    window.__SAC_PREVENCAO_V12_LOADER__ = Object.freeze({ version: LOADER_VERSION, ref, build: EXPECTED_RUNTIME_BUILD });
   } catch (error) {
     showLoaderError(error);
   }

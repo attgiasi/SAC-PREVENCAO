@@ -207,7 +207,8 @@ O item é persistido sincronamente antes da cópia final. A janela LISTAS reconc
 ### ALLOWLIST
 
 - caso comum: exige conta normal/ativa e sem SPD;
-- Conta Simples: entra somente com JIRA; o código aceita variações de escrita do emissor e reconhece a flag ou uma referência válida `SERVICO/INCIDENTE`;
+- Conta Simples normal: entra quando a conta tem pelo menos 90 dias, está normal/ativa e não possui SPD;
+- Conta Simples com JIRA: entra mesmo com bloqueio, SPD ou conta recente; o código aceita variações do emissor e reconhece a flag ou uma referência válida `SERVICO/INCIDENTE`;
 - JIRA: permite a inclusão mesmo com bloqueio, SPD ou conta recente;
 - regra ISPB: também gera ALLOWLIST.
 

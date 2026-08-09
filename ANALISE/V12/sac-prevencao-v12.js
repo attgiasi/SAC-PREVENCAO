@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V12_20260801";
   const BUILD = "ANALISE/V12";
   const BUILD_FAMILY = "12";
-  const BUILD_VERSION = "12.2";
+  const BUILD_VERSION = "12.3";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -1024,7 +1024,7 @@
   const ISSUER_HELP = [
     { match: ["ONLYPAY"], title: "ONLYPAY", items: ["Cliente premiado via JIRA usa allowlist por 5 dias corridos.", "Durante o período de LISTAS, evitar bloqueios de fraude relacionados ao caso validado.", "BANKING não fraude entra em LISTAS quando houver ID conta."] },
     { match: ["SOFISA"], title: "SOFISA", items: ["Regra de contenção usa prazo de 3 dias.", "Não fraude com contenção entra em Allowlist e Contenção.", "Quando não for contenção, seguir prazo padrão da lista aplicável."] },
-    { match: ["CONTA SIMPLES", "CONTA SIMPLES 155"], title: "CONTA SIMPLES", items: ["Permissiva somente em caso JIRA decidido como não fraude.", "JIRA autorizado entra em LISTAS mesmo com bloqueio, SPD ou conta recente.", "Avaliar perfil, CNPJ recente, nome suspeito e indícios de fraude antes de liberar."] },
+    { match: ["CONTA SIMPLES", "CONTA SIMPLES 155"], title: "CONTA SIMPLES", items: ["Tratativa normal pode entrar em LISTAS quando a conta tem pelo menos 90 dias e não possui bloqueio ou SPD.", "JIRA autorizado entra em LISTAS mesmo com bloqueio, SPD ou conta recente.", "Avaliar perfil, CNPJ recente, nome suspeito e indícios de fraude antes de liberar."] },
     { match: ["AMIGOZ"], title: "AMIGOZ", items: ["Possui PID próprio no fluxo de cartão.", "Bloqueio preventivo só com cliente não reconhecendo ou fraude crítica evidente.", "Tentar contato entre 08h e 22h em suspeita de fraude."] },
     { match: ["TIPCARD"], title: "TIPCARD", items: ["SPD 29 é bloqueio estratégico.", "A operação DBM não deve remover esse bloqueio.", "Remoção indevida pode comprometer a estratégia antifraude."] },
     { match: ["WUDIPAY"], title: "WUDIPAY", items: ["Não bloquear contas deste emissor.", "Alertas devem ser classificados como não fraude e tabulados normalmente."] },
@@ -5090,13 +5090,16 @@
       || enabled(data?.fields?.jiraActive)
       || /(?:SERVICO|INCIDENTE)[\s_-]*\d+/.test(jiraReference);
   }
+  function hasRecentContaSimplesRegistration(data) {
+    return isContaSimplesIssuer(data) && isRecentRegistration(data?.registrationDate);
+  }
   function listTypesFor(data) {
     if (normalize(data.flow) !== "BANKING" || normalize(data.visualFlow) === "HOLD") {
       return { allowlist: false, contencao: false, cashout: false };
     }
     const jira = isJiraCase(data);
     const cashout = isCashoutRule(data.falcon?.rule);
-    const allowlist = cashout || jira || (!hasBlockingOrSpdStatus(data) && !isContaSimplesIssuer(data));
+    const allowlist = cashout || jira || (!hasBlockingOrSpdStatus(data) && !hasRecentContaSimplesRegistration(data));
     return {
       allowlist,
       contencao: isContainmentRule(data.falcon?.rule),
@@ -5267,8 +5270,8 @@
       return validPendingListItems(memory.lists.reconcile(withoutCurrentCase));
     }
     const lists = listTypesFor(data);
-    if (!lists.allowlist && isContaSimplesIssuer(data) && !isJiraCase(data)) {
-      showNotice("Conta Simples entra em LISTAS somente com o JIRA ativado no Console.", "warn", 12000);
+    if (!lists.allowlist && hasRecentContaSimplesRegistration(data) && !isJiraCase(data)) {
+      showNotice("Conta Simples com menos de 90 dias não entra em LISTAS sem JIRA.", "warn", 12000);
     }
     if (!lists.allowlist && hasBlockingOrSpdStatus(data) && !isJiraCase(data)) {
       showNotice("Conta bloqueada ou com SPD: o caso não foi adicionado à permissiva.", "warn", 10000);

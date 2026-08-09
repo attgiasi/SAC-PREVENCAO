@@ -4,7 +4,7 @@
   const REPOSITORY = "attgiasi/SAC-PREVENCAO";
   const BRANCH = "main";
   const BUILD_PATH = "ANALISE/V12";
-  const LOADER_VERSION = "12.2.0";
+  const LOADER_VERSION = "12.3.0";
   const SAFE_FALLBACK_REF = "93221248fee48baad94198e037bd369da883f191";
   const RELEASE_MANIFEST = `https://raw.githubusercontent.com/${REPOSITORY}/${BRANCH}/${BUILD_PATH}/release-v12.json`;
   const FILES = Object.freeze([

@@ -7,10 +7,10 @@ const source = fs.readFileSync(path.join(__dirname, "..", "loader-v12.js"), "utf
 const safeFallback = source.match(/const SAFE_FALLBACK_REF = "([a-f0-9]{40})"/)?.[1] || "";
 const release = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "release-v12.json"), "utf8"));
 const bookmarklet = fs.readFileSync(path.join(__dirname, "..", "bookmarklet-v12.txt"), "utf8");
-const bookmarkletLoaderRef = bookmarklet.match(/@([a-f0-9]{40})\/ANALISE\/V12\/loader-v12\.js\?v=12\.2\.0/)?.[1] || "";
+const bookmarkletLoaderRef = bookmarklet.match(/@([a-f0-9]{40})\/ANALISE\/V12\/loader-v12\.js\?v=12\.3\.0/)?.[1] || "";
 
 assert.match(safeFallback, /^[a-f0-9]{40}$/);
-assert.equal(release.build, "12.2");
+assert.equal(release.build, "12.3");
 assert.match(release.commit, /^[a-f0-9]{40}$/);
 assert.match(bookmarkletLoaderRef, /^[a-f0-9]{40}$/, "o favorito deve fixar um loader imutável e válido");
 assert.match(source, /async function latestCommit\(\)/, "o loader imutável deve resolver a revisão atual do código-fonte");
@@ -79,7 +79,7 @@ function response(payload, ok = true, status = 200) {
 
   assert.match(viaApi.loaded[0], /sac-memory-v12\.js/);
   assert.match(viaApi.loaded.at(-1), /sac-prevencao-v12\.js/);
-  assert.ok(viaApi.loaded.every((url) => url.includes("v=12.2.0-")));
+  assert.ok(viaApi.loaded.every((url) => url.includes("v=12.3.0-")));
   console.log("OK - carregador V12 validado por API, manifesto e revisão segura");
 })().catch((error) => {
   console.error(error);

@@ -45,6 +45,7 @@ const sandbox = {
   alnumOnly,
   documentFieldValue: digitsOnly,
   issuerIdOverride: () => "155",
+  isRecentRegistration: (value) => value === "RECENTE",
   showNotice: (message) => notices.push(message)
 };
 vm.createContext(sandbox);
@@ -58,6 +59,7 @@ function contaSimples(index, overrides = {}) {
     issuerId: index % 2 ? "155 - CONTA SIMPLES" : "155",
     account: `ACC-${1000 + index}`,
     accountStatus: "Ativa",
+    registrationDate: "ANTIGA",
     cpfCnpj: `11122233${String(index).padStart(3, "0")}`,
     jiraActive: true,
     jiraReference: `SERVICO-${9000 + index}`,
@@ -81,7 +83,13 @@ assert.equal(queue.length, 9, "mudar a decisão deve retirar somente o caso corr
 assert.equal(queue.some((item) => item.caseNumber === "49376004"), false);
 
 sandbox.stageListsForFinalDecision(contaSimples(20, { jiraActive: false, jiraReference: "" }), "NÃO FRAUDE");
-assert.equal(queue.length, 9, "Conta Simples sem JIRA deve continuar fora de LISTAS");
-assert.ok(notices.some((message) => message.includes("somente com o JIRA ativado")));
+assert.equal(queue.length, 10, "Conta Simples normal e elegível deve entrar sem JIRA");
 
-console.log("OK - múltiplos casos Conta Simples com JIRA persistem imediatamente em LISTAS");
+sandbox.stageListsForFinalDecision(contaSimples(21, { jiraActive: false, jiraReference: "", registrationDate: "RECENTE" }), "NÃO FRAUDE");
+assert.equal(queue.length, 10, "Conta Simples recente deve ficar fora sem JIRA");
+assert.ok(notices.some((message) => message.includes("menos de 90 dias")));
+
+sandbox.stageListsForFinalDecision(contaSimples(22, { registrationDate: "RECENTE", accountStatus: "Bloqueada" }), "NÃO FRAUDE");
+assert.equal(queue.length, 11, "JIRA deve liberar Conta Simples recente e bloqueada");
+
+console.log("OK - Conta Simples normal e JIRA seguem as regras de LISTAS");

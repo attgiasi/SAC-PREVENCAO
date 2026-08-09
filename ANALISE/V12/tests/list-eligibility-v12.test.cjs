@@ -16,6 +16,7 @@ assert.ok(start >= 0 && end > start, "regras de elegibilidade de LISTAS não enc
 
 const sandbox = {
   digitsOnly: (value) => String(value || "").replace(/\D/g, ""),
+  isRecentRegistration: (value) => value === "RECENTE",
   normalize: (value) => String(value || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -35,7 +36,9 @@ assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor(eligible))), { a
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, accountStatus: "bloqueado" }))), { allowlist: false, contencao: true, cashout: false });
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, fields: { personStatus: "spd 21", spdHistory: "não" } }))), { allowlist: false, contencao: true, cashout: false });
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, falcon: { rule: "REGRA COMUM" }, fields: { personStatus: "normal", spdHistory: "spd 8" } }))), { allowlist: false, contencao: false, cashout: false });
-assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "Conta Simples", issuerId: "155", jiraActive: false }))), { allowlist: false, contencao: true, cashout: false });
+assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "Conta Simples", issuerId: "155", registrationDate: "ANTIGA", jiraActive: false }))), { allowlist: true, contencao: true, cashout: false });
+assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "Conta Simples", issuerId: "155", registrationDate: "RECENTE", jiraActive: false }))), { allowlist: false, contencao: true, cashout: false });
+assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "Conta Simples", issuerId: "155", registrationDate: "RECENTE", jiraActive: true }))), { allowlist: true, contencao: true, cashout: false });
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "Conta Simples", issuerId: "155", jiraActive: true }))), { allowlist: true, contencao: true, cashout: false });
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "CONTA_SIMPLES (155)", issuerId: "155 - CONTA SIMPLES", jiraActive: "ligado" }))), { allowlist: true, contencao: true, cashout: false });
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "Conta-Simples", issuerId: "", jiraReference: "SERVICO-12345" }))), { allowlist: true, contencao: true, cashout: false });

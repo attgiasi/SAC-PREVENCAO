@@ -20,7 +20,12 @@
   ]);
 
   function removePreviousRuntime() {
-    try { window.__SAC_PREVENCAO_V12_RUNTIME__?.dispose?.(); } catch (_error) {}
+    Object.getOwnPropertyNames(window)
+      .filter((name) => /^__SAC_PREVENCAO_V\d+_RUNTIME__$/.test(name))
+      .forEach((name) => {
+        try { window[name]?.dispose?.(); } catch (_error) {}
+        try { delete window[name]; } catch (_error) { window[name] = undefined; }
+      });
     document.querySelectorAll([
       "script[data-sac-v12-runtime]",
       "[id^='sac-style']",
@@ -35,6 +40,11 @@
 
     Object.keys(window)
       .filter((name) => /^SAC(?:Memory|Tabulator|Counterparty|Corporate|Transaction|Media|Ddd)V\d+$/i.test(name))
+      .forEach((name) => {
+        try { delete window[name]; } catch (_error) { window[name] = undefined; }
+      });
+
+    ["__SAC_PREVENCAO_ACTIVE_BUILD__", "__SAC_PREVENCAO_ACTIVE_PATH__", "__SAC_PREVENCAO_V12_LOADER__"]
       .forEach((name) => {
         try { delete window[name]; } catch (_error) { window[name] = undefined; }
       });

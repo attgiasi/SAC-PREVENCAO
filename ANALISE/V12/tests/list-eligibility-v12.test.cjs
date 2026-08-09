@@ -42,6 +42,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, i
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "Conta Simples", issuerId: "155", jiraActive: true }))), { allowlist: true, contencao: true, cashout: false });
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "CONTA_SIMPLES (155)", issuerId: "155 - CONTA SIMPLES", jiraActive: "ligado" }))), { allowlist: true, contencao: true, cashout: false });
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "Conta-Simples", issuerId: "", jiraReference: "SERVICO-12345" }))), { allowlist: true, contencao: true, cashout: false });
+assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, issuer: "Conta-Simples", issuerId: "", jiraReference: "SERVICOS-975709" }))), { allowlist: true, contencao: true, cashout: false });
 assert.deepEqual(JSON.parse(JSON.stringify(sandbox.listTypesFor({ ...eligible, accountStatus: "bloqueado", jiraActive: true }))), { allowlist: true, contencao: true, cashout: false });
 
 for (let index = 0; index < 10; index += 1) {

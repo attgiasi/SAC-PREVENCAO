@@ -27,7 +27,7 @@ assert.doesNotMatch(presentation, /kv\("CPF\/CNPJ", data\.cpfCnpj\)/, "o grid do
 
 assert.match(source, /section\("Dados do Console", consoleGrid\(data\), "coletados"\)/, "o Console deve usar a composição revisada");
 assert.match(source, /section\("Dados do Console", consoleGrid\(data\), "coletados"\)/g);
-assert.match(preview, /const BUILD_VERSION="12\.4"/);
+assert.match(preview, /const BUILD_VERSION="12\.5"/);
 assert.match(preview, /function bemolDddGrid\(data\)/);
 assert.match(preview, /issuer:"BEMOL"/);
 assert.match(preview, /DDD x região/);

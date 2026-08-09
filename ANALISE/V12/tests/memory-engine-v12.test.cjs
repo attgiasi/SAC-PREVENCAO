@@ -317,6 +317,15 @@ copyRaceB.window.SACMemoryV12.history.upsert({ id: "copy-race-history", caseNumb
   assert.deepEqual(programmaticWrites, ["Conteúdo de um botão da página"], "a cópia programática deve manter o texto solicitado pela página");
   assert.equal(copyRaceB.window.SACMemoryV12.lists.all().length, 1, "um botão de copiar da página não pode apagar LISTAS");
   assert.equal(copyRaceB.window.SACMemoryV12.history.all().length, 1, "um botão de copiar da página não pode apagar o Histórico");
+  copyRaceA.window.SACMemoryV12.transport.set("console", {
+    type: "SAC_CONSOLE",
+    savedAt: Date.now() + 701,
+    jiraActive: true,
+    jiraReference: "SERVICOS-975709"
+  });
+  await copyRaceA.window.SACMemoryV12.commit("Conteúdo copiado antes da decisão");
+  const preservedConsole = copyRaceB.window.SACMemoryV12.transport.get("console");
+  assert.equal(preservedConsole?.jiraReference, "SERVICOS-975709", "copiar outro conteúdo não pode perder o chamado JIRA antes da decisão");
   copyRaceA.window.SACMemoryV12.transport.set("falcon", { type: "SAC_FALCON", savedAt: Date.now() + 701 });
   assert.equal(copyRaceB.window.SACMemoryV12.lists.all().length, 1, "atualizar o transporte não pode sobrescrever LISTAS com uma leitura antiga");
   copyRaceA.window.SACMemoryV12.transport.clearAll();

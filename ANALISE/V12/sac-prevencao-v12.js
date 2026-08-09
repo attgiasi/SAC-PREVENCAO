@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V12_20260801";
   const BUILD = "ANALISE/V12";
   const BUILD_FAMILY = "12";
-  const BUILD_VERSION = "12.4";
+  const BUILD_VERSION = "12.5";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -3896,7 +3896,7 @@
         <button type="button" id="sac-call-mode-toggle" class="sac-toggle ${callEnabled ? "on" : ""}" data-active="${callEnabled ? "true" : "false"}" aria-pressed="${callEnabled ? "true" : "false"}"><span class="sac-switch"></span><span>Com chamada</span><b>${callEnabled ? "Ligado" : "Desligado"}</b></button>
         <button type="button" id="sac-call-result-toggle" class="sac-toggle ${success ? "on" : ""}" data-active="${success ? "true" : "false"}" aria-disabled="${callEnabled && !jira ? "false" : "true"}" aria-pressed="${success ? "true" : "false"}" ${callEnabled && !jira ? "" : "disabled"}><span class="sac-switch"></span><span>Com sucesso</span><b>${callEnabled ? (jira ? "JIRA" : success ? "Ligado" : "Desligado") : "Sem chamada"}</b></button>
       </div>
-      <label class="sac-jira-reference" id="sac-jira-reference-field" ${jira ? "" : "hidden"}><span>Chamado JIRA</span><input id="sac-jira-reference" value="${escapeHtml(data.jiraReference || "")}" placeholder="Cole o link com SERVICO ou INCIDENTE" autocomplete="off"><small>O link será reduzido automaticamente, por exemplo: SERVICO-12345.</small></label>`;
+      <label class="sac-jira-reference" id="sac-jira-reference-field" ${jira ? "" : "hidden"}><span>Chamado JIRA (opcional)</span><input id="sac-jira-reference" value="${escapeHtml(data.jiraReference || "")}" placeholder="Cole o link com SERVICOS ou INCIDENTES" autocomplete="off"><small>O link será reduzido automaticamente, por exemplo: SERVICOS-975709.</small></label>`;
   }
 
   function normalizeJiraReference(value) {
@@ -3905,7 +3905,7 @@
     let decoded = raw;
     try { decoded = decodeURIComponent(raw); } catch (_err) {}
     const normalized = normalize(decoded);
-    const match = normalized.match(/(?:^|[^A-Z0-9])(SERVICO|INCIDENTE)[\s_:/?#=&.\-]{0,24}(\d{1,12})(?:$|[^0-9])/);
+    const match = normalized.match(/(?:^|[^A-Z0-9])(SERVICOS?|INCIDENTES?)[\s_:/?#=&.\-]{0,24}(\d{1,12})(?:$|[^0-9])/);
     return match ? `${match[1]}-${match[2]}` : "";
   }
   function cardFields(data) {
@@ -3960,8 +3960,7 @@
     const extra = data.flow === "card" && !data.isGlobal
       ? [["ID cartão", data.cardId], ["Final do cartão", data.cardLast4], ["Tipo do cartão", data.cardType], ["Status cartão", data.cardStatus]]
       : data.flow === "card" ? [] : [["Status conta", data.accountStatus]];
-    const jira = data.jiraActive ? [["Chamado JIRA", data.jiraReference]] : [];
-    return [...base, ...extra, ...jira].filter(([, value]) => isMissing(value)).map(([label]) => label);
+    return [...base, ...extra].filter(([, value]) => isMissing(value)).map(([label]) => label);
   }
   function requiredAnalysisFields(data) {
     if (data.flow !== "card") return [];
@@ -4030,7 +4029,7 @@
   function consoleDropdownGrid(data) {
     const callGrid = () => {
       const result = normalize(data.fields?.callMode) === "COM CHAMADA" ? kv("Resultado da chamada", data.fields.callResult, dropdownAlert(data.fields.callResult, ["com sucesso"])) : "";
-      const jira = data.jiraActive ? kv("JIRA", data.jiraReference, alertIf(isMissing(data.jiraReference))) : "";
+      const jira = data.jiraActive ? kv("JIRA", data.jiraReference || "não informado") : "";
       return kv("Chamada", data.fields?.callMode || "sem chamada") + result + jira;
     };
     if (data.flow === "card") {
@@ -4265,7 +4264,6 @@
       return [
         `Valor da transação: R$ ${clean(f.value, "")}`,
         `Regra: ${clean(f.rule, "")}`,
-        ...jiraLines,
         `Estabelecimento: ${clean(f.merchant, "")}`,
         `Status do cartão: ${clean(data.cardStatus, "")}`,
         `Data de cadastro: ${clean(data.registrationDate, "")}`,
@@ -4273,6 +4271,7 @@
         `Padrão de compra: ${clean(data.fields?.purchasePattern, "")}`,
         "",
         `Decisão: ${decision}`,
+        ...jiraLines,
         ...motiveLines,
         "",
         signatureText()
@@ -4281,7 +4280,6 @@
     return [
       `Valor da transação: R$ ${clean(f.value, "")}`,
       `Regra: ${clean(f.rule, "")}`,
-      ...jiraLines,
       `Histórico de Infrações: ${formatHistoryValue(f.history)}`,
       `Mídia desabonadora: ${detailSuffix(data.fields?.badMedia, data.fields?.badMediaDetails)}`,
       `Status conta: ${clean(data.accountStatus, "")}`,
@@ -4293,6 +4291,7 @@
       `Extrato: ${clean(data.fields?.statement, "")}`,
       "",
       `Decisão: ${decision}`,
+      ...jiraLines,
       ...motiveLines,
       "",
       signatureText()
@@ -5109,7 +5108,7 @@
     const jiraReference = normalize(data?.jiraReference || data?.fields?.jiraReference);
     return enabled(data?.jiraActive)
       || enabled(data?.fields?.jiraActive)
-      || /(?:SERVICO|INCIDENTE)[\s_-]*\d+/.test(jiraReference);
+      || /(?:SERVICOS?|INCIDENTES?)[\s_-]*\d+/.test(jiraReference);
   }
   function hasRecentContaSimplesRegistration(data) {
     return isContaSimplesIssuer(data) && isRecentRegistration(data?.registrationDate);

@@ -112,7 +112,7 @@ Os dois dropdowns de análise mantêm estas opções:
 
 As chaves `JIRA`, `Com chamada` e `Com sucesso` ficam no Console.
 
-Ao ligar `JIRA`, o campo de chamado aparece tanto no modo normal quanto no modo invisível. Links completos são reduzidos para `SERVICO-12345` ou `INCIDENTE-12345`, e essa referência entra na tabulação pronta.
+Ao ligar `JIRA`, o campo de chamado aparece tanto no modo normal quanto no modo invisível. O campo é opcional e nunca bloqueia a finalização. Links completos como `https://docktech.atlassian.net/browse/SERVICOS-975709` ou `https://docktech.atlassian.net/browse/INCIDENTES-122518` são reduzidos para `SERVICOS-975709` ou `INCIDENTES-122518`. Quando informada, a referência aparece imediatamente abaixo de `Decisão` na tabulação pronta.
 
 - JIRA desligado e sem chamada: `SEM CONTATO - PLANILHA` + `SEM CHAMADA`.
 - JIRA desligado e com chamada: `ATIVA - PLANILHA` + resultado escolhido.
@@ -220,7 +220,7 @@ O item é persistido sincronamente antes da cópia final. A janela LISTAS reconc
 
 - caso comum: exige conta normal/ativa e sem SPD;
 - Conta Simples normal: entra quando a conta tem pelo menos 90 dias, está normal/ativa e não possui SPD;
-- Conta Simples com JIRA: entra mesmo com bloqueio, SPD ou conta recente; o código aceita variações do emissor e reconhece a flag ou uma referência válida `SERVICO/INCIDENTE`;
+- Conta Simples com JIRA: entra mesmo com bloqueio, SPD ou conta recente; o código aceita variações do emissor e reconhece a flag ou uma referência válida `SERVICO(S)/INCIDENTE(S)`;
 - JIRA: permite a inclusão mesmo com bloqueio, SPD ou conta recente;
 - regra ISPB: também gera ALLOWLIST.
 

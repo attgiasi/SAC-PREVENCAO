@@ -7,7 +7,7 @@ const source = fs.readFileSync(path.join(root, "sac-prevencao-v12.js"), "utf8");
 const media = fs.readFileSync(path.join(root, "sac-media-v12.js"), "utf8");
 const preview = fs.readFileSync(path.join(root, "preview.html"), "utf8");
 
-assert.match(source, /const BUILD_VERSION = "12\.3"/);
+assert.match(source, /const BUILD_VERSION = "12\.4"/);
 assert.match(source, />Modo investigação</);
 assert.match(source, />Modo ajuda</);
 assert.match(source, /data-action="help-mode"/);
@@ -93,6 +93,11 @@ assert.match(source, /const CARD_REVIEW = \["não", "sim", "reconhece a compra",
 
 assert.match(media, /function collectCustomerIdentity/);
 assert.match(media, /function collectPidData/);
+assert.match(media, /input: "#inputCPF"/);
+assert.match(media, /button: "#SearchBtn"/);
+assert.match(media, /async function searchCpf/);
+assert.match(media, /clientName: identity\.name/);
+assert.match(media, /clientCpf: identity\.document/);
 assert.match(media, /queryResult_addressData/);
 assert.doesNotMatch(media, /queryResult_phoneData/);
 

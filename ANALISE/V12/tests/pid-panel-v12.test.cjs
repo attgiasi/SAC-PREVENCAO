@@ -96,7 +96,7 @@ const sandbox = {
 };
 vm.createContext(sandbox);
 vm.runInContext(`
-  const BUILD_VERSION = "12.3";
+  const BUILD_VERSION = "12.4";
   const ensureStyles = () => {};
   const byId = (id) => elements.get(id) || null;
   const normalize = (value) => String(value || "").toUpperCase();

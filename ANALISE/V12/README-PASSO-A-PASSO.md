@@ -37,6 +37,18 @@ Os dados do caso atravessam as páginas por três meios coordenados:
 O caso temporário expira em 12 horas. Configurações, Histórico e pendências de LISTAS possuem armazenamento próprio.
 Toda cópia feita enquanto a automação estiver ativa preserva o envelope da V12 sem alterar o texto visível copiado. Assim, copiar outra informação entre duas etapas não descarta o caso, o Histórico nem as pendências de LISTAS.
 
+### Consulta opcional no BigData
+
+Depois de finalizar o Falcon, abra o BigData e execute o mesmo favorito. A automação:
+
+1. cola o CPF do titular no campo `#inputCPF`;
+2. aciona o botão `#SearchBtn` uma única vez;
+3. aguarda por até 45 segundos o resultado correspondente ao mesmo CPF;
+4. coleta somente processos em que esse CPF aparece como réu e classifica as mídias mapeadas;
+5. guarda nome, CPF, nome da mãe, nascimento, endereço e e-mail disponíveis para completar o PID no Console.
+
+A consulta não bloqueia o percurso principal. Se o BigData não for usado, o operador pode seguir diretamente ao Console. Resultado divergente ou não carregado não é aproveitado.
+
 ## Modo invisível
 
 O modo invisível é uma configuração compartilhada entre as etapas:

@@ -3,7 +3,11 @@
 
   if (window.SACMediaV12) return;
 
-  const ENGINE_VERSION = "2.2.0";
+  const ENGINE_VERSION = "2.3.0";
+  const BIGDATA_SEARCH_SELECTORS = Object.freeze({
+    input: "#inputCPF",
+    button: "#SearchBtn"
+  });
   const MEDIA_TYPES = Object.freeze([
     "Crimes contra a fé pública",
     "Tráfico de drogas",
@@ -136,11 +140,111 @@
     return Object.freeze({
       document: identity.document,
       name: identity.name,
+      clientCpf: identity.document,
+      clientName: identity.name,
       motherName: identity.motherName,
       birthDate: identity.birthDate,
       address,
       email: fieldValue(primaryEmail, "Email", "E-mail")
     });
+  }
+
+  function searchControls(root = document) {
+    return {
+      input: root?.querySelector?.(BIGDATA_SEARCH_SELECTORS.input) || null,
+      button: root?.querySelector?.(BIGDATA_SEARCH_SELECTORS.button) || null
+    };
+  }
+
+  function canSearchPage(root = document) {
+    const controls = searchControls(root);
+    return Boolean(controls.input && controls.button);
+  }
+
+  function resultFingerprint(root = document, knownIdentity = null) {
+    const cards = Array.from(root?.querySelectorAll?.("#queryResult_personData .content-card") || []);
+    for (const card of cards) {
+      const fields = fieldMap(card);
+      const queryId = fieldValue(fields, "Query ID");
+      if (queryId) return queryId;
+    }
+    const identity = knownIdentity || collectCustomerIdentity(root);
+    return identity.supported
+      ? [identity.document, identity.name, identity.birthDate].join("|")
+      : "";
+  }
+
+  function dispatchFieldEvent(field, type) {
+    const EventConstructor = field?.ownerDocument?.defaultView?.Event || globalThis.Event;
+    if (typeof EventConstructor !== "function" || typeof field?.dispatchEvent !== "function") return;
+    field.dispatchEvent(new EventConstructor(type, { bubbles: true }));
+  }
+
+  function writeFieldValue(field, value) {
+    const prototype = field?.ownerDocument?.defaultView?.HTMLInputElement?.prototype;
+    const nativeSetter = prototype ? Object.getOwnPropertyDescriptor(prototype, "value")?.set : null;
+    try {
+      if (nativeSetter) nativeSetter.call(field, value);
+      else field.value = value;
+    } catch (_) {
+      field.value = value;
+    }
+    dispatchFieldEvent(field, "input");
+    dispatchFieldEvent(field, "change");
+  }
+
+  function wait(milliseconds) {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+  }
+
+  async function searchCpf(input = {}) {
+    const root = input.root || document;
+    const documentNumber = digits(input.document || input.cpf);
+    if (!isCpf(documentNumber)) {
+      return { ok: false, code: "CPF_REQUIRED", document: documentNumber };
+    }
+    const controls = searchControls(root);
+    if (!controls.input || !controls.button) {
+      return { ok: false, code: "BIGDATA_SEARCH_CONTROLS_NOT_FOUND", document: documentNumber };
+    }
+    if (controls.button.disabled || controls.button.getAttribute?.("aria-disabled") === "true") {
+      return { ok: false, code: "BIGDATA_SEARCH_DISABLED", document: documentNumber };
+    }
+
+    const initialIdentity = collectCustomerIdentity(root);
+    const initialDocument = digits(initialIdentity.document);
+    const initialFingerprint = resultFingerprint(root, initialIdentity);
+    writeFieldValue(controls.input, documentNumber);
+    try {
+      controls.button.click();
+    } catch (_) {
+      return { ok: false, code: "BIGDATA_SEARCH_CLICK_FAILED", document: documentNumber };
+    }
+
+    const timeoutMs = Math.max(1000, Number(input.timeoutMs) || 45000);
+    const intervalMs = Math.max(50, Number(input.intervalMs) || 120);
+    const startedAt = Date.now();
+    let pageDocument = "";
+    while ((Date.now() - startedAt) < timeoutMs) {
+      const identity = collectCustomerIdentity(root);
+      pageDocument = digits(identity.document);
+      const currentFingerprint = resultFingerprint(root, identity);
+      const freshResult = !initialIdentity.supported
+        || initialDocument !== documentNumber
+        || currentFingerprint !== initialFingerprint;
+      if (freshResult && identity.supported && pageDocument === documentNumber && builtInProvider.canScan(root)) {
+        return { ok: true, code: "BIGDATA_RESULT_READY", document: documentNumber, pageDocument };
+      }
+      await wait(intervalMs);
+    }
+    return {
+      ok: false,
+      code: pageDocument && pageDocument !== documentNumber
+        ? "BIGDATA_RESULT_IDENTITY_MISMATCH"
+        : "BIGDATA_RESULT_TIMEOUT",
+      document: documentNumber,
+      pageDocument
+    };
   }
 
   function processMediaTypes(record) {
@@ -338,6 +442,8 @@
     normalizeTypes,
     collectCustomerIdentity,
     collectPidData,
+    searchCpf,
+    canSearchPage,
     classifyProcessRecords,
     parseBigDataProcesses,
     requestIdentity,

@@ -7,7 +7,8 @@ const root = path.join(__dirname, "..");
 const memorySource = fs.readFileSync(path.join(root, "sac-memory-v12.js"), "utf8");
 const runtimeSource = fs.readFileSync(path.join(root, "sac-prevencao-v12.js"), "utf8");
 
-assert.match(runtimeSource, /if \(getInvestigationMode\(\)\) storeMediaRequest/);
+assert.match(runtimeSource, /storeMediaRequest\(\{ falcon: data, visualFlow: data\.visualFlow, flow: data\.flow \}\);/);
+assert.doesNotMatch(runtimeSource, /if \(getInvestigationMode\(\)\) storeMediaRequest/);
 assert.doesNotMatch(runtimeSource, /function storeMediaRequest\(data\)[\s\S]{0,260}commitCurrentText/);
 assert.match(runtimeSource, /Não consegui transferir os dados do Falcon/);
 assert.match(runtimeSource, /Não consegui transferir os dados do Console/);
@@ -66,7 +67,7 @@ const now = Date.now();
 const staleFalcon = {
   type: "SAC_FALCON",
   buildFamily: "12",
-  buildVersion: "12.3",
+  buildVersion: "12.4",
   savedAt: now - 2_000,
   caseNumber: "CASO-ANTIGO",
   rule: "REGRA_ANTIGA"
@@ -75,7 +76,7 @@ const currentFalcon = {
   type: "SAC_FALCON",
   packageSchema: 1,
   buildFamily: "12",
-  buildVersion: "12.3",
+  buildVersion: "12.4",
   savedAt: now,
   caseNumber: "49373570",
   rule: "TETO_PIX_PF_CCSB",
@@ -118,11 +119,11 @@ const destination = memoryContext({
   const functionStart = runtimeSource.indexOf("  function isCurrentPackage(");
   const functionEnd = runtimeSource.indexOf("\n  function falconCaseTabSelected", functionStart);
   assert.ok(functionStart >= 0 && functionEnd > functionStart, "validador de pacote não encontrado");
-  const packageContext = { Date, BUILD_FAMILY: "12", BUILD_VERSION: "12.3", PACKAGE_SCHEMA: 1, PACKAGE_TTL_MS: 12 * 60 * 60 * 1000 };
+  const packageContext = { Date, BUILD_FAMILY: "12", BUILD_VERSION: "12.4", PACKAGE_SCHEMA: 1, PACKAGE_TTL_MS: 12 * 60 * 60 * 1000 };
   vm.createContext(packageContext);
   vm.runInContext(`${runtimeSource.slice(functionStart, functionEnd)}\nthis.isCurrentPackage = isCurrentPackage;`, packageContext);
   assert.equal(packageContext.isCurrentPackage(currentFalcon, "SAC_FALCON"), true, "a build atual deve ser aceita");
-  assert.equal(packageContext.isCurrentPackage({ ...currentFalcon, buildVersion: "12.3" }, "SAC_FALCON"), true, "subversões V12 compatíveis não podem perder o caso durante a troca de página");
+  assert.equal(packageContext.isCurrentPackage({ ...currentFalcon, buildVersion: "12.4" }, "SAC_FALCON"), true, "subversões V12 compatíveis não podem perder o caso durante a troca de página");
   assert.equal(packageContext.isCurrentPackage({ ...currentFalcon, buildFamily: "10", buildVersion: "10.9" }, "SAC_FALCON"), false, "outra família deve ser rejeitada");
   assert.equal(packageContext.isCurrentPackage({ ...currentFalcon, packageSchema: 2 }, "SAC_FALCON"), false, "schema incompatível deve ser rejeitado");
 

@@ -15,6 +15,8 @@ assert.doesNotMatch(consoleSource, /memory\.transport\.clear\("mediaResult"\)/);
 assert.match(consoleSource, /await applyPendingMediaResult\(data\)/);
 assert.match(tabulatorSource, /await applyPendingMediaResult\(data\)/);
 assert.match(source, /memory\.transport\.set\("mediaResult", result\)/);
+assert.match(source, /mediaEngine\.searchCpf\(\{ root: document, document: holderCpf \}\)/);
+assert.match(source, /BigData consultado\. Mídias e dados disponíveis para o PID foram coletados\./);
 assert.match(source, /memory\.transport\.clear\("mediaRequest"\)/);
 assert.match(source, /memory\.transport\.clear\("mediaResult"\)/);
 

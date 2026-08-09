@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V12_20260801";
   const BUILD = "ANALISE/V12";
   const BUILD_FAMILY = "12";
-  const BUILD_VERSION = "12.3";
+  const BUILD_VERSION = "12.4";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -2680,7 +2680,7 @@
         }
         showNotice(`Atenção: faltam dados (${missing.join(", ")}), mas o modo seguro está desligado.`, "warn");
       }
-      if (getInvestigationMode()) storeMediaRequest({ falcon: data, visualFlow: data.visualFlow, flow: data.flow });
+      storeMediaRequest({ falcon: data, visualFlow: data.visualFlow, flow: data.flow });
       const packageData = { ...transferableCaseData(data), packageSchema: PACKAGE_SCHEMA, buildFamily: BUILD_FAMILY, buildVersion: BUILD_VERSION, savedAt: Date.now(), sharedMemory: packageMemorySnapshot() };
       writeJson("lastFalcon", packageData);
       storageRemove("lastConsole");
@@ -3429,19 +3429,40 @@
       showNotice("Não há coleta pendente do Falcon para o BigData.", "warn");
       return;
     }
+    const holderCpf = (Array.isArray(request.parties) ? request.parties : [])
+      .map((party) => digitsOnly(party?.document))
+      .find((documentNumber) => mediaEngine.isCpf(documentNumber));
+    if (!holderCpf) {
+      showNotice("O CPF do titular não foi recebido do Falcon.", "error", 12000);
+      return;
+    }
+    if (mediaEngine.canSearchPage(document)) {
+      const search = await mediaEngine.searchCpf({ root: document, document: holderCpf });
+      if (!search.ok) {
+        const message = search.code === "BIGDATA_RESULT_IDENTITY_MISMATCH"
+          ? "O BigData exibiu outro CPF. Confira a consulta e tente novamente."
+          : search.code === "BIGDATA_SEARCH_DISABLED"
+            ? "A pesquisa do BigData está indisponível no momento."
+            : search.code === "BIGDATA_SEARCH_CLICK_FAILED"
+              ? "Não foi possível acionar a pesquisa do BigData."
+              : "O resultado do BigData não ficou disponível a tempo. Tente novamente.";
+        showNotice(message, "error", 15000);
+        return;
+      }
+    }
     const scan = await mediaEngine.scanPage({ root: document, parties: request.parties });
     if (scan.code === "BIGDATA_IDENTITY_MISMATCH") {
       showNotice("CPF divergente no BigData. Confira o caso antes de continuar.", "error", 15000);
       return;
     }
     if (!scan.supported) {
-      showNotice("Faça a consulta no BigData, aguarde os resultados e execute o favorito novamente.", "warn", 12000);
+      showNotice("Os resultados esperados não foram encontrados no BigData.", "error", 12000);
       return;
     }
     const result = mediaEngine.createResult(request, scan);
     memory.transport.set("mediaResult", result);
     await memory.commitCurrentText?.();
-    showNotice("Mídia do CPF do titular coletada para o Console.", "success");
+    showNotice("BigData consultado. Mídias e dados disponíveis para o PID foram coletados.", "success");
   }
 
   function resultSeverityClass(result) {

@@ -1,8 +1,8 @@
 (async function SacPrevencaoUniversalV12() {
   "use strict";
 
-  const VERSION = "12.5.1";
-  const LOADER_REF = "f6eb0f3a80ba8f882fda2d419f15d748b05fb6ff";
+  const VERSION = "12.6.0";
+  const LOADER_REF = "18e01541268f7222875a4f45b6ce9ca10bca56ca";
   const LOADER = `https://cdn.jsdelivr.net/gh/attgiasi/SAC-PREVENCAO@${LOADER_REF}/ANALISE/V12/loader-v12.js`;
 
   try {

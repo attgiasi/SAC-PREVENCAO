@@ -4,7 +4,7 @@
   const APP = "sac_prevencao_V12_20260801";
   const BUILD = "ANALISE/V12";
   const BUILD_FAMILY = "12";
-  const BUILD_VERSION = "12.5";
+  const BUILD_VERSION = "12.6";
   const NOTICE_MS = 7600;
   const PACKAGE_TTL_MS = 12 * 60 * 60 * 1000;
   const EXECUTION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -2203,6 +2203,7 @@
     valueLabels: "p,span,label,strong,small",
     infoContainers: ".grid-container-info,.c-grid--container,[data-testid*='info'],[class*='info'],li",
     accountData: ".account-data",
+    accountStatusDirect: ".accounts-details-id-status > div[data-state='closed'][type='button'],.accounts-details-id-status .c-chip__label,[data-testid='account-status'],[data-testid='account-status'] .c-chip__label",
     accountStatusChip: ".c-chip__label",
     cardAccordion: "[data-testid='cards-accordion'],.accordion-cards",
     cardAccordionTrigger: ".c-accordion__summary,[data-testid='cards-accordion-summary']"
@@ -2463,6 +2464,9 @@
     return value && !["STATUS CONTA", "STATUS DA CONTA"].includes(normalize(value)) ? value : "";
   }
   function findAccountStatus() {
+    const direct = consoleText(document.querySelector(CONSOLE_SELECTORS.accountStatusDirect));
+    if (direct) return clean(direct);
+
     const labeled = ["Status conta", "Status da conta"].map(findValueAfterLabel).find(Boolean);
     if (labeled) return clean(labeled);
 

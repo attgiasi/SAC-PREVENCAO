@@ -83,7 +83,7 @@ O Console exibe primeiro os dados recebidos do Falcon e depois os dados coletado
 
 O CPF/CNPJ aparece uma única vez: o valor recebido do Falcon tem prioridade visual; o valor do Console só ocupa esse grid quando o Falcon não o forneceu.
 
-`Status conta` é lido literalmente da página do Console, sem restringir o resultado a uma lista fixa. A classificação visual de risco não altera o texto coletado.
+`Status conta` é lido literalmente da página do Console, sem restringir o resultado a uma lista fixa. Na tratativa Global, a leitura prioriza o status exibido no cabeçalho `Detalhes de conta`; nas demais páginas, mantém os caminhos rotulados e chips já mapeados. A classificação visual de risco não altera o texto coletado.
 
 Para o emissor BEMOL, o Console e o Tabulador exibem `DDD x região`. DDD da região Norte recebe sinalização compatível; DDD fora da região recebe alerta vermelho; ausência de DDD recebe alerta laranja.
 

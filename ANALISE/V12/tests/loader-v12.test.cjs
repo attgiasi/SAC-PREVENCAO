@@ -4,106 +4,108 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "loader-v12.js"), "utf8");
-const safeFallback = source.match(/const SAFE_FALLBACK_REF = "([a-f0-9]{40})"/)?.[1] || "";
-const release = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "release-v12.json"), "utf8"));
-const bookmarklet = fs.readFileSync(path.join(__dirname, "..", "bookmarklet-v12.txt"), "utf8");
-const bookmarkletLoaderRef = bookmarklet.match(/@([a-f0-9]{40})\/ANALISE\/V12\/loader-v12\.js\?v=12\.5\.1/)?.[1] || "";
+const runtimeRef = source.match(/const RUNTIME_REF = "([a-f0-9]{40})"/)?.[1] || "";
 
-assert.match(safeFallback, /^[a-f0-9]{40}$/);
-assert.equal(release.build, "12.5");
-assert.match(release.commit, /^[a-f0-9]{40}$/);
-assert.equal(safeFallback, release.commit, "a revisão segura deve conter a versão atual do Console");
-assert.match(bookmarkletLoaderRef, /^[a-f0-9]{40}$/, "o favorito deve fixar um loader imutável e válido");
-assert.equal(bookmarkletLoaderRef, "f6eb0f3a80ba8f882fda2d419f15d748b05fb6ff", "o favorito dedicado deve usar o loader que rejeita e remove runtimes antigos");
-assert.equal(release.loaderVersion, "12.5.1");
-assert.equal(release.loaderCommit, bookmarkletLoaderRef, "manifesto, motor e favorito devem usar o mesmo loader");
-assert.match(source, /async function latestCommit\(\)/, "o loader imutável deve resolver a revisão atual do código-fonte");
+assert.equal(runtimeRef, "dfa7aa9812eb0dcd0a62818a66763935a90227bd");
+assert.match(source, /const LOADER_VERSION = "12\.6\.0"/);
+assert.match(source, /const EXPECTED_RUNTIME_BUILD = "12\.6"/);
+assert.match(source, /async function waitForRuntimeReady\(\)/, "o loader deve esperar a inicialização assíncrona do runtime");
+assert.match(source, /for \(const file of FILES\)/, "os motores devem carregar em ordem determinística");
+assert.doesNotMatch(source, /latestCommit|RELEASE_MANIFEST|api\.github\.com|raw\.githubusercontent/, "a V12.6 não pode misturar revisão móvel ou script com MIME incompatível");
+assert.match(source, /fastly\.jsdelivr\.net/);
+assert.match(source, /gcore\.jsdelivr\.net/);
 assert.match(source, /"\.sac-pid-panel"/, "o carregador deve remover um PID órfão antes da nova execução");
 
-async function executeLoader(fetchImpl, runtimeBuild = "12.5") {
+const executableSource = source
+  .replace("const SCRIPT_TIMEOUT_MS = 9000;", "const SCRIPT_TIMEOUT_MS = 100;")
+  .replace("const RUNTIME_READY_TIMEOUT_MS = 6000;", "const RUNTIME_READY_TIMEOUT_MS = 120;");
+
+async function executeLoader({ runtimeBuild = "12.6", readyDelayMs = 20, fail = () => false } = {}) {
   const loaded = [];
+  const notices = [];
   let disposedRuntimes = 0;
   let removedRuntimeScripts = 0;
   const window = {
     __SAC_PREVENCAO_V11_RUNTIME__: { dispose() { disposedRuntimes += 1; } },
     __SAC_PREVENCAO_V12_RUNTIME__: { dispose() { disposedRuntimes += 1; } },
-    __SAC_PREVENCAO_ACTIVE_BUILD__: "12.4"
+    __SAC_PREVENCAO_ACTIVE_BUILD__: "12.5"
   };
   const document = {
     querySelectorAll: () => [],
     getElementById: () => null,
-    createElement: () => ({ dataset: {}, style: {}, remove() { removedRuntimeScripts += 1; } }),
+    createElement(tag) {
+      return {
+        tag,
+        dataset: {},
+        style: {},
+        remove() { if (tag === "script") removedRuntimeScripts += 1; }
+      };
+    },
     documentElement: {
-      appendChild(script) {
-        loaded.push(script.src);
+      appendChild(node) {
+        if (node.tag !== "script") {
+          notices.push(node.textContent || "");
+          return;
+        }
+        loaded.push(node.src);
         queueMicrotask(() => {
-          if (script.src.includes("sac-prevencao-v12.js")) {
-            window.__SAC_PREVENCAO_ACTIVE_BUILD__ = typeof runtimeBuild === "function" ? runtimeBuild(script.src) : runtimeBuild;
+          if (fail(node.src)) {
+            node.onerror?.();
+            return;
           }
-          script.onload?.();
+          if (node.src.includes("sac-prevencao-v12.js")) {
+            setTimeout(() => { window.__SAC_PREVENCAO_ACTIVE_BUILD__ = runtimeBuild; }, readyDelayMs);
+          }
+          node.onload?.();
         });
       }
     }
   };
-  const context = {
-    window,
-    document,
-    console,
-    fetch: fetchImpl,
-    setTimeout,
-    clearTimeout,
-    queueMicrotask
-  };
+  const testConsole = { log() {}, warn() {}, error() {} };
+  const context = { window, document, console: testConsole, Date, Math, Object, Promise, setTimeout, clearTimeout, queueMicrotask };
 
   vm.createContext(context);
-  vm.runInContext(source, context);
-  for (let attempt = 0; attempt < 80 && !window.__SAC_PREVENCAO_V12_LOADER__; attempt += 1) {
+  vm.runInContext(executableSource, context, { filename: "loader-v12.js" });
+  for (let attempt = 0; attempt < 120 && !window.__SAC_PREVENCAO_V12_LOADER__ && !notices.length; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 5));
   }
-  return { loaded, state: window.__SAC_PREVENCAO_V12_LOADER__, disposedRuntimes, removedRuntimeScripts };
-}
-
-function response(payload, ok = true, status = 200) {
-  return { ok, status, json: async () => payload };
+  return { loaded, notices, state: window.__SAC_PREVENCAO_V12_LOADER__, disposedRuntimes, removedRuntimeScripts };
 }
 
 (async () => {
-  const apiCommit = "a".repeat(40);
-  const viaApi = await executeLoader(async () => response({ sha: apiCommit }));
-  assert.equal(viaApi.loaded.length, 8);
-  assert.equal(viaApi.removedRuntimeScripts, 8, "scripts temporários devem sair do DOM após o carregamento");
-  assert.equal(viaApi.disposedRuntimes, 2, "o loader deve encerrar runtimes de qualquer versão anterior");
-  assert.ok(viaApi.loaded.every((url) => url.includes(`@${apiCommit}/ANALISE/V12/`)));
-  assert.equal(viaApi.state.ref, apiCommit);
+  const delayedRuntime = await executeLoader({ readyDelayMs: 35 });
+  assert.equal(delayedRuntime.loaded.length, 8, "a inicialização assíncrona normal não pode provocar uma segunda carga");
+  assert.equal(delayedRuntime.notices.length, 0, "o Console não pode exibir erro enquanto o runtime ainda está inicializando");
+  assert.equal(delayedRuntime.disposedRuntimes, 2, "runtimes de versões anteriores devem ser encerrados");
+  assert.equal(delayedRuntime.removedRuntimeScripts, 8, "scripts temporários devem sair do DOM");
+  assert.ok(delayedRuntime.loaded.every((url) => url.includes(`@${runtimeRef}/ANALISE/V12/`)));
+  assert.ok(delayedRuntime.loaded.every((url) => url.includes("v=12.6.0-")));
+  assert.match(delayedRuntime.loaded[0], /sac-memory-v12\.js/);
+  assert.match(delayedRuntime.loaded.at(-1), /sac-prevencao-v12\.js/);
+  assert.deepEqual(JSON.parse(JSON.stringify(delayedRuntime.state)), { version: "12.6.0", ref: runtimeRef, build: "12.6" });
 
-  const manifestCommit = "b".repeat(40);
-  const viaManifest = await executeLoader(async (url) => {
-    if (url.includes("api.github.com")) return response({}, false, 403);
-    return response({ commit: manifestCommit });
+  let primaryFailed = false;
+  const providerFallback = await executeLoader({
+    fail(url) {
+      if (!primaryFailed && url.includes("cdn.jsdelivr.net") && url.includes("sac-memory-v12.js")) {
+        primaryFailed = true;
+        return true;
+      }
+      return false;
+    }
   });
-  assert.equal(viaManifest.loaded.length, 8);
-  assert.ok(viaManifest.loaded.every((url) => url.includes(`@${manifestCommit}/ANALISE/V12/`)));
-  assert.equal(viaManifest.state.ref, manifestCommit);
+  assert.equal(providerFallback.notices.length, 0);
+  assert.equal(providerFallback.loaded.length, 9, "uma falha pontual deve tentar o provedor alternativo sem recarregar tudo");
+  assert.match(providerFallback.loaded[1], /fastly\.jsdelivr\.net/);
+  assert.equal(providerFallback.state.build, "12.6");
 
-  const viaFallback = await executeLoader(async () => { throw new Error("offline"); });
-  assert.equal(viaFallback.loaded.length, 8);
-  assert.ok(viaFallback.loaded.every((url) => url.includes(`@${safeFallback}/ANALISE/V12/`)));
-  assert.equal(viaFallback.state.ref, safeFallback);
+  const staleRuntime = await executeLoader({ runtimeBuild: "12.5", readyDelayMs: 0 });
+  assert.equal(staleRuntime.loaded.length, 16, "uma build incorreta deve receber apenas uma repetição completa");
+  assert.equal(staleRuntime.state, undefined);
+  assert.equal(staleRuntime.notices.length, 1);
+  assert.match(staleRuntime.notices[0], /Não foi possível carregar a V12\.6/);
 
-  const staleCommit = "c".repeat(40);
-  const recoveredFromStale = await executeLoader(
-    async () => response({ sha: staleCommit }),
-    (url) => url.includes(`@${staleCommit}/`) ? "12.4" : "12.5"
-  );
-  assert.equal(recoveredFromStale.loaded.length, 16, "uma carga antiga deve ser descartada e refeita integralmente");
-  assert.ok(recoveredFromStale.loaded.slice(8).every((url) => url.includes(`@${safeFallback}/ANALISE/V12/`)));
-  assert.equal(recoveredFromStale.state.ref, safeFallback, "o Console deve terminar na revisão segura atual");
-  assert.equal(recoveredFromStale.state.build, "12.5");
-
-  assert.match(viaApi.loaded[0], /sac-memory-v12\.js/);
-  assert.match(viaApi.loaded.at(-1), /sac-prevencao-v12\.js/);
-  assert.ok(viaApi.loaded.every((url) => url.includes("v=12.5.1-")));
-  console.log("OK - carregador V12 validado por API, manifesto e revisão segura");
+  console.log("OK - loader V12.6 imutável, assíncrono e tolerante a falhas validado");
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;

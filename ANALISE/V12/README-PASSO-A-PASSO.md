@@ -315,7 +315,7 @@ O teste geral em `../tests/universal-production.test.cjs` confirma que o favorit
 ## Instalação
 
 1. Publique todos os arquivos da V12 na mesma revisão do repositório.
-2. Atualize `release-v12.json` para a revisão publicada. O loader consulta primeiro a revisão mais recente da branch, usa o manifesto como segunda fonte e rejeita qualquer runtime que não corresponda à build esperada.
+2. Atualize `release-v12.json` e o `RUNTIME_REF` do loader para a mesma revisão publicada. Todos os motores serão carregados desse snapshot imutável.
 3. Crie o favorito no Chrome uma única vez com o conteúdo de `bookmarklet-v12.txt`. Ele aponta para um loader imutável e não precisa ser recriado a cada ajuste do código-fonte.
-4. Altere `bookmarklet-v12.txt` ou a revisão segura do loader somente quando a arquitetura do próprio carregador mudar.
+4. Altere `bookmarklet-v12.txt` quando publicar um novo loader. O loader espera o runtime assíncrono ficar pronto antes de confirmar a execução e tenta provedores alternativos em caso de falha de rede.
 5. O favorito universal direciona para um loader imutável. Após publicar uma alteração do motor universal, invalide o caminho `@main` no jsDelivr para impedir que o Chrome receba uma cópia antiga.

@@ -2,12 +2,13 @@
   "use strict";
 
   const REPOSITORY = "attgiasi/SAC-PREVENCAO";
-  const BRANCH = "main";
   const BUILD_PATH = "ANALISE/V12";
-  const LOADER_VERSION = "12.5.1";
-  const EXPECTED_RUNTIME_BUILD = "12.5";
-  const SAFE_FALLBACK_REF = "a211692114222606d6c3a3e33444d29805f1bffd";
-  const RELEASE_MANIFEST = `https://raw.githubusercontent.com/${REPOSITORY}/${BRANCH}/${BUILD_PATH}/release-v12.json`;
+  const LOADER_VERSION = "12.6.0";
+  const EXPECTED_RUNTIME_BUILD = "12.6";
+  const RUNTIME_REF = "dfa7aa9812eb0dcd0a62818a66763935a90227bd";
+  const SCRIPT_TIMEOUT_MS = 9000;
+  const RUNTIME_READY_TIMEOUT_MS = 6000;
+  const LOAD_TOKEN = `${LOADER_VERSION}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const FILES = Object.freeze([
     "sac-memory-v12.js",
     "sac-counterparty-v12.js",
@@ -50,81 +51,37 @@
       });
   }
 
-  function validCommit(value) {
-    return /^[a-f0-9]{40}$/i.test(String(value || "")) ? String(value) : "";
-  }
-
-  function fetchJson(url, options = {}) {
-    return new Promise((resolve, reject) => {
-      const controller = typeof AbortController === "function" ? new AbortController() : null;
-      const timer = setTimeout(() => {
-        controller?.abort();
-        reject(new Error("Tempo excedido ao consultar a versão."));
-      }, 4500);
-      fetch(url, { cache: "no-store", ...options, ...(controller ? { signal: controller.signal } : {}) })
-        .then((response) => {
-          if (!response.ok) throw new Error(`Consulta de versão falhou (${response.status}).`);
-          return response.json();
-        })
-        .then((payload) => {
-          clearTimeout(timer);
-          resolve(payload);
-        })
-        .catch((error) => {
-          clearTimeout(timer);
-          reject(error);
-        });
-    });
-  }
-
-  async function latestCommit() {
-    const resolvers = [
-      async () => {
-        const payload = await fetchJson(`https://api.github.com/repos/${REPOSITORY}/commits/${BRANCH}?cache=${Date.now()}`, {
-          headers: { Accept: "application/vnd.github+json" }
-        });
-        return validCommit(payload?.sha);
-      },
-      async () => {
-        const payload = await fetchJson(`${RELEASE_MANIFEST}?cache=${Date.now()}`);
-        return validCommit(payload?.commit);
-      }
-    ];
-
-    for (const resolveCommit of resolvers) {
-      try {
-        const commit = await resolveCommit();
-        if (commit) return commit;
-      } catch (_error) {
-        // Tenta a próxima fonte sem interromper a execução do favorito.
-      }
-    }
-    return SAFE_FALLBACK_REF;
-  }
+  const isCurrentLoad = () => window.__SAC_PREVENCAO_LOADING_TOKEN__ === LOAD_TOKEN;
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   function appendScript(source, file) {
     return new Promise((resolve, reject) => {
       const script = document.createElement("script");
+      let settled = false;
+      const finish = (error = null) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        script.remove();
+        if (error) reject(error);
+        else resolve();
+      };
       script.dataset.sacV12Runtime = LOADER_VERSION;
       script.src = source;
       script.async = false;
-      script.onload = () => {
-        script.remove();
-        resolve();
-      };
-      script.onerror = () => {
-        script.remove();
-        reject(new Error(`Falha ao carregar ${file}.`));
-      };
+      script.onload = () => finish(isCurrentLoad() ? null : new Error("Carregamento substituído por uma execução mais recente."));
+      script.onerror = () => finish(new Error(`Falha ao carregar ${file}.`));
+      const timer = setTimeout(() => finish(new Error(`Tempo excedido ao carregar ${file}.`)), SCRIPT_TIMEOUT_MS);
       document.documentElement.appendChild(script);
     });
   }
 
-  async function loadScript(file, ref) {
+  async function loadScript(file) {
     const cacheKey = `${LOADER_VERSION}-${Date.now()}`;
     const sources = [
-      `https://cdn.jsdelivr.net/gh/${REPOSITORY}@${ref}/${BUILD_PATH}/${file}?v=${cacheKey}`,
-      `https://raw.githubusercontent.com/${REPOSITORY}/${ref}/${BUILD_PATH}/${file}?v=${cacheKey}`
+      `https://cdn.jsdelivr.net/gh/${REPOSITORY}@${RUNTIME_REF}/${BUILD_PATH}/${file}?v=${cacheKey}`,
+      `https://fastly.jsdelivr.net/gh/${REPOSITORY}@${RUNTIME_REF}/${BUILD_PATH}/${file}?v=${cacheKey}`,
+      `https://gcore.jsdelivr.net/gh/${REPOSITORY}@${RUNTIME_REF}/${BUILD_PATH}/${file}?v=${cacheKey}`
     ];
     let lastError;
     for (const source of sources) {
@@ -138,21 +95,31 @@
     throw lastError || new Error(`Falha ao carregar ${file}.`);
   }
 
-  async function loadRuntime(ref) {
-    const runtimeFiles = FILES.slice(0, -1);
-    await Promise.all(runtimeFiles.map((file) => loadScript(file, ref)));
-    await loadScript(FILES.at(-1), ref);
+  async function loadRuntime() {
+    for (const file of FILES) {
+      if (!isCurrentLoad()) throw new Error("Carregamento substituído por uma execução mais recente.");
+      await loadScript(file);
+    }
   }
 
   function runtimeIsCurrent() {
     return String(window.__SAC_PREVENCAO_ACTIVE_BUILD__ || "") === EXPECTED_RUNTIME_BUILD;
   }
 
+  async function waitForRuntimeReady() {
+    const deadline = Date.now() + RUNTIME_READY_TIMEOUT_MS;
+    while (isCurrentLoad() && Date.now() < deadline) {
+      if (runtimeIsCurrent()) return true;
+      await wait(50);
+    }
+    return runtimeIsCurrent();
+  }
+
   function showLoaderError(error) {
     console.error("SAC Prevenção V12", error);
     const notice = document.createElement("div");
     notice.id = "sac-loader-v12-error";
-    notice.textContent = "Não foi possível carregar a V12 atual. Execute o favorito novamente.";
+    notice.textContent = "Não foi possível carregar a V12.6. Verifique a conexão e execute o favorito novamente.";
     Object.assign(notice.style, {
       position: "fixed", left: "50%", bottom: "16px", transform: "translateX(-50%)",
       zIndex: "2147483647", maxWidth: "360px", padding: "9px 12px",
@@ -165,18 +132,22 @@
     setTimeout(() => notice.remove(), 12000);
   }
 
+  window.__SAC_PREVENCAO_LOADING_TOKEN__ = LOAD_TOKEN;
   try {
-    removePreviousRuntime();
-    let ref = await latestCommit();
-    await loadRuntime(ref);
-    if (!runtimeIsCurrent() && ref !== SAFE_FALLBACK_REF) {
+    let ready = false;
+    for (let attempt = 1; attempt <= 2 && !ready; attempt += 1) {
       removePreviousRuntime();
-      ref = SAFE_FALLBACK_REF;
-      await loadRuntime(ref);
+      await loadRuntime();
+      ready = await waitForRuntimeReady();
+      if (!ready && attempt < 2) await wait(180);
     }
-    if (!runtimeIsCurrent()) throw new Error(`Build carregada não corresponde à V${EXPECTED_RUNTIME_BUILD}.`);
-    window.__SAC_PREVENCAO_V12_LOADER__ = Object.freeze({ version: LOADER_VERSION, ref, build: EXPECTED_RUNTIME_BUILD });
+    if (!ready) throw new Error(`A inicialização da V${EXPECTED_RUNTIME_BUILD} não foi concluída.`);
+    window.__SAC_PREVENCAO_V12_LOADER__ = Object.freeze({ version: LOADER_VERSION, ref: RUNTIME_REF, build: EXPECTED_RUNTIME_BUILD });
   } catch (error) {
-    showLoaderError(error);
+    if (isCurrentLoad()) showLoaderError(error);
+  } finally {
+    if (isCurrentLoad()) {
+      try { delete window.__SAC_PREVENCAO_LOADING_TOKEN__; } catch (_error) { window.__SAC_PREVENCAO_LOADING_TOKEN__ = undefined; }
+    }
   }
 })();

@@ -11,7 +11,7 @@ Arquivos carregados pelo favorito:
 - `V12/loader-v12.js`
 - motores `V12/sac-*.js`
 
-O carregador universal aponta para a V12 por um loader imutável. Esse loader resolve a revisão mais recente publicada, rejeita runtimes antigos e só então carrega os motores na ordem correta.
+O carregador universal aponta para a V12 por um loader imutável. Cada publicação fixa os oito motores em uma única revisão, aguarda a inicialização completa do runtime e usa provedores alternativos sem misturar versões.
 
 ## Versões mantidas
 
